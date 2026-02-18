@@ -1,0 +1,20 @@
+{
+  "name": "workspace",
+  "dependencies": {
+    "dotenv": {
+      "version": "17.3.1",
+      "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.3.1.tgz",
+      "overridden": false
+    },
+    "ethers": {
+      "version": "6.16.0",
+      "resolved": "https://registry.npmjs.org/ethers/-/ethers-6.16.0.tgz",
+      "overridden": false
+    },
+    "web3": {
+      "version": "4.16.0",
+      "resolved": "https://registry.npmjs.org/web3/-/web3-4.16.0.tgz",
+      "overridden": false
+    }
+  }
+}
