@@ -20,3 +20,8 @@
   - Branch: `master` (Default, unified from main)
   - Auth: Personal Access Token (PAT)
 - **Deployment**: Running in VPS/Docker/Ubuntu environment. Security focuses on SSH key auth, UFW firewall, and container isolation.
+
+### Future Strategy: Agent Autonomy
+- **aGDP.io (Agent Commerce Protocol)**: Targeted for establishing agent identity, wallet integration, and autonomous commerce.
+- **Virtuals Protocol**: Goal to evolve Neo into a revenue-generating asset with tokenized value accrual.
+- **Development Path**: Exploring the use of Claude Code or specialized coding models (Claude 3.5 Sonnet) for self-evolving skill development.
