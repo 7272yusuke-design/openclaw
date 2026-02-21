@@ -35,7 +35,8 @@ class BuilderDivisionEstimator():
     def builder_engineer(self) -> Agent:
         return Agent(
             config=self.agents_config['builder_engineer'],
-            llm=self.deepseek_llm, # DeepSeek V3 に差し戻し
+            llm=self.deepseek_llm,
+            tools=[self.calc_tool], # Write機能はNeoがサポートするか、直接許可を与える必要があります
             verbose=True
         )
 
@@ -46,9 +47,9 @@ class BuilderDivisionEstimator():
         )
 
     @task
-    def implementation_task_step1(self) -> Task:
+    def testing_task_step1(self) -> Task:
         return Task(
-            config=self.tasks_config['implementation_task_step1'],
+            config=self.tasks_config['testing_task_step1'],
         )
 
     @crew

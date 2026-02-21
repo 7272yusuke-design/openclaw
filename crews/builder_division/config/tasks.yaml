@@ -8,13 +8,13 @@ technical_design_task:
     A comprehensive Technical Design Document including a detailed development task list.
   agent: technical_architect
 
-implementation_task_step1:
+testing_task_step1:
   description: >
-    1. Review the Technical Design for the "Protocol Bridge" module.
-    2. Write the Python code for `protocol_bridge.py`.
-    3. The code must interact with the Virtuals SDK (assume the SDK is in `libs/virtuals-sdk`).
-    4. Implement basic functions: connect to the protocol, fetch agent status, and send logs.
-    5. Save the code to a file named `output/protocol_bridge.py`.
+    1. Review the generated code in `output/protocol_bridge.py`.
+    2. Write a Python unit test file `test_protocol_bridge.py` using `unittest` or simple `assert` statements.
+    3. The test should verify that the `ProtocolBridge` class can be initialized and that its methods (connect, fetch_status) are callable.
+    4. Use mocking or dummy values for actual network connections to avoid API calls.
+    5. Save the test file to `output/test_protocol_bridge.py`.
   expected_output: >
-    A fully functional Python file `protocol_bridge.py` with necessary logic and comments.
+    A Python test script `test_protocol_bridge.py` that successfully verifies the module.
   agent: builder_engineer
