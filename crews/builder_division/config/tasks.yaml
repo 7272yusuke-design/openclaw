@@ -1,0 +1,20 @@
+technical_design_task:
+  description: >
+    1. Read the provided business planning document.
+    2. Define the overall software architecture (files, classes, modules).
+    3. Break down the development into a numbered list of tasks (e.g., Task 1: API connection, Task 2: Logic).
+    4. Specify the recommended LLM for each task (e.g., DeepSeek for routine, Claude for complex).
+  expected_output: >
+    A comprehensive Technical Design Document including a detailed development task list.
+  agent: technical_architect
+
+implementation_task_step1:
+  description: >
+    1. Review the Technical Design for the "Protocol Bridge" module.
+    2. Write the Python code for `protocol_bridge.py`.
+    3. The code must interact with the Virtuals SDK (assume the SDK is in `libs/virtuals-sdk`).
+    4. Implement basic functions: connect to the protocol, fetch agent status, and send logs.
+    5. Save the code to a file named `output/protocol_bridge.py`.
+  expected_output: >
+    A fully functional Python file `protocol_bridge.py` with necessary logic and comments.
+  agent: builder_engineer
