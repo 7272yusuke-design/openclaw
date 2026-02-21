@@ -1,9 +1,11 @@
 research_task:
   description: >
-    Research the current state of {customer_domain} and identify gaps for new agents.
-    Use the current year as {current_year}.
+    1. Use the Market Data Tool to fetch the LATEST real-time stats for $VIRTUAL.
+    2. Analyze the current price, market cap, and volume trends.
+    3. Identify market gaps and growth opportunities for new AI agents based on these REAL numbers.
+    4. Provide a structured report including current market context.
   expected_output: >
-    A report on market gaps and opportunities for new AI agents.
+    A real-time market analysis report for Virtuals Protocol, including current $VIRTUAL stats and identified gaps.
   agent: lead_market_analyst
 
 financial_analysis_task:

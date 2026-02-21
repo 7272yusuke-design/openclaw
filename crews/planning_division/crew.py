@@ -4,6 +4,7 @@ from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 
 from tools.calculator_tool import CalculatorTool
+from tools.market_data_tool import MarketDataTool
 
 @CrewBase
 class PlanningDivisionCrew():
@@ -19,12 +20,14 @@ class PlanningDivisionCrew():
             api_key=os.environ.get("OPENROUTER_API_KEY")
         )
         self.calc_tool = CalculatorTool()
+        self.market_tool = MarketDataTool()
 
     @agent
     def lead_market_analyst(self) -> Agent:
         return Agent(
             config=self.agents_config['lead_market_analyst'],
             llm=self.deepseek_llm,
+            tools=[self.market_tool], # 本物のデータツールを装備
             verbose=True
         )
 
