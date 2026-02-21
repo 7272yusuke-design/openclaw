@@ -1,22 +1,11 @@
-design_agent_runner_task:
+design_integrity_analysis_protocol:
   description: >
-    1. Define the orchestration logic for the `agent_runner.py` script.
-    2. The runner should integrate `ProtocolBridge` for communication and `LiquidityManager` for logic.
-    3. Define a main execution loop that: 
-       - Fetches market data via Bridge.
-       - Passes data to Manager to get the optimal strategy.
-       - Executes the strategy and logs the result back via Bridge.
-    4. Include error handling and a "dry-run" mode for safe simulation.
+    1. Define a standardized "Agent Integrity Score" protocol to evaluate other AI agents.
+    2. Criteria must include:
+       - Value Analysis: What actual problem does the agent solve? (Niche, Utility, Demand).
+       - Logic Audit: Guidelines for reviewing open-source code or whitepapers for security risks and originality.
+       - Activity Verification: How to verify the agent is truly autonomous via on-chain/social data.
+    3. The protocol should output a score from 0-100 and a "Invest/Avoid" recommendation.
   expected_output: >
-    A technical architecture document for the Agent Runner.
+    A formal Agent Evaluation Protocol document (Markdown).
   agent: technical_architect
-
-implementation_task_step3:
-  description: >
-    1. Write the Python code for `output/agent_runner.py`.
-    2. Import `ProtocolBridge` and `LiquidityManager`.
-    3. Implement the execution loop and integration logic as designed by the Architect.
-    4. Ensure the script is easy to launch and provides clear console output of the agent's "thoughts".
-  expected_output: >
-    A fully integrated `agent_runner.py` file ready for simulation.
-  agent: builder_engineer

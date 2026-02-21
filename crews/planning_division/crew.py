@@ -49,9 +49,9 @@ class PlanningDivisionCrew():
         )
 
     @task
-    def research_task(self) -> Task:
+    def luna_integrity_audit_task(self) -> Task:
         return Task(
-            config=self.tasks_config['research_task'],
+            config=self.tasks_config['luna_integrity_audit_task'],
         )
 
     @task
