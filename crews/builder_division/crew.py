@@ -34,15 +34,15 @@ class BuilderDivisionEstimator():
         )
 
     @task
-    def design_liquidity_logic_task(self) -> Task:
+    def design_agent_runner_task(self) -> Task:
         return Task(
-            config=self.tasks_config['design_liquidity_logic_task'],
+            config=self.tasks_config['design_agent_runner_task'],
         )
 
     @task
-    def implementation_task_step2(self) -> Task:
+    def implementation_task_step3(self) -> Task:
         return Task(
-            config=self.tasks_config['implementation_task_step2'],
+            config=self.tasks_config['implementation_task_step3'],
         )
 
     @crew

@@ -1,21 +1,22 @@
-design_liquidity_logic_task:
+design_agent_runner_task:
   description: >
-    1. Define the technical architecture for the "Liquidity Manager" module.
-    2. Focus on an algorithm that optimizes liquidity provision for AI agent tokens on Virtuals Protocol.
-    3. The logic should consider: current price ($0.64), volume, and volatility.
-    4. Outline the functions needed: `analyze_pairs()`, `calculate_optimal_allocation()`, and `simulate_revenue()`.
-    5. Ensure the design integrates with the previously developed `ProtocolBridge`.
+    1. Define the orchestration logic for the `agent_runner.py` script.
+    2. The runner should integrate `ProtocolBridge` for communication and `LiquidityManager` for logic.
+    3. Define a main execution loop that: 
+       - Fetches market data via Bridge.
+       - Passes data to Manager to get the optimal strategy.
+       - Executes the strategy and logs the result back via Bridge.
+    4. Include error handling and a "dry-run" mode for safe simulation.
   expected_output: >
-    A detailed technical design document for the Liquidity Manager module.
+    A technical architecture document for the Agent Runner.
   agent: technical_architect
 
-implementation_task_step2:
+implementation_task_step3:
   description: >
-    1. Implement the `LiquidityManager` class in `output/liquidity_manager.py`.
-    2. Use `pandas` and `numpy` for data analysis and calculations.
-    3. Include logic for identifying high-yield liquidity pairs on Virtuals Protocol based on real-time data flow.
-    4. Implement the allocation algorithm defined by the Architect.
-    5. Add comprehensive docstrings and comments explaining the math.
+    1. Write the Python code for `output/agent_runner.py`.
+    2. Import `ProtocolBridge` and `LiquidityManager`.
+    3. Implement the execution loop and integration logic as designed by the Architect.
+    4. Ensure the script is easy to launch and provides clear console output of the agent's "thoughts".
   expected_output: >
-    A robust Python file `liquidity_manager.py` with algorithmic liquidity management logic.
+    A fully integrated `agent_runner.py` file ready for simulation.
   agent: builder_engineer
