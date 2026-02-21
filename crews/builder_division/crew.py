@@ -34,9 +34,15 @@ class BuilderDivisionEstimator():
         )
 
     @task
-    def design_integrity_analysis_protocol(self) -> Task:
+    def design_game_framework_integration(self) -> Task:
         return Task(
-            config=self.tasks_config['design_integrity_analysis_protocol'],
+            config=self.tasks_config['design_game_framework_integration'],
+        )
+
+    @task
+    def implementation_task_step4(self) -> Task:
+        return Task(
+            config=self.tasks_config['implementation_task_step4'],
         )
 
     @crew

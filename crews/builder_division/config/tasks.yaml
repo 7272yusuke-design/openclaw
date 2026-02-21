@@ -1,11 +1,19 @@
-design_integrity_analysis_protocol:
+design_game_framework_integration:
   description: >
-    1. Define a standardized "Agent Integrity Score" protocol to evaluate other AI agents.
-    2. Criteria must include:
-       - Value Analysis: What actual problem does the agent solve? (Niche, Utility, Demand).
-       - Logic Audit: Guidelines for reviewing open-source code or whitepapers for security risks and originality.
-       - Activity Verification: How to verify the agent is truly autonomous via on-chain/social data.
-    3. The protocol should output a score from 0-100 and a "Invest/Avoid" recommendation.
+    1. Design the integration of "GAME Framework" (from virtuals-sdk) into our agent.
+    2. Define how to use `Agent`, `Worker`, and `Function` classes from the SDK.
+    3. Include a "Twitter Integration" design where the agent uses a `TwitterWorker` to post updates.
+    4. Ensure the `LiquidityManager` logic can be called as a custom `Function` within the GAME framework.
   expected_output: >
-    A formal Agent Evaluation Protocol document (Markdown).
+    A Technical Blueprint for the GAME-enabled Agent Runner.
   agent: technical_architect
+
+implementation_task_step4:
+  description: >
+    1. Write the Python code for `output/game_ready_runner.py`.
+    2. Implement the `GAME` logic: initialize a Virtuals Agent, add a Liquidity Worker and a Twitter Worker.
+    3. Ensure the code imports from `libs/virtuals-sdk` correctly.
+    4. Add a feature to post autonomous activity logs to Twitter (mocked if no key).
+  expected_output: >
+    A production-ready `game_ready_runner.py` integrated with Virtuals SDK.
+  agent: builder_engineer
