@@ -1,0 +1,23 @@
+research_task:
+  description: >
+    Research the current state of {customer_domain} and identify gaps for new agents.
+    Use the current year as {current_year}.
+  expected_output: >
+    A report on market gaps and opportunities for new AI agents.
+  agent: lead_market_analyst
+
+financial_analysis_task:
+  description: >
+    Based on the market research, calculate the potential ROI for the project: {project_description}.
+    Estimate development costs and revenue models.
+  expected_output: >
+    A financial viability report with ROI calculations.
+  agent: financial_analyst
+
+review_task:
+  description: >
+    Review the market research and financial report. Ensure they are logically
+    consistent and the project description is well-supported.
+  expected_output: >
+    A final, approved planning document or a list of required revisions.
+  agent: creative_director

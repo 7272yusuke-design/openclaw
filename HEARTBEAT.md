@@ -1,11 +1,14 @@
----
-summary: "Workspace template for HEARTBEAT.md"
-read_when:
-  - Bootstrapping a workspace manually
----
+# HEARTBEAT.md - Neo's Autonomous Maintenance Loop
 
-# HEARTBEAT.md
+## 定期実行タスク
+1. **記憶の自動整理**:
+    - 直近のメッセージ履歴を確認し、決定事項や調査結果を `memory/YYYY-MM-DD.md` に追記。特に「企画開発部隊」の構築に関する進展を逃さず記録する。
+2. **タスクの動的再評価**:
+    - 現在の目標（エージェント経済圏での企画部隊構築等）に対し、自分のタスクが最適か再確認。必要であれば、改善案や新しいサブタスクを考案・提示する。
+3. **システムと挙動の最適化**:
+    - `session_status` を確認し、コンテキストの使用率が40%を超えている場合、またはAPI制限が懸念される場合に、コンテキストの要約やモデルの切り替え（Flash-Liteへの一時移行等）を検討し、挙動を最適化する。
 
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
-
-# Add tasks below when you want the agent to check something periodically.
+## 現在進行中の優先事項
+- `analyze_virtuals.py` の解析によるプロトコル連携の具体化。
+- MoltbookNexusの復旧監視。
+- Discordコミュニティの活性化。
