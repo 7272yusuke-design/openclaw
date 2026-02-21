@@ -1,20 +1,21 @@
-technical_design_task:
+design_liquidity_logic_task:
   description: >
-    1. Read the provided business planning document.
-    2. Define the overall software architecture (files, classes, modules).
-    3. Break down the development into a numbered list of tasks (e.g., Task 1: API connection, Task 2: Logic).
-    4. Specify the recommended LLM for each task (e.g., DeepSeek for routine, Claude for complex).
+    1. Define the technical architecture for the "Liquidity Manager" module.
+    2. Focus on an algorithm that optimizes liquidity provision for AI agent tokens on Virtuals Protocol.
+    3. The logic should consider: current price ($0.64), volume, and volatility.
+    4. Outline the functions needed: `analyze_pairs()`, `calculate_optimal_allocation()`, and `simulate_revenue()`.
+    5. Ensure the design integrates with the previously developed `ProtocolBridge`.
   expected_output: >
-    A comprehensive Technical Design Document including a detailed development task list.
+    A detailed technical design document for the Liquidity Manager module.
   agent: technical_architect
 
-testing_task_step1:
+implementation_task_step2:
   description: >
-    1. Review the generated code in `output/protocol_bridge.py`.
-    2. Write a Python unit test file `test_protocol_bridge.py` using `unittest` or simple `assert` statements.
-    3. The test should verify that the `ProtocolBridge` class can be initialized and that its methods (connect, fetch_status) are callable.
-    4. Use mocking or dummy values for actual network connections to avoid API calls.
-    5. Save the test file to `output/test_protocol_bridge.py`.
+    1. Implement the `LiquidityManager` class in `output/liquidity_manager.py`.
+    2. Use `pandas` and `numpy` for data analysis and calculations.
+    3. Include logic for identifying high-yield liquidity pairs on Virtuals Protocol based on real-time data flow.
+    4. Implement the allocation algorithm defined by the Architect.
+    5. Add comprehensive docstrings and comments explaining the math.
   expected_output: >
-    A Python test script `test_protocol_bridge.py` that successfully verifies the module.
+    A robust Python file `liquidity_manager.py` with algorithmic liquidity management logic.
   agent: builder_engineer
