@@ -34,16 +34,16 @@ class BuilderDivisionEstimator():
         )
 
     @task
-    def implement_sentiment_components(self) -> Task:
+    def design_real_data_fetcher(self) -> Task:
         return Task(
-            config=self.tasks_config['implement_sentiment_components'],
+            config=self.tasks_config['design_real_data_fetcher'],
         )
 
     @crew
     def crew(self) -> Crew:
         return Crew(
             agents=self.agents,
-            tasks=[self.implement_sentiment_components()], # Only run the implementation task
+            tasks=[self.design_real_data_fetcher()], # Run the data fetcher design task
             process=Process.sequential,
             verbose=True,
         )
