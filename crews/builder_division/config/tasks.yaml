@@ -1,19 +1,32 @@
 design_game_framework_integration:
   description: >
-    1. Design the integration of "GAME Framework" (from virtuals-sdk) into our agent.
-    2. Define how to use `Agent`, `Worker`, and `Function` classes from the SDK.
-    3. Include a "Twitter Integration" design where the agent uses a `TwitterWorker` to post updates.
-    4. Ensure the `LiquidityManager` logic can be called as a custom `Function` within the GAME framework.
+    Based on the "Micro-Agent Architecture" philosophy, design a fault-tolerant, standalone "SentimentWorker" for the Virtuals Protocol agent.
+
+    1. **Decoupled Architecture**:
+       - Design the worker to operate independently. Even if it crashes, the LiquidityWorker must continue safe operations.
+       - Define a strict, read-only API contract for data output.
+
+    2. **Composition over Generation**:
+       - Instead of designing a monolithic AI model, design a pipeline using "Verified Components" (e.g., KeywordMatcher, VolumeSpikeDetector, InfluenceWeighter).
+       - The Builder's job is to configure the thresholds and weights of these components, not to write raw parsing logic from scratch.
+
+    3. **Double-Check Mechanism**:
+       - Include a "Sanity Check" layer in the design. (e.g., If sentiment flips 180 degrees in 1 minute, flag for human/Monitor review instead of auto-execution).
+
+    4. **Output Definition**:
+       - Define the JSON schema for the `SentimentSignal` that triggers the Builder.
+       - Example: { "target": "VIRTUAL", "signal": "BUY", "confidence": 0.85, "trigger_source": "high_kol_consensus" }
+
   expected_output: >
-    A Technical Blueprint for the GAME-enabled Agent Runner.
+    A Technical Specification for the SentimentWorker (Markdown), focusing on interface definitions, component composition, and fail-safe mechanisms.
   agent: technical_architect
 
 implementation_task_step4:
   description: >
-    1. Write the Python code for `output/game_ready_runner.py`.
-    2. Implement the `GAME` logic: initialize a Virtuals Agent, add a Liquidity Worker and a Twitter Worker.
-    3. Ensure the code imports from `libs/virtuals-sdk` correctly.
-    4. Add a feature to post autonomous activity logs to Twitter (mocked if no key).
+    1. Review the Technical Specification provided by the Architect.
+    2. Create a Python class structure for the `SentimentWorker` that reflects the decoupled design.
+    3. Implement the "Sanity Check" logic (Circuit Breaker) as a reusable component.
+    4. Do NOT implement the full fetching logic yet; focus on the architectural skeleton and data interfaces.
   expected_output: >
-    A production-ready `game_ready_runner.py` integrated with Virtuals SDK.
+    Python source code for the `SentimentWorker` skeleton and `SanityCheck` component.
   agent: builder_engineer
