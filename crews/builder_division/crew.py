@@ -34,22 +34,16 @@ class BuilderDivisionEstimator():
         )
 
     @task
-    def design_game_framework_integration(self) -> Task:
+    def implement_sentiment_components(self) -> Task:
         return Task(
-            config=self.tasks_config['design_game_framework_integration'],
-        )
-
-    @task
-    def implementation_task_step4(self) -> Task:
-        return Task(
-            config=self.tasks_config['implementation_task_step4'],
+            config=self.tasks_config['implement_sentiment_components'],
         )
 
     @crew
     def crew(self) -> Crew:
         return Crew(
             agents=self.agents,
-            tasks=self.tasks,
+            tasks=[self.implement_sentiment_components()], # Only run the implementation task
             process=Process.sequential,
             verbose=True,
         )
