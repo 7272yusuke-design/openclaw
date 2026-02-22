@@ -1,4 +1,3 @@
-```python
 import time
 from dataclasses import dataclass
 from typing import List, Dict, Optional
@@ -40,11 +39,11 @@ class VolumeSpikeDetector:
 class MockDataFetcher:
     def __init__(self, sample_messages: Optional[List[str]] = None):
         self.sample_messages = sample_messages or [
-            "Buy $VIRTUAL now! Moon incoming!",
-            "I'm selling all my $VIRTUAL, too much FUD",
-            "$VIRTUAL to the moon! Buy the dip!",
+            "Buy VIRTUAL now! Moon incoming!",
+            "I'm selling all my VIRTUAL, too much FUD",
+            "VIRTUAL to the moon! Buy the dip!",
             "Market looks bearish, might sell soon",
-            "FUD is spreading about $VIRTUAL"
+            "FUD is spreading about VIRTUAL"
         ]
     
     def fetch(self) -> List[str]:
@@ -95,7 +94,7 @@ class SentimentWorker:
 if __name__ == "__main__":
     # Configuration
     config = {
-        "keywords": ["$VIRTUAL", "buy", "sell", "moon", "fud"],
+        "keywords": ["VIRTUAL", "buy", "sell", "moon", "fud"],
         "baseline_threshold": 3,
         "polling_interval": 2
     }
@@ -112,4 +111,3 @@ if __name__ == "__main__":
     
     # Uncomment to run continuously
     # worker.run_continuous()
-```
