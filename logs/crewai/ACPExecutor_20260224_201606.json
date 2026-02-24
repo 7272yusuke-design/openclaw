@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260224_201606",
+  "crew_name": "ACPExecutor",
+  "usage": "N/A",
+  "final_output": "status='pending' summary='Provide 20000 USDT liquidity for 30 days with AA credit rating, 4.0% interest, and 1.2 collateral ratio' acp_payload=AcpPayload(action_type=<ActionType.LIQUIDITY_PROVISION: 'liquidity_provision'>, parameters={'operation': 'provide', 'amount': 20000, 'asset': 'USDT', 'duration_days': 30, 'target_rating': 'AA', 'interest_rate': 4.0, 'collateral_ratio': 1.2}, risk_level=<RiskLevel.MEDIUM: 'medium'>)"
+}
