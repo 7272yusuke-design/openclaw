@@ -20,8 +20,8 @@ USE_CACHE = ENVIRONMENT != "production"
 DEBUG_LOGGING = ENVIRONMENT == "development"
 
 # --- LLM モデル設定 ---
-# ユーザーの指示により、全ての LLM 呼び出しで DeepSeek V3 を使用する
-DEFAULT_LLM_MODEL = "openrouter/deepseek/deepseek-chat"
+# 開発部隊のために DeepSeek Coder 33B モデルを使用する
+DEFAULT_LLM_MODEL = "openrouter/deepseek-coder-33b"
 
 # --- キャッシュ設定 ---
 # ユーザーの指示により、キャッシュ期間を短く設定
@@ -222,11 +222,11 @@ class NeoSystem:
         # 1. 信用スコアの取得
         credit_score_result = self.calculate_credit(target_agent_profile_data)
         
-        if credit_score_result.get("status") == "error":
+        if isinstance(credit_score_result, dict) and credit_score_result.get("status") == "error":
             return {"status": "error", "message": f"Failed to get credit score: {credit_score_result.get('message')}"}
 
-        score = credit_score_result.get("total_score")
-        rating = credit_score_result.get("rating")
+        score = credit_score_result.total_score
+        rating = credit_score_result.rating
 
         print(f"Target Agent Credit Score: {score}, Rating: {rating}")
 
@@ -268,7 +268,7 @@ class NeoSystem:
             return {"status": "info", "message": "Transaction amount is zero or exceeds limits based on credit score."}
 
         # ACP Executor に渡す戦略とコンテキストを構築
-        strategy = f"Lend {actual_loan_amount} units of asset X to agent with {rating} rating at {interest_rate*100}% interest, collateral ratio {collateral_ratio}."
+        strategy = f"liquidity_provision action: provide, amount={actual_loan_amount}, asset={transaction_details.get('asset', 'UNKNOWN')}, duration_days={transaction_details.get('duration_days', 'N/A')}, target_rating={rating}, interest_rate={interest_rate*100}, collateral_ratio={collateral_ratio}"
         context = f"Executing credit transaction for {actual_loan_amount} based on {rating} credit score. Details: {transaction_details}"
 
         print(f"ACP Executor Strategy: {strategy}")
