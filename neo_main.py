@@ -8,6 +8,7 @@ from agents.development_agent import DevelopmentCrew
 from agents.acp_executor_agent import ACPExecutorCrew
 from tools.data_fetcher import DataFetcher
 from tools.moltbook_tool import MoltbookTool
+from tools.credit_score import CreditScoreCalculator, CreditProfile
 
 class NeoSystem:
     """
@@ -51,6 +52,15 @@ class NeoSystem:
         """ACP運用部隊を派遣する"""
         print(f"派遣中: ACPExecutorCrew...")
         return self.acp_executor_crew.run(strategy, context)
+
+    def calculate_credit(self, profile_data: dict):
+        """信用スコア計算ツールを実行する"""
+        print(f"実行中: CreditScoreCalculator...")
+        try:
+            profile = CreditProfile(**profile_data)
+            return CreditScoreCalculator.calculate(profile)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
     def autonomous_post_cycle(self, topic: str):
         """
