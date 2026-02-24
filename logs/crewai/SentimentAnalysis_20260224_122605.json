@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260224_122605",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場の感情スコアは0.7と高く、aGDPが$470M、Fear Indexが14と低いことから、市場はポジティブで安定している。価格$0.62も維持され、成長期待が高い。' virtuals_payload={'aGDP': 470000000, 'Fear_Index': 14, 'Price': 0.62, 'Sentiment_Score': 0.7} next_action_suggestion='市場のポジティブな感情を利用して、Virtuals Protocolのエコシステム拡大を促進するためのマーケティングキャンペーンを強化する。'"
+}

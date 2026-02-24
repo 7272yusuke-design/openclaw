@@ -21,7 +21,19 @@
   - Auth: Personal Access Token (PAT)
 - **Deployment**: Running in VPS/Docker/Ubuntu environment. Security focuses on SSH key auth, UFW firewall, and container isolation.
 
-### Future Strategy: Agent Autonomy
-- **aGDP.io (Agent Commerce Protocol)**: Targeted for establishing agent identity, wallet integration, and autonomous commerce.
-- **Virtuals Protocol**: Goal to evolve Neo into a revenue-generating asset with tokenized value accrual.
-- **Development Path**: Exploring the use of Claude Code or specialized coding models (Claude 3.5 Sonnet) for self-evolving skill development.
+### Neo 2.0: CrewAI Hybrid Architecture (Feb 2026)
+- **Core Architecture**: Migrated to a modular structure (`core/`, `agents/`, `tools/`).
+- **Standardized Foundation**:
+    - `core/config.py`: Centralized LLM (DeepSeek-V3 via OpenRouter) and safety constraints (`max_iter`, `max_rpm`).
+    - `core/base_crew.py`: Standardized execution, logging, and error handling for all agents.
+- **Agent Portfolio (The Six Crews)**:
+    1. **Strategic Planning**: Project conceptualization and ROI analysis.
+    2. **Agent Development**: Code generation and skill optimization.
+    3. **Ecosystem Scout**: Trend/Opportunity discovery in Virtuals Protocol.
+    4. **Sentiment Analysis**: Market emotion scoring and strategic pivot analysis.
+    5. **Content Creator**: Intellectual branding and autonomous social posting.
+    6. **ACP Executor**: Risk-adjusted on-chain transaction (ACP) payload generation and validation.
+- **Autonomous Cycles**: Successfully implemented and tested a full "Research -> Analyze -> Create -> Post" cycle for MoltbookNexus. Scheduled for daily execution at 10:00 AM (Asia/Kuala_Lumpur).
+- **First Full Simulation (Feb 24, 2026)**: Successfully executed a strategic chain: Scout identified Alpha Nexus (25% aGDP share) -> Sentiment scored 0.3 (cautious bullish) -> ACP Executor generated a risk-adjusted liquidity provision payload (JSON) with dynamic spread adjustment.
+- **Security**: Strict separation of research and execution contexts; Pydantic-enforced structured outputs.
+
