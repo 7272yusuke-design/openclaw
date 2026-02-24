@@ -35,5 +35,6 @@
     6. **ACP Executor**: Risk-adjusted on-chain transaction (ACP) payload generation and validation.
 - **Autonomous Cycles**: Successfully implemented and tested a full "Research -> Analyze -> Create -> Post" cycle for MoltbookNexus. Scheduled for daily execution at 10:00 AM (Asia/Kuala_Lumpur).
 - **First Full Simulation (Feb 24, 2026)**: Successfully executed a strategic chain: Scout identified Alpha Nexus (25% aGDP share) -> Sentiment scored 0.3 (cautious bullish) -> ACP Executor generated a risk-adjusted liquidity provision payload (JSON) with dynamic spread adjustment.
+- **New Capability (Credit Scoring)**: Implemented `tools/credit_score.py` to evaluate agent reputation. Quantify-X scored **86.65 (AA)**, validating it as a safe lending target.
 - **Security**: Strict separation of research and execution contexts; Pydantic-enforced structured outputs.
 
