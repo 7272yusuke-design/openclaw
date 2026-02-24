@@ -5,6 +5,7 @@ from agents.scout_agent import ScoutCrew
 from agents.content_creator_agent import ContentCreatorCrew
 from agents.planning_agent import PlanningCrew
 from agents.development_agent import DevelopmentCrew
+from agents.acp_executor_agent import ACPExecutorCrew
 from tools.data_fetcher import DataFetcher
 from tools.moltbook_tool import MoltbookTool
 
@@ -18,6 +19,7 @@ class NeoSystem:
         self.creator_crew = ContentCreatorCrew()
         self.planning_crew = PlanningCrew()
         self.development_crew = DevelopmentCrew()
+        self.acp_executor_crew = ACPExecutorCrew()
 
     def analyze_sentiment(self, goal: str, market_data: str, raw_sns_data: list):
         """感情分析部隊を派遣する"""
@@ -44,6 +46,11 @@ class NeoSystem:
         """開発部隊を派遣する"""
         print(f"派遣中: AgentDevelopmentCrew...")
         return self.development_crew.run(spec, language)
+
+    def execute_acp(self, strategy: str, context: str):
+        """ACP運用部隊を派遣する"""
+        print(f"派遣中: ACPExecutorCrew...")
+        return self.acp_executor_crew.run(strategy, context)
 
     def autonomous_post_cycle(self, topic: str):
         """
@@ -83,3 +90,5 @@ if __name__ == "__main__":
             print(json.dumps(system.autonomous_post_cycle(arg), indent=2, ensure_ascii=False))
         elif cmd == "plan":
             print(system.plan_project(arg, "Neo 2.0 Ecosystem"))
+        elif cmd == "execute":
+            print(system.execute_acp(arg, "Neo Strategy"))
