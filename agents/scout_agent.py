@@ -36,12 +36,15 @@ class ScoutCrew(NeoBaseCrew):
             output_pydantic=CrewResult
         )
 
+        # 共通パラメータをコピーし、階層型に設定
+        params = NeoConfig.get_common_crew_params()
+        params["process"] = Process.hierarchical
+
         crew = Crew(
             agents=[scout, architect],
             tasks=[research_task, acp_task],
-            process=Process.hierarchical,
             manager_agent=Agent(role='Manager', goal='全体監督', backstory='Neoの戦略監督。'),
-            **NeoConfig.get_common_crew_params()
+            **params
         )
 
         return self.execute(crew)
