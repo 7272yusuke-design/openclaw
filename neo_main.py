@@ -83,22 +83,44 @@ class LLMClient:
 class NeoSystem:
     def __init__(self):
         print(f"Initializing NeoSystem in '{ENVIRONMENT}' mode.")
-        self.llm_client = LLMClient(model_name=DEFAULT_LLM_MODEL)
+        
+        # Crew-specific model configuration
+        self.crew_model_map = {
+            "sentiment_crew": "openrouter/deepseek-chat",
+            "scout_crew": "openrouter/deepseek-coder-33b", # 調査・分析に汎用性・高性能
+            "creator_crew": "openrouter/deepseek-coder-instruct", # 指示追従・コンテンツ生成
+            "planning_crew": "openrouter/deepseek-coder-33b", # 戦略立案・複雑な推論
+            "development_crew": "openrouter/deepseek-coder-33b", # コード生成・複雑な実装
+            "acp_executor_crew": "openrouter/deepseek-coder-instruct", # 仕様追従・取引ロジック
+        }
+        
+        # --- LLM Client Instances ---
+        self.llm_clients = {}
+        # Ensure default model client is created
+        if DEFAULT_LLM_MODEL not in self.llm_clients:
+            self.llm_clients[DEFAULT_LLM_MODEL] = LLMClient(model_name=DEFAULT_LLM_MODEL)
+        
+        # Create clients for other models specified in the map
+        for model_name in set(self.crew_model_map.values()):
+            if model_name not in self.llm_clients:
+                self.llm_clients[model_name] = LLMClient(model_name=model_name)
+
         self.cache_enabled = USE_CACHE
         self.debug_logging_enabled = DEBUG_LOGGING
 
-        # --- コンテキストのロード ---
+        # --- Context Loading ---
         self.system_context = self._load_base_context()
         if self.debug_logging_enabled:
             self.system_context.extend(self._load_debug_context())
 
-        # Crew の初期化などはここで行う
-        self.sentiment_crew = SentimentCrew()
-        self.scout_crew = ScoutCrew()
-        self.creator_crew = ContentCreatorCrew()
-        self.planning_crew = PlanningCrew()
-        self.development_crew = DevelopmentCrew()
-        self.acp_executor_crew = ACPExecutorCrew()
+        # --- Crew Initialization with specific LLM clients ---
+        # Assuming CrewAI classes accept an 'llm' argument in their constructor
+        self.sentiment_crew = SentimentCrew(llm=self.llm_clients.get("openrouter/deepseek-chat", self.llm_client))
+        self.scout_crew = ScoutCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-33b", self.llm_client))
+        self.creator_crew = ContentCreatorCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-instruct", self.llm_client))
+        self.planning_crew = PlanningCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-33b", self.llm_client))
+        self.development_crew = DevelopmentCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-33b", self.llm_client))
+        self.acp_executor_crew = ACPExecutorCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-instruct", self.llm_client))
 
     def _load_base_context(self) -> list[str]:
         # 常にロードする基本コンテキスト (例: SOUL.md, USER.md, MEMORY.md, etc.)
