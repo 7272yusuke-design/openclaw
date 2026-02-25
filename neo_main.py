@@ -207,10 +207,15 @@ class NeoSystem:
             web_search_tool=self.web_search_tool # web_searchツールを渡す
         )
 
-    def plan_project(self, goal: str, context: str):
-        """企画部隊を派遣する"""
+    def plan_project(self, goal: str, context: str, sentiment_score: float = 0.0, market_trends: str = ""):
+        """戦略企画部隊を派遣する"""
         print(f"派遣中: StrategicPlanningCrew...")
-        return self.planning_crew.run(goal, context)
+        return self.planning_crew.run(
+            goal=goal,
+            context=context,
+            sentiment_score=sentiment_score,
+            market_trends=market_trends
+        )
 
     def execute_acp(self, strategy: str, context: str, credit_info: dict = None, sentiment_info: str = "Neutral"):
         """ACP運用部隊を派遣する"""
@@ -236,11 +241,21 @@ class NeoSystem:
         リサーチ -> 信用評価 -> センチメント分析 -> 投稿生成 -> 実行 の高度自律サイクル
         """
         try:
-            # 1. リアルタイムデータの準備 (外部から渡されない場合は最低限の固定値)
-            raw_data = search_results if search_results else [
-                {"title": "Latest Trend", "snippet": f"Analyzing {topic} in Virtuals Protocol.", "url": "N/A"}
-            ]
-            
+            # 1. リサーチフェーズ: ScoutCrewによる能動的調査
+            if search_results is None:
+                print(f"ScoutCrew is researching: {topic}...")
+                scout_result = self.scout_ecosystem(
+                    goal=f"{topic}に関する最新トレンドと機会の特定",
+                    context="Virtuals Protocolにおける最新の市場動向を調査せよ。",
+                    constraints="Web検索を活用し、具体的で信頼性の高い情報を3つ抽出せよ。",
+                    query=topic
+                )
+                
+                # ScoutCrewの結果をraw_dataとして整形 (簡易的に文字列として渡す)
+                raw_data = [{"title": "Scout Report", "snippet": str(scout_result), "url": "Internal Scout Crew"}]
+            else:
+                raw_data = search_results
+
             # 2. 主要エージェント(例: Quantify-X)の信用スコアをサンプルで取得
             # 本来はDBや検索からプロフィールを動的に構成するが、ここでは実証のために標準プロファイルを使用
             sample_profile = {
@@ -273,11 +288,36 @@ class NeoSystem:
             
             summary = str(getattr(analysis, 'raw', analysis))
             
-            # 4. 投稿生成 (分析に基づいた最適なトーンを選択)
-            print(f"Dispatching: ContentCreatorCrew with Sentiment and Credit insight...")
-            creation = self.creator_crew.run(summary, topic)
+            # Sentiment Crew の結果からスコアを抽出 (簡易的な方法)
+            sentiment_score = 0.0
+            try:
+                if hasattr(analysis, 'pydantic') and analysis.pydantic:
+                    payload = getattr(analysis.pydantic, 'virtuals_payload', {})
+                    if isinstance(payload, dict):
+                        sentiment_score = payload.get('market_sentiment_score', 0.0)
+                    else:
+                        # Pydanticモデルの場合
+                        sentiment_score = getattr(payload, 'market_sentiment_score', 0.0)
+            except Exception as e:
+                print(f"Warning: Failed to extract sentiment score: {e}")
+
+            # 4. 戦略立案 (Risk Management & Strategy Formulation)
+            print(f"Dispatching: StrategicPlanningCrew for Risk Assessment...")
+            planning_result = self.plan_project(
+                goal=f"{topic}に対するNeoの公式スタンスと投資戦略の策定",
+                context=f"Sentiment Analysis: {summary}\nCredit Info: {credit_info}",
+                sentiment_score=sentiment_score,
+                market_trends=str(raw_data)
+            )
+
+            strategy_summary = str(getattr(planning_result, 'raw', planning_result))
+
+            # 5. 投稿生成 (分析と戦略に基づいた内容)
+            print(f"Dispatching: ContentCreatorCrew with Strategic Insight...")
+            # ContentCreatorCrew.run は引数が (summary, topic) なので、contextに戦略を含める
+            creation = self.creator_crew.run(f"Analysis: {summary}\n\nStrategic Stance: {strategy_summary}", topic)
             
-            # 5. 投稿の抽出と実行
+            # 6. 投稿の抽出と実行
             post_content = ""
             if hasattr(creation, 'pydantic') and creation.pydantic:
                 post_content = creation.pydantic.content
@@ -293,6 +333,7 @@ class NeoSystem:
                     "status": "success" if success else "failed",
                     "content": clean_content,
                     "analysis_summary": summary,
+                    "strategy_summary": strategy_summary,
                     "credit_rating": rating
                 }
             
