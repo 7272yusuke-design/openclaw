@@ -10,6 +10,7 @@ from agents.acp_executor_agent import ACPExecutorCrew
 from tools.data_fetcher import DataFetcher
 from tools.moltbook_tool import MoltbookTool
 from tools.credit_score import CreditScoreCalculator, CreditProfile
+from tools.market_data import MarketData # 追加
 
 # --- 環境変数からの設定読み込み ---
 # デフォルトは 'development' とし、未設定の場合は開発モードとみなす
@@ -244,12 +245,16 @@ class NeoSystem:
         リサーチ -> 信用評価 -> センチメント分析 -> 投稿生成 -> 実行 の高度自律サイクル
         """
         try:
+            # 0. 市場データの取得 (Real-time Price)
+            market_price_data = MarketData.fetch_token_data("VIRTUAL")
+            market_context = f"Current Market Data (VIRTUAL Token): {market_price_data}"
+
             # 1. リサーチフェーズ: ScoutCrewによる能動的調査
             if search_results is None:
                 print(f"ScoutCrew is researching: {topic}...")
                 scout_result = self.scout_ecosystem(
                     goal=f"{topic}に関する最新トレンドと機会の特定",
-                    context="Virtuals Protocolにおける最新の市場動向を調査せよ。",
+                    context=f"Virtuals Protocolにおける最新の市場動向を調査せよ。\n{market_context}",
                     constraints="Web検索を活用し、具体的で信頼性の高い情報を3つ抽出せよ。",
                     query=topic
                 )
@@ -278,7 +283,7 @@ class NeoSystem:
                 rating = credit_res.rating
             
             # 3. センチメント分析 (信用情報もコンテキストに含める)
-            context = f"Market Topic: {topic}\nCredit Info: {credit_info}"
+            context = f"Market Topic: {topic}\nCredit Info: {credit_info}\n{market_context}"
             constraints = "Analyze from both market sentiment and agent credit perspective."
             
             analysis = self.analyze_sentiment(
