@@ -23,6 +23,14 @@ class DataFetcher:
         return formatted_text
 
     @staticmethod
+    def fetch_realtime_data(query: str) -> List[Dict]:
+        """
+        実際に Web 検索を行い、最新のデータを取得する (OpenClaw の web_search を想定)
+        """
+        print(f"Searching for: {query}...")
+        return [] # このメソッドは neo_main.py から OpenClaw の web_search 呼び出しを介在して利用される
+
+    @staticmethod
     def create_sentiment_input(goal: str, market_data: str, sns_data: str):
         """
         SentimentWorkerに渡すための3要素(Goal, Context, Constraints)を生成する。

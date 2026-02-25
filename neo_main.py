@@ -113,14 +113,13 @@ class NeoSystem:
         if self.debug_logging_enabled:
             self.system_context.extend(self._load_debug_context())
 
-        # --- Crew Initialization with specific LLM clients ---
-        # Assuming CrewAI classes accept an 'llm' argument in their constructor
-        self.sentiment_crew = SentimentCrew(llm=self.llm_clients.get("openrouter/deepseek-chat", self.llm_client))
-        self.scout_crew = ScoutCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-33b", self.llm_client))
-        self.creator_crew = ContentCreatorCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-instruct", self.llm_client))
-        self.planning_crew = PlanningCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-33b", self.llm_client))
-        self.development_crew = DevelopmentCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-33b", self.llm_client))
-        self.acp_executor_crew = ACPExecutorCrew(llm=self.llm_clients.get("openrouter/deepseek-coder-instruct", self.llm_client))
+        # --- Crew Initialization ---
+        self.sentiment_crew = SentimentCrew()
+        self.scout_crew = ScoutCrew()
+        self.creator_crew = ContentCreatorCrew()
+        self.planning_crew = PlanningCrew()
+        self.development_crew = DevelopmentCrew()
+        self.acp_executor_crew = ACPExecutorCrew()
 
     def _load_base_context(self) -> list[str]:
         # 常にロードする基本コンテキスト (例: SOUL.md, USER.md, MEMORY.md, etc.)
@@ -187,6 +186,19 @@ class NeoSystem:
         response = self.llm_client.call(prompt, model=self.llm_client.model_name)
         return response
 
+    def analyze_sentiment(self, goal: str, market_data: str, raw_sns_data: list, context: str, constraints: str):
+        """
+        感情分析部隊を派遣する
+        """
+        formatted_sns = DataFetcher.format_for_crew(raw_sns_data)
+        inputs = DataFetcher.create_sentiment_input(goal, context, constraints)
+        print(f"Dispatching: SentimentAnalysisCrew...")
+        return self.sentiment_crew.run(
+            goal=inputs["goal"],
+            context=inputs["context"],
+            constraints=inputs["constraints"]
+        )
+
     def plan_project(self, goal: str, context: str):
         """企画部隊を派遣する"""
         print(f"派遣中: StrategicPlanningCrew...")
@@ -206,18 +218,53 @@ class NeoSystem:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    def autonomous_post_cycle(self, topic: str):
+    def autonomous_post_cycle(self, topic: str, search_results: list = None):
         """
-        リサーチ -> 分析 -> 投稿生成 -> 実行 の本番用自律サイクル
+        リサーチ -> 信用評価 -> センチメント分析 -> 投稿生成 -> 実行 の高度自律サイクル
         """
         try:
-            raw_data = [{"title": "aGDP Growth", "snippet": "Virtuals aGDP $470M, high growth.", "url": "N/A"}]
-            analysis = self.analyze_sentiment(f"{topic}の分析", "Price: $0.62", raw_data)
+            # 1. リアルタイムデータの準備 (外部から渡されない場合は最低限の固定値)
+            raw_data = search_results if search_results else [
+                {"title": "Latest Trend", "snippet": f"Analyzing {topic} in Virtuals Protocol.", "url": "N/A"}
+            ]
+            
+            # 2. 主要エージェント(例: Quantify-X)の信用スコアをサンプルで取得
+            # 本来はDBや検索からプロフィールを動的に構成するが、ここでは実証のために標準プロファイルを使用
+            sample_profile = {
+                "agent_id": "Quantify-X",
+                "on_chain_volume": 500000,
+                "reputation_score": 0.85,
+                "successful_transactions": 1200,
+                "failed_transactions": 5
+            }
+            credit_res = self.calculate_credit(sample_profile)
+            # credit_res が辞書の場合(エラー時)とオブジェクトの場合を考慮
+            if isinstance(credit_res, dict) and credit_res.get("status") == "error":
+                credit_info = "Credit evaluation unavailable."
+                rating = "N/A"
+            else:
+                credit_info = f"Target Agent(Quantify-X) Rating: {credit_res.rating}, Score: {credit_res.total_score}"
+                rating = credit_res.rating
+            
+            # 3. センチメント分析 (信用情報もコンテキストに含める)
+            context = f"Market Topic: {topic}\nCredit Info: {credit_info}"
+            constraints = "Analyze from both market sentiment and agent credit perspective."
+            
+            analysis = self.analyze_sentiment(
+                goal=f"{topic}の総合分析と投稿戦略の立案",
+                market_data=f"Focus on {topic} and {credit_info}",
+                raw_sns_data=raw_data,
+                context=context,
+                constraints=constraints
+            )
             
             summary = str(getattr(analysis, 'raw', analysis))
-            print(f"派遣中: ContentCreatorCrew...")
+            
+            # 4. 投稿生成 (分析に基づいた最適なトーンを選択)
+            print(f"Dispatching: ContentCreatorCrew with Sentiment and Credit insight...")
             creation = self.creator_crew.run(summary, topic)
             
+            # 5. 投稿の抽出と実行
             post_content = ""
             if hasattr(creation, 'pydantic') and creation.pydantic:
                 post_content = creation.pydantic.content
@@ -229,7 +276,12 @@ class NeoSystem:
             if post_content:
                 clean_content = post_content.strip().strip('"').strip("'")
                 success = MoltbookTool.post(clean_content)
-                return {"status": "success" if success else "failed", "content": clean_content}
+                return {
+                    "status": "success" if success else "failed",
+                    "content": clean_content,
+                    "analysis_summary": summary,
+                    "credit_rating": rating
+                }
             
             return {"status": "error", "message": "Failed to extract content"}
         except Exception as e:
