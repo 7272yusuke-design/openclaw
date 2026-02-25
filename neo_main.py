@@ -20,8 +20,8 @@ USE_CACHE = ENVIRONMENT != "production"
 DEBUG_LOGGING = ENVIRONMENT == "development"
 
 # --- LLM モデル設定 ---
-# 開発部隊のために DeepSeek Coder 33B モデルを使用する
-DEFAULT_LLM_MODEL = "openrouter/deepseek-coder-33b"
+# Neoのメイン頭脳として DeepSeek-V3 (deepseek-chat) を使用
+DEFAULT_LLM_MODEL = "openrouter/deepseek/deepseek-chat"
 
 # --- キャッシュ設定 ---
 # ユーザーの指示により、キャッシュ期間を短く設定
@@ -81,17 +81,21 @@ class LLMClient:
 
 # --- NeoSystem クラスの改修例 ---
 class NeoSystem:
-    def __init__(self):
+    def __init__(self, web_search_tool: callable = None):
         print(f"Initializing NeoSystem in '{ENVIRONMENT}' mode.")
         
+        # web_searchツールをNeoSystemで管理
+        self.web_search_tool = web_search_tool
+
         # Crew-specific model configuration
+        # DeepSeek-V3 (deepseek-chat) を全エージェントの基本モデルとして採用
         self.crew_model_map = {
-            "sentiment_crew": "openrouter/deepseek-chat",
-            "scout_crew": "openrouter/deepseek-coder-33b", # 調査・分析に汎用性・高性能
-            "creator_crew": "openrouter/deepseek-coder-instruct", # 指示追従・コンテンツ生成
-            "planning_crew": "openrouter/deepseek-coder-33b", # 戦略立案・複雑な推論
-            "development_crew": "openrouter/deepseek-coder-33b", # コード生成・複雑な実装
-            "acp_executor_crew": "openrouter/deepseek-coder-instruct", # 仕様追従・取引ロジック
+            "sentiment_crew": "openrouter/deepseek/deepseek-chat",
+            "scout_crew": "openrouter/deepseek/deepseek-chat",
+            "creator_crew": "openrouter/deepseek/deepseek-chat",
+            "planning_crew": "openrouter/deepseek/deepseek-chat",
+            "development_crew": "openrouter/deepseek/deepseek-chat",
+            "acp_executor_crew": "openrouter/deepseek/deepseek-chat",
         }
         
         # --- LLM Client Instances ---
@@ -120,6 +124,7 @@ class NeoSystem:
         self.planning_crew = PlanningCrew()
         self.development_crew = DevelopmentCrew()
         self.acp_executor_crew = ACPExecutorCrew()
+
 
     def _load_base_context(self) -> list[str]:
         # 常にロードする基本コンテキスト (例: SOUL.md, USER.md, MEMORY.md, etc.)
@@ -172,19 +177,21 @@ class NeoSystem:
         response = self.llm_client.call(prompt, model=self.llm_client.model_name)
         return response
 
-    def scout_ecosystem(self, goal: str, context: str, constraints: str) -> str:
+    def scout_ecosystem(self, goal: str, context: str, constraints: str, query: str = None) -> str:
         """
         エコシステム調査部隊を派遣する
         """
-        prompt = f"""
-        Goal: {goal}
-        Context: {context}
-        Constraints: {constraints}
-        System Context:
-        {self._get_current_prompt_context()}
-        """
-        response = self.llm_client.call(prompt, model=self.llm_client.model_name)
-        return response
+        if query is None: # queryが指定されていない場合はgoalをqueryとして使用
+            query = goal
+        
+        print(f"派遣中: EcosystemScoutCrew with query: {query}...")
+        return self.scout_crew.run(
+            goal=goal,
+            context=context,
+            constraints=constraints,
+            query=query,
+            web_search_tool=self.web_search_tool # web_searchツールを渡す
+        )
 
     def analyze_sentiment(self, goal: str, market_data: str, raw_sns_data: list, context: str, constraints: str):
         """
@@ -196,7 +203,8 @@ class NeoSystem:
         return self.sentiment_crew.run(
             goal=inputs["goal"],
             context=inputs["context"],
-            constraints=inputs["constraints"]
+            constraints=inputs["constraints"],
+            web_search_tool=self.web_search_tool # web_searchツールを渡す
         )
 
     def plan_project(self, goal: str, context: str):
@@ -338,17 +346,22 @@ if __name__ == "__main__":
     # NeoSystem インスタンス化時のモデル設定は LLMClient の __init__ で行われる
     # system = NeoSystem()
 
+    # スタンドアロン実行用のダミー検索ツール
+    def standalone_web_search(query):
+        print(f"[Standalone] Mock web search for: {query}")
+        return [{"title": "Mock Result", "snippet": f"Result for {query}", "url": "http://mock"}]
+
     # 開発モードでの実行例 (キャッシュ有効、デバッグログ有効)
     if ENVIRONMENT == "development":
         os.environ["ENVIRONMENT"] = "development" # 環境変数を明示的に設定
-        system_dev = NeoSystem()
+        system_dev = NeoSystem(web_search_tool=standalone_web_search)
         print(f"Running in development mode. Cache enabled: {system_dev.cache_enabled}, Debug logging: {system_dev.debug_logging_enabled}")
         # system_dev.develop_skill("Implement a function to add two numbers", "python")
 
     # 本番モードでの実行例 (キャッシュ無効、デバッグログ無効)
     elif ENVIRONMENT == "production":
         os.environ["ENVIRONMENT"] = "production" # 環境変数を明示的に設定
-        system_prod = NeoSystem()
+        system_prod = NeoSystem(web_search_tool=standalone_web_search)
         print(f"Running in production mode. Cache enabled: {system_prod.cache_enabled}, Debug logging: {system_prod.debug_logging_enabled}")
         # system_prod.develop_skill("Implement a function to add two numbers", "python")
 
@@ -356,7 +369,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
         arg = sys.argv[2] if len(sys.argv) > 2 else ""
-        current_system = NeoSystem() # コマンドライン実行時は NeoSystem を初期化
+        current_system = NeoSystem(web_search_tool=standalone_web_search)
         if cmd == "post":
             print(json.dumps(current_system.autonomous_post_cycle(arg), indent=2, ensure_ascii=False))
         elif cmd == "plan":
