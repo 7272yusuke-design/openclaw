@@ -204,10 +204,15 @@ class NeoSystem:
         print(f"派遣中: StrategicPlanningCrew...")
         return self.planning_crew.run(goal, context)
 
-    def execute_acp(self, strategy: str, context: str):
+    def execute_acp(self, strategy: str, context: str, credit_info: dict = None, sentiment_info: str = "Neutral"):
         """ACP運用部隊を派遣する"""
-        print(f"派遣中: ACPExecutorCrew...")
-        return self.acp_executor_crew.run(strategy, context)
+        print(f"派遣中: ACPExecutorCrew (with AI decision logic)...")
+        return self.acp_executor_crew.run(
+            strategy=strategy,
+            context=context,
+            credit_info=credit_info,
+            sentiment_info=sentiment_info
+        )
 
     def calculate_credit(self, profile_data: dict):
         """信用スコア計算ツールを実行する"""
@@ -289,66 +294,38 @@ class NeoSystem:
 
     def execute_credit_transaction(self, target_agent_profile_data: dict, transaction_details: dict) -> dict:
         """
-        信用スコアリング結果に基づき、ACP Executor Crew を実行して信用取引を行う。
+        信用スコアリング結果と市場センチメントに基づき、ACP Executor Crew に意思決定を委ねて信用取引を行う。
         """
-        print("Executing credit-based transaction...")
+        print("Executing credit-based transaction with AI-driven decision making...")
 
         # 1. 信用スコアの取得
         credit_score_result = self.calculate_credit(target_agent_profile_data)
-        
         if isinstance(credit_score_result, dict) and credit_score_result.get("status") == "error":
             return {"status": "error", "message": f"Failed to get credit score: {credit_score_result.get('message')}"}
 
-        score = credit_score_result.total_score
-        rating = credit_score_result.rating
+        # 2. 市場センチメントの簡易取得 (最新の分析結果があればそれを使用、なければデフォルト)
+        # ここでは実証のために「Neutral」とするが、将来的には SentimentCrew の直近出力を反映させる
+        current_sentiment = "Neutral (Stable)"
 
-        print(f"Target Agent Credit Score: {score}, Rating: {rating}")
+        # 3. 信用データと市場環境を ACP Executor に渡して意思決定させる
+        credit_info = {
+            "rating": credit_score_result.rating,
+            "total_score": credit_score_result.total_score,
+            "details": target_agent_profile_data
+        }
 
-        # 2. 信用スコアに基づいた取引パラメータの決定
-        # (これはあくまで例であり、より詳細なロジックが必要)
-        interest_rate = 0.05 # デフォルト金利
-        collateral_ratio = 1.5 # デフォルト担保比率
-        loan_amount_limit = 10000 # デフォルト貸付上限
+        strategy = f"Credit-based {transaction_details.get('action', 'liquidity_provision')} for {target_agent_profile_data.get('agent_id', 'Unknown Agent')}"
+        context = f"Transaction Details: {transaction_details}"
 
-        if rating == "AAA":
-            interest_rate = 0.03
-            collateral_ratio = 1.1
-            loan_amount_limit = 50000
-        elif rating == "AA":
-            interest_rate = 0.04
-            collateral_ratio = 1.2
-            loan_amount_limit = 30000
-        elif rating == "A":
-            interest_rate = 0.05
-            collateral_ratio = 1.5
-            loan_amount_limit = 15000
-        elif rating == "BBB":
-            interest_rate = 0.07
-            collateral_ratio = 2.0
-            loan_amount_limit = 7000
-        else: # BB, B
-            interest_rate = 0.10
-            collateral_ratio = 2.5
-            loan_amount_limit = 3000
-            print("Warning: Low credit rating, high risk transaction parameters applied.")
+        print(f"Target Rating: {credit_info['rating']}, Sentiment: {current_sentiment}")
 
-        # transaction_details から実際の貸付希望額などを取得
-        requested_amount = transaction_details.get("amount", 0)
-        
-        # 貸付上限を超えないように調整
-        actual_loan_amount = min(requested_amount, loan_amount_limit)
-
-        if actual_loan_amount <= 0:
-            return {"status": "info", "message": "Transaction amount is zero or exceeds limits based on credit score."}
-
-        # ACP Executor に渡す戦略とコンテキストを構築
-        strategy = f"liquidity_provision action: provide, amount={actual_loan_amount}, asset={transaction_details.get('asset', 'UNKNOWN')}, duration_days={transaction_details.get('duration_days', 'N/A')}, target_rating={rating}, interest_rate={interest_rate*100}, collateral_ratio={collateral_ratio}"
-        context = f"Executing credit transaction for {actual_loan_amount} based on {rating} credit score. Details: {transaction_details}"
-
-        print(f"ACP Executor Strategy: {strategy}")
-
-        # 3. ACP Executor Crew の実行
-        return self.execute_acp(strategy=strategy, context=context)
+        # ACP Executor Crew の実行 (引数を拡張した新バージョンを呼び出し)
+        return self.execute_acp(
+            strategy=strategy,
+            context=context,
+            credit_info=credit_info,
+            sentiment_info=current_sentiment
+        )
 
 
 if __name__ == "__main__":
