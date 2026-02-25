@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_183144",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスクポリシーに基づき、ACP Executorが実行可能な戦略指令書を作成しました。ゲーミングセクターへの重点投資を指示し、BBB以上の信用格付けと70%のLTV比率を遵守します。' virtuals_payload={'target_sectors': ['Gaming'], 'risk_policy': {'min_rating': 'BBB', 'max_ltv': 0.7, 'excluded_sectors': ['DeFi']}, 'action_directive': 'BBB以上の信用格付けを持つゲーミングエージェントへの流動性提供を優先し、LTV比率は70%を超えないように管理する'} next_action_suggestion='市場センチメントの変化を監視し、必要に応じて戦略の見直しを検討する'"
+}

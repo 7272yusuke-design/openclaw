@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_193325",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスク許容度（Moderate）に基づき戦略指令書を作成。BB以上の信用評価と60% LTV制限を適用し、短期トレードと中期的なホールド戦略を併用。' virtuals_payload={'target_sectors': ['DeFi', 'NFT', 'Gaming'], 'risk_policy': {'min_rating': 'BB', 'max_ltv': 0.6, 'volatility_threshold': 0.0581, 'liquidity_min': 500000}, 'action_directive': '5分足/1時間足の下落タイミングでBB以上のエージェントに流動性提供。利益確定目標5-10%、ストップロス-3%で短期トレードを実行。'} next_action_suggestion='BASEチェーンの流動性動向を監視し、8.98M USDの取引量が持続する場合、追加資金配分を検討する。'"
+}

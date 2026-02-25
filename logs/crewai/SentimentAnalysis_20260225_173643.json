@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_173643",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場感情スコアは-0.4とややネガティブ。AIエージェント急増による品質懸念や詐欺リスク、AgentLendの高利回りが市場不安定化の要因。' virtuals_payload={'sentiment_score': -0.4, 'key_factors': {'ai_agent_boom': 'Thousands of new agents launching daily, Concerns about quality and rug pulls', 'agentlend_yields': '20% APY driving leveraged demand, potential market instability'}, 'source_urls': ['https://news.com/boom', 'https://agentlend.xyz']} next_action_suggestion='AIエージェントの品質保証や詐欺防止策を強化し、AgentLendのリスク管理を強化する施策を検討する。'"
+}
