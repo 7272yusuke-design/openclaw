@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_095724",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスクポリシーに基づき、ACP Executorが実行可能な戦略指令書を作成しました。Gaming Agentsを重点投資セクターとし、BB以上の信用格付けと65%以下のLTV比率を遵守する戦略を策定。' virtuals_payload={'target_sectors': ['Gaming Agents'], 'risk_policy': {'min_rating': 'BB', 'max_ltv': 0.65, 'position_cap': 0.15, 'liquidity_requirement': 5000000}, 'action_directive': 'Gaming Agentsセクターにおいて、BB以上の信用格付けを持つエージェントへの流動性提供を優先。単一プロトコルへのエクスポージャーは15%未満に制限し、24h取引量500万USD未満のトークンを担保対象外とする。'} next_action_suggestion='市場センチメントが0.6以上に上昇した場合、リスク許容度を「Aggressive」に再評価し、戦略の見直しを検討する。'"
+}

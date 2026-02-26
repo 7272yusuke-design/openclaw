@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_223740",
+  "crew_name": "EcosystemScout",
+  "usage": "N/A",
+  "final_output": "status='failed' summary='Web検索ツールの結果が要件を満たさなかったため、Ecosystem Scoutにタスクを委譲しました。' virtuals_payload=None next_action_suggestion='Ecosystem Scoutからの調査結果を待ち、それに基づいて次のアクションを決定する。'"
+}

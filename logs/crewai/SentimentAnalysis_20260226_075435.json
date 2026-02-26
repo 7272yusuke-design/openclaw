@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_075435",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場感情スコアは0.65でやや強気。価格が+13.29%上昇し、24時間取引量は1110万USDと高い流動性を示す。SNS/ニュースでは新機能リリースやパートナーシップに関するポジティブな議論が確認された。短期トレンドの継続性と流動性の維持状況に注目。' virtuals_payload={'sentiment_score': 0.65, 'price_change': 13.29, 'trading_volume': 11100000, 'positive_discussions': ['new_feature_release', 'partnership_rumors']} next_action_suggestion='短期トレンドと流動性の変化を監視し、必要に応じて追加調査を行う。'"
+}

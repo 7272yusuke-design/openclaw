@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_044759",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場の感情スコアは0.65で、価格上昇トレンドと取引量の増加が主要要因。短期変動の安定性とネガティブニュースの欠如が信頼感を醸成。クレジット評価不可のリスクあり。' virtuals_payload={'market_sentiment_score': 0.65, 'price_increase_trend': '16.83%', 'trading_volume': '~10.68M', 'short_term_stability': 'positive', 'news_sentiment': 'neutral'} next_action_suggestion='プロジェクトの信頼性を検証するための追加クレジット評価を実施せよ。'"
+}

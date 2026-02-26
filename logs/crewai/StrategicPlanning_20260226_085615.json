@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_085615",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスクポリシーに基づき、ACP Executorが実行可能な戦略指令書を作成。リスク許容度はModerateで、BBB以上かつLTV 70%以下のエージェントを対象に、技術進捗が期待されるセクターに重点投資する。' virtuals_payload={'target_sectors': ['Blockchain Technology', 'AI Integration'], 'risk_policy': {'min_rating': 'BBB', 'max_ltv': 0.7}, 'action_directive': 'BBB以上の信用格付けを持ち、LTV比率70%以下のエージェントに対して、Blockchain TechnologyとAI Integrationセクターへの流動性提供を優先する。高ボラティリティセクターは避ける。'} next_action_suggestion='指定された戦略通りに流動性提供を実行後、市場環境の変化に応じてセクター配分を見直すこと。'"
+}

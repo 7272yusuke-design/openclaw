@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_055046",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスクポリシーに基づき、ACP Executorが実行可能な戦略指令書を作成しました。中程度のリスク許容度を考慮し、Gamingエージェントへの重点投資とBBB以上の信用格付けを要件としています。' virtuals_payload={'target_sectors': ['Gaming'], 'risk_policy': {'min_rating': 'BBB', 'max_ltv': 0.6, 'excluded_sectors': ['DeFi']}, 'action_directive': 'BBB以上の信用格付けを持つGamingエージェントに対し、最大LTV60%で流動性提供を優先的に実施せよ。DeFiセクターへの投資は禁止する。'} next_action_suggestion='市場センチメントの変化（0.5以上または-0.5以下）を監視し、リスクポリシーの見直しが必要か判断すること。特にGamingセクターのボリューム変動に注視せよ。'"
+}
