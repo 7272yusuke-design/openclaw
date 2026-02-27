@@ -45,8 +45,32 @@ class MarketData:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+    @staticmethod
+    def get_token_price(symbol: str) -> dict:
+        """
+        指定されたシンボルのトークン価格を取得する（PaperTrader用）。
+        """
+        data = MarketData.fetch_token_data(symbol)
+        if data.get("status") == "success":
+            return {"priceUsd": float(data["priceUsd"]), "status": "success"}
+        return {"priceUsd": 0.0, "status": "error", "message": data.get("message", "Unknown error")}
+
+    @staticmethod
+    def get_token_price(symbol: str) -> dict:
+        """
+        指定されたシンボルのトークン価格を取得する（PaperTrader用）。
+        """
+        data = MarketData.fetch_token_data(symbol)
+        if data.get("status") == "success":
+            return {"priceUsd": float(data["priceUsd"]), "status": "success"}
+        return {"priceUsd": 0.0, "status": "error", "message": data.get("message", "Unknown error")}
+
 if __name__ == "__main__":
     # テスト実行
     print("Fetching VIRTUAL token data...")
     result = MarketData.fetch_token_data("VIRTUAL")
     print(json.dumps(result, indent=2))
+    
+    print("\nFetching VIRTUAL token price...")
+    price_result = MarketData.get_token_price("VIRTUAL")
+    print(json.dumps(price_result, indent=2))

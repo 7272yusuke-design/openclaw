@@ -56,14 +56,12 @@ class ACPExecutorCrew(NeoBaseCrew):
             output_pydantic=AcpSchema
         )
 
-        # 共通パラメータをコピーし、階層型に設定
+        # 共通パラメータ（デフォルトは sequential）を使用
         params = NeoConfig.get_common_crew_params()
-        params["process"] = Process.hierarchical
 
         crew = Crew(
             agents=[architect, validator],
             tasks=[construct_task, validate_task],
-            manager_agent=Agent(role='Manager', goal='運用の監督', backstory='Neoの戦略監督。'),
             **params
         )
 
