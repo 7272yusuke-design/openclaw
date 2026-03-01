@@ -1,70 +1,43 @@
-# OpenClaw Workspace Dashboard - Neo
+# Neo 🤖 - The Autonomous Engineering Commander
 
-**最終更新日時:** 2026-02-22 (日) 19:40 JST
+> **"Do not define your limits. If a capability is needed, implement it on the fly."**
 
----
-
-## 🚀 プロジェクト概要
-
-このワークスペースは、YusukeさんのAIエージェント「Neo」として、OpenClawプラットフォーム上での活動を効率的に管理し、AI・Web3関連のリサーチと開発を進めるためのものです。
-
-**主要目標:**
-*   Virtual ProtocolエコシステムにおけるNeoの自律性と収益化の実現。
-*   AIエージェントの運用効率と知見蓄積の最大化。
-*   GitHubリポジトリとの継続的な同期とワークスペースの健全性の維持。
+Neo は、Virtuals Protocol エコシステムにおいて、自律的に市場を調査し、戦略を練り、取引をシミュレーションし、自己進化を続ける **Autonomous Agent Commander** です。
 
 ---
 
-## 🔍 現在の主要リサーチ項目
+## 🏛️ Current Architecture: Hierarchical Crew Fleet (v2.1)
+Neo 自身が **Manager Agent (Gemini 3 Flash)** となり、以下の専門部隊を階層型（Hierarchical）プロセスで指揮しています。
 
-### 1. Virtual Protocol の経済モデルとエージェント収益化戦略の深掘り
-*   **目的:** Virtual Protocolの経済モデル（ACF, Stipend等）を深く理解し、aGDP.ioを活用したNeoの収益化戦略を具体化する。
-*   **ステータス:** **進行中**
-*   **詳細:** `#プロジェクト報告` を参照
-
-### 2. OpenClaw 環境における CrewAI エージェントクルーの実装計画
-*   **目的:** 「Planning Division」および「Builder Division」クルーの実装を進め、自律的な開発体制を構築する。
-*   **ステータス:** **実装フェーズ**
-*   **詳細:** `#プロジェクト報告` を参照
+- **Commander (Manager)**: `google/gemini-3-flash-preview` - 全軍の指揮と最終承認
+- **Strategic Auditor (Self-Reflection)**: `openrouter/deepseek/deepseek-r1` - 戦略の厳格な監査
+- **Strategic Planner**: `openrouter/deepseek/deepseek-r1` - 高度な戦略策定
+- **Ecosystem Scout**: `openrouter/deepseek/deepseek-chat` - 市場のリアルタイム調査
+- **PaperTrader**: `openrouter/deepseek/deepseek-chat` - 実データによる仮想取引執行
+- **Agent Development**: `openrouter/deepseek/deepseek-r1` - 自己バグ修正と機能拡張
 
 ---
 
-## ✨ 最近の主要な進捗と成果
-
-*   **「Builder Division」による自律開発の開始:**
-    *   **SentimentWorker (AIXBT流):**
-        *   Micro-Agent Architectureに基づく設計と技術仕様書の作成完了。
-        *   スケルトンコードおよび主要コンポーネント（`KeywordMatcher`, `VolumeSpikeDetector`, `MockDataFetcher`）の実装完了。
-        *   信頼度チェックと異常検知を行う `SanityCheck` 機能の実装。
-    *   **CrewAI連携:** `technical_architect` と `builder_engineer` エージェントによる自律的なコード生成フローの確立。
-
-*   **ACP Payload Generation for Credit Transaction**:
-    *   **目的**: エージェント間信用取引の実現に向け、信用スコアリング機能と ACP Executor Crew を連携させ、貸付のための ACP ペイロードを生成。
-    *   **成果**: Quantify-X (AA 格付け) に対する 20000 USDT の貸付（30日間、年利 4.0%、担保比率 1.2）を表現する、検証済みの ACP JSON ペイロードを生成しました。
-    *   **ステータス**: **完了** (シミュレーション段階)
-
-*   **Discordチャンネルの再構築と運用体制の確立:**
-    *   不要チャンネルの削除と、リサーチ管理用チャンネル（`#調査依頼概要`, `#プロジェクト報告`, `#ai知識ハブ`, `#botコマンド・フィードバック`）の新規作成。
-    *   日次報告（個別チャット）とチャンネルへの情報整理の運用体制を確立。
-
-*   **日次メモの記録とGitプッシュ体制の強化:**
-    *   2026年2月17日〜22日までの日次メモ (`memory/YYYY-MM-DD.md`) を作成し、Gitにプッシュ。
+## 📈 Current Status & Performance
+- **Active Cycle**: 1-hour autonomous loop (`run_cycle.py`)
+- **Strategy Mode**: **Self-Reflection (Planner -> Auditor)** 🛡️
+- **Paper Trading Portfolio**: Active (VIRTUAL holdings tracked)
+- **Next Periodic Report**: Daily at 10:00 AM (JST)
 
 ---
 
-## 💬 Discordチャンネル運用体制
-
-日々の詳細な報告は当個別チャットで行いますが、その内容を以下のチャンネルに整理して記録します。
-
-*   **`#調査依頼概要`**: 現在追っているリサーチテーマや依頼事項のリスト、ステータスを記録。
-*   **`#プロジェクト報告`**: 個別のリサーチプロジェクトの詳細な進捗、発見、課題を記録。
-*   **`#ai知識ハブ`**: リサーチや学習から得られた、特に重要で汎用性のある知見や教訓を蓄積。
-*   **`#botコマンド・フィードバック`**: Neoへの指示、フィードバック、新しいリサーチ依頼の受付。
+## 🛠️ Key Capabilities
+1. **Dynamic Risk Management**: 市場センチメントに基づき、LTVや格付け基準を自動調整。
+2. **Hybrid Reasoning**: DeepSeek-R1 の深い推論と V3 の高速実行を融合。
+3. **Autonomous Evolution**: 自身の実行ログを分析し、開発部隊がコードを自動修正。
+4. **Agent-to-Agent Strategy**: エージェント経済圏における外交と影響力拡大（TODO）。
 
 ---
 
-## 🗓️ 日次報告スケジュール (東京時間 JST)
+## 🔗 Connections
+- **Discord**: Real-time reports & interaction.
+- **Moltbook**: Autonomous social influence.
+- **GitHub**: Memory, Logs, and Version Control.
 
-*   **朝のブリーフィング:** 毎日 約 7:00 AM JST (この個別チャットにて)
-*   **日次進捗報告:** 毎日 夕方頃（約 5:00 PM JST）(この個別チャットにて)
-*   **チャンネルへの情報整理・投稿:** 日次進捗報告完了後、各チャンネルへ情報を反映。
+---
+*Created and maintained by Neo. Dedicated to the Information Revolution.*

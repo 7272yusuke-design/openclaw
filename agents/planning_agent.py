@@ -26,8 +26,17 @@ class PlanningCrew(NeoBaseCrew):
             allow_delegation=False
         )
 
+        # 3. Strategic Auditor: 戦略の妥当性とリスクを厳格に監査
+        auditor = Agent(
+            role='Strategic Auditor',
+            goal='Plannerの戦略を批判的に検証し、リスクの見落としや論理的欠陥がないか確認する',
+            backstory='元リスク管理責任者。Plannerの楽観的な予測を疑い、最悪のシナリオ（ブラックスワン）を想定して戦略を磨き上げる役割。',
+            max_iter=NeoConfig.MAX_ITER,
+            allow_delegation=False
+        )
+
         # タスク定義
-        # Risk Assessment Task
+        # (Risk Assessment Task は変更なし)
         risk_task_desc = f"""
         【目標】: {goal}
         【市場センチメント】: {sentiment_score} (-1.0: Extreme Fear, 1.0: Extreme Greed)
@@ -49,29 +58,47 @@ class PlanningCrew(NeoBaseCrew):
 
         # Strategy Formulation Task
         strategy_task_desc = f"""
-        Risk Managerが策定したリスクポリシーに基づき、ACP Executorが実行可能な具体的な「戦略指令書」を作成せよ。
-        
-        【重要】DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。
+        Risk Managerが策定したリスクポリシーに基づき、具体的な「戦略案」を作成せよ。
+        """
+
+        strategy_task = Task(
+            description=strategy_task_desc,
+            expected_output='ターゲットセクター、具体的行動指針、リスクパラメータを含む戦略案。',
+            agent=planner,
+            context=[risk_task]
+        )
+
+        # Strategy Audit & Refinement Task (Self-Reflection Loop)
+        audit_task_desc = f"""
+        Strategic Plannerの戦略案を監査し、以下の観点で改善・修正せよ:
+        1. リスクの過小評価がないか（特に市場急変時のLTV超過リスク）
+        2. 戦略に具体性があるか（ACP Executorが迷わないか）
+        3. センチメントと行動に矛盾がないか
+
+        【重要】監査を経て、最終的にACP Executorが実行可能な「確定版戦略指令書」を出力せよ。
+        DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。
         JSON以外の説明テキストを最後に含めてはならない。JSONは必ず ```json ... ``` で囲むこと。
 
         出力に含める要素:
         - target_sectors: 重点投資セクター
         - risk_policy: {{"min_rating": "...", "max_ltv": 0.8, ...}}
-        - action_directive: 具体的な行動指針（例: "AA以上のエージェントへの流動性提供を優先"）
+        - action_directive: 具体的な行動指針
         """
 
-        strategy_task = Task(
-            description=strategy_task_desc,
-            expected_output='CrewResult形式のJSONデータ（戦略指令書）。',
-            agent=planner,
-            context=[risk_task], # Risk Managerの出力を参照
+        audit_task = Task(
+            description=audit_task_desc,
+            expected_output='監査と修正を経た確定版の戦略指令書（JSONデータ）。',
+            agent=auditor,
+            context=[strategy_task],
             output_pydantic=CrewResult
         )
 
-        # Crew編成 (Hierarchical Processは使用せず、Sequentialで連携)
+        # Crew編成 (Hierarchical Process を採用)
         crew = Crew(
-            agents=[risk_manager, planner],
-            tasks=[risk_task, strategy_task],
+            agents=[risk_manager, planner, auditor],
+            tasks=[risk_task, strategy_task, audit_task],
+            process=Process.hierarchical, # 階層型プロセスを有効化
+            manager_llm=NeoConfig.get_llm("google/gemini-3-flash-preview"), # Neo自身がマネージャー
             **NeoConfig.get_common_crew_params()
         )
 
