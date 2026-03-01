@@ -1,7 +1,11 @@
-Traceback (most recent call last):
-  File "/data/.openclaw/workspace/run_cycle.py", line 6, in <module>
-    from agents.paper_trader import PaperTraderAgent # PaperTraderAgent をインポート
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/data/.openclaw/workspace/agents/paper_trader.py", line 5, in <module>
-    from tools.market_data import get_token_price
-ImportError: cannot import name 'get_token_price' from 'tools.market_data' (/data/.openclaw/workspace/tools/market_data.py)
+DEBUG: sys.path at startup: ['/data/.openclaw/workspace', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/data/.local/lib/python3.13/site-packages', '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
+DEBUG: CWD: /data/.openclaw/workspace
+DEBUG: tools module path: /data/.openclaw/workspace/tools/__init__.py
+Initializing NeoSystem in 'development' mode.
+Initializing LLM client with model: openrouter/deepseek/deepseek-chat
+Initializing LLM client with model: deepseek-ai/deepseek-v3.2-speciale
+Initializing LLM client with model: deepseek-ai/deepseek-coder-v3.1-instruct
+Initializing LLM client with model: deepseek-ai/deepseek-v3.2
+Warning: Debug context file not found: debug_logs/recent.log
+Warning: Debug context file not found: temp/dev_notes.md
+Running in development mode. Cache enabled: True, Debug logging: True

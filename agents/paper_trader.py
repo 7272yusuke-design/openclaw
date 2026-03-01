@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Dict, Any, List
 from tools.paper_wallet import PaperWallet
-from tools.market_data import get_token_price
+# from tools.market_data import MarketData  <-- トップレベルでのインポートを廃止
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,9 @@ class PaperTraderAgent:
         """
         Parses the strategy directive and executes trades.
         """
+        # ここで遅延インポートを行う (循環参照やロード順序の問題を回避)
+        from tools.market_data import MarketData
+
         logger.info("🤖 PaperTrader: Analyzing Strategy Directive...")
         
         # 1. Extract Key Metrics
@@ -28,12 +31,9 @@ class PaperTraderAgent:
         action_directive = virtuals_payload.get("action_directive", "")
         
         # 2. Determine Action (Buy/Sell/Hold) based on Risk Policy & Directive
-        # Simple Logic for V1:
-        # - If LTV > 0.6 and Sentiment is positive -> BUY (Increase Exposure)
-        # - If LTV < 0.5 or Directive says "Avoid/Reduce" -> SELL (Decrease Exposure)
         
         # Get Current Market Price
-        market_data = get_token_price(self.target_token)
+        market_data = MarketData.get_token_price(self.target_token)
         current_price = market_data.get("priceUsd")
         
         if not current_price:
@@ -46,19 +46,12 @@ class PaperTraderAgent:
         reason = "No clear signal"
         amount_usd = 0.0
         
-        # Example Logic: Aggressive Buying if LTV allows high leverage
         max_ltv = risk_policy.get("max_ltv", 0.5)
         
         # Check current portfolio balance
         usd_balance = self.wallet.get_balance()
         current_holdings_value = self.wallet.get_portfolio_value({self.target_token: current_price}) - usd_balance
 
-        # Simple Allocation Strategy based on LTV (Treating Balance as Collateral for simplicity in V1)
-        # If LTV is high (e.g., 0.7), we want 70% exposure? 
-        # No, let's use a simpler logic for Spot Trading first:
-        # "Risk On" (LTV > 0.6) -> Deploy 10% of USD Balance into VIRTUAL
-        # "Risk Off" (LTV < 0.4) -> Sell 10% of VIRTUAL Holdings
-        
         if max_ltv >= 0.65:
             action = "BUY"
             amount_usd = usd_balance * 0.1 # Buy with 10% of available cash
@@ -96,7 +89,6 @@ class PaperTraderAgent:
 if __name__ == "__main__":
     # Test Run
     agent = PaperTraderAgent()
-    # Mock Strategy
     mock_strategy = {
         "virtuals_payload": {
             "risk_policy": {"max_ltv": 0.7},

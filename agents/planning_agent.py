@@ -50,7 +50,11 @@ class PlanningCrew(NeoBaseCrew):
         # Strategy Formulation Task
         strategy_task_desc = f"""
         Risk Managerが策定したリスクポリシーに基づき、ACP Executorが実行可能な具体的な「戦略指令書」を作成せよ。
-        出力はCrewResult形式のJSONとし、以下の要素を含めること:
+        
+        【重要】DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。
+        JSON以外の説明テキストを最後に含めてはならない。JSONは必ず ```json ... ``` で囲むこと。
+
+        出力に含める要素:
         - target_sectors: 重点投資セクター
         - risk_policy: {{"min_rating": "...", "max_ltv": 0.8, ...}}
         - action_directive: 具体的な行動指針（例: "AA以上のエージェントへの流動性提供を優先"）

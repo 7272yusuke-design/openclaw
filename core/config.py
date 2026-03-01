@@ -5,9 +5,10 @@ class NeoConfig:
     Neoのシステム全体で共有される設定クラス。
     ガイドラインに基づき、コストと安全性を制御する。
     """
-    # LLM設定
+    # LLM設定 (最善のモデルにアップデート)
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-    DEFAULT_MODEL = "openrouter/deepseek/deepseek-chat" # DeepSeek-V3
+    DEFAULT_MODEL = "openrouter/deepseek/deepseek-chat" # DeepSeek-V3 (最新)
+    REASONING_MODEL = "openrouter/deepseek/deepseek-r1" # 推論特化モデル
     
     # 安全装置 (ガイドライン第5項)
     MAX_ITER = 5

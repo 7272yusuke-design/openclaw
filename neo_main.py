@@ -91,15 +91,18 @@ class NeoSystem:
         # 実行ログの履歴 (自己改善用)
         self.execution_history = []
 
-        # Crew-specific model configuration
-        # DeepSeek-V3 (deepseek-chat) を全エージェントの基本モデルとして採用
+        # Crew-specific model configuration (Optimized for DeepSeek-V3 & R1)
+        from core.config import NeoConfig
+        default_v3 = NeoConfig.DEFAULT_MODEL
+        reasoning_r1 = NeoConfig.REASONING_MODEL
+
         self.crew_model_map = {
-            "sentiment_crew": "openrouter/deepseek/deepseek-chat",
-            "scout_crew": "openrouter/deepseek/deepseek-chat",
-            "creator_crew": "openrouter/deepseek/deepseek-chat",
-            "planning_crew": "openrouter/deepseek/deepseek-chat",
-            "development_crew": "openrouter/deepseek/deepseek-chat",
-            "acp_executor_crew": "openrouter/deepseek/deepseek-chat",
+            "sentiment_crew": default_v3,
+            "scout_crew": default_v3,
+            "creator_crew": default_v3,
+            "planning_crew": reasoning_r1,   # 戦略立案には R1 (推論) を使用
+            "development_crew": reasoning_r1, # コード修正・分析には R1 (推論) を使用
+            "acp_executor_crew": default_v3,
         }
         
         # --- LLM Client Instances ---
@@ -349,20 +352,22 @@ class NeoSystem:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    def improve_system(self, error_report: str = "", recent_logs: list = None):
+    def improve_system(self, error_report: str = "", recent_logs: list = None, performance_log_path: str = None, market_cycle_log_path: str = None):
         """
         自己改善部隊を派遣する。
-        直近の実行ログやエラー情報に基づき、システム改善案（コード修正）を生成する。
+        直近の実行ログやパフォーマンス指標に基づき、システム改善案（コード修正）を生成する。
         """
         print("派遣中: DevelopmentCrew for Self-Improvement...")
         logs_to_analyze = recent_logs if recent_logs else self.execution_history[-5:] # 最新5件
         logs_str = json.dumps(logs_to_analyze, indent=2, default=str)
         
         return self.development_crew.run(
-            spec="実行ログとエラーを分析し、システムの堅牢性とパフォーマンスを向上させるためのコード修正案を提示せよ。",
+            spec="実行ログ、エラー、およびパフォーマンスメトリクスを分析し、Scout Crewの精度向上やシステムの堅牢性を高めるための具体的なコード修正案を提示せよ。",
             language="python",
             execution_logs=logs_str,
-            error_report=error_report
+            error_report=error_report,
+            performance_log_path=performance_log_path,
+            market_cycle_log_path=market_cycle_log_path
         )
 
     def execute_credit_transaction(self, target_agent_profile_data: dict, transaction_details: dict) -> dict:
