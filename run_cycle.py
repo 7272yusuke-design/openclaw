@@ -64,28 +64,31 @@ def run_loop():
             # サイクル実行
             cycle_output = system.autonomous_post_cycle(topic)
             
-            # --- [R1 JSON EXTRACTION ENHANCEMENT START] ---
-            strategy_data = cycle_output.get("planning_output", None)
+            # --- [Pydantic 構造化データ取得] ---
             strategy_json = None
+            planning_output = cycle_output.get("planning_output", None)
             
-            if isinstance(strategy_data, dict):
-                strategy_json = strategy_data
-            elif isinstance(strategy_data, str):
-                # R1が文字列（Markdown等）で返してきた場合の救出ロジック
-                try:
-                    # コードブロックを探す
-                    import re
-                    json_match = re.search(r"```json\s*(\{.*?\})\s*```", strategy_data, re.DOTALL)
-                    if json_match:
-                        strategy_json = json.loads(json_match.group(1))
-                    else:
-                        # 単純なJSON文字列としてパース
-                        json_match = re.search(r"(\{.*\})", strategy_data, re.DOTALL)
+            if hasattr(planning_output, 'pydantic'):
+                # CrewAIのTaskOutputからPydanticオブジェクトを取得
+                pydantic_obj = planning_output.pydantic
+                if pydantic_obj:
+                    # オブジェクトをdictに変換してPaperTraderに渡す
+                    strategy_json = pydantic_obj.model_dump()
+                    print(f"[Pydantic] Successfully extracted structured plan: {strategy_json.get('status')}")
+            
+            # フォールバック: 既存のdict/str処理 (念のため)
+            if not strategy_json:
+                if isinstance(planning_output, dict):
+                    strategy_json = planning_output
+                elif isinstance(planning_output, str):
+                    try:
+                        import re
+                        json_match = re.search(r"```json\s*(\{.*?\})\s*```", planning_output, re.DOTALL)
                         if json_match:
                             strategy_json = json.loads(json_match.group(1))
-                except Exception as e:
-                    print(f"Warning: Failed to extract JSON from planning_output: {e}")
-            # --- [R1 JSON EXTRACTION ENHANCEMENT END] ---
+                    except Exception as e:
+                        print(f"Warning: Failed to extract fallback JSON: {e}")
+            # --- [Pydantic 構造化データ取得 END] ---
             
             # ペーパートレード実行
             trade_result = {"status": "skipped", "reason": "No planning output found"}

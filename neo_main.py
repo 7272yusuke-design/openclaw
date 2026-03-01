@@ -345,6 +345,7 @@ class NeoSystem:
                     "content": clean_content,
                     "analysis_summary": summary,
                     "strategy_summary": strategy_summary,
+                    "planning_output": planning_result, # オブジェクトごと返す
                     "credit_rating": rating
                 }
             

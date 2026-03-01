@@ -1,7 +1,7 @@
 from crewai import Agent, Task, Crew, Process
 from core.base_crew import NeoBaseCrew
 from core.config import NeoConfig
-from bridge.crewai_bridge import CrewResult
+from bridge.crewai_bridge import CrewResult, NeoStrategicPlan
 
 class PlanningCrew(NeoBaseCrew):
     def __init__(self):
@@ -87,10 +87,10 @@ class PlanningCrew(NeoBaseCrew):
 
         audit_task = Task(
             description=audit_task_desc,
-            expected_output='監査と修正を経た確定版の戦略指令書（JSONデータ）。',
+            expected_output='監査と修正を経た確定版の戦略指令書（NeoStrategicPlanオブジェクト）。',
             agent=auditor,
             context=[strategy_task],
-            output_pydantic=CrewResult
+            output_pydantic=NeoStrategicPlan # Pydanticによる型出力を指定
         )
 
         # Crew編成 (Hierarchical Process を採用)
