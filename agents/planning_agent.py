@@ -74,15 +74,20 @@ class PlanningCrew(NeoBaseCrew):
         1. リスクの過小評価がないか（特に市場急変時のLTV超過リスク）
         2. 戦略に具体性があるか（ACP Executorが迷わないか）
         3. センチメントと行動に矛盾がないか
+        4. 【新規】Scoutが報告したDEX間の価格乖離を精査し、手数料（0.3%〜）とスリッページを差し引いても 0.6% 以上の純利益が出るアービトラージ機会があるか検証せよ。
 
-        【重要】監査を経て、最終的にACP Executorが実行可能な「確定版戦略指令書」を出力せよ。
+        【重要】監査を経て、最終的にACP ExecutorおよびPaperTraderが実行可能な「確定版戦略指令書」を出力せよ。
         DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。
-        JSON以外の説明テキストを最後に含めてはならない。JSONは必ず ```json ... ``` で囲むこと。
+        JSONは必ず ```json ... ``` で囲むこと。
 
-        出力に含める要素:
-        - target_sectors: 重点投資セクター
-        - risk_policy: {{"min_rating": "...", "max_ltv": 0.8, ...}}
-        - action_directive: 具体的な行動指針
+        出力に含める要素 (NeoStrategicPlan型):
+        - risk_policy: {{"risk_appetite": "...", "min_rating": "...", "max_ltv": 0.65, "sector_advice": "..."}}
+        - strategy: {{
+            "target_sectors": [...], 
+            "action_directive": "...", 
+            "arbitrage_opportunity": {{"dex_pair": "Virtuals-Uniswap", "expected_profit_pct": 0.85, "token": "VIRTUAL", "route": "..."}},
+            "audit_summary": "..."
+          }}
         """
 
         audit_task = Task(

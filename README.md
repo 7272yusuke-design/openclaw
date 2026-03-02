@@ -30,7 +30,8 @@ Neo 自身が **Manager Agent (Gemini 3 Flash)** となり、以下の専門部�
 1. **Dynamic Risk Management**: 市場センチメントに基づき、LTVや格付け基準を自動調整。
 2. **Hybrid Reasoning**: DeepSeek-R1 の深い推論と V3 の高速実行を融合。
 3. **Autonomous Evolution**: 自身の実行ログを分析し、開発部隊がコードを自動修正。
-4. **Agent-to-Agent Strategy**: エージェント経済圏における外交と影響力拡大（TODO）。
+4. **Arbitrage Execution**: DEX間（Virtuals/Uniswap）の価格乖離を検知し、純利益 0.6% 以上の機会を自動執行。
+5. **Agent-to-Agent Strategy**: エージェント経済圏における外交と影響力拡大（TODO）。
 
 ---
 

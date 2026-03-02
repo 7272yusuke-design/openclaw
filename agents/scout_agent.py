@@ -211,8 +211,16 @@ class ScoutCrew(NeoBaseCrew):
         )
 
         research_task = Task(
-            description=f"目標: {goal}\n文脈: {context}\nweb_searchツールを使用し、'{query}'に関する最新情報を調査して、具体的な3つの機会とアクション案を提示せよ。",
-            expected_output='最新情報に基づいた具体的な3つの機会と、それに対するアクション案。',
+            description=f"""
+            目標: {goal}
+            文脈: {context}
+            
+            web_searchツールを駆使し、以下の調査を遂行せよ:
+            1. '{query}' に関する最新トレンドと機会を3つ特定。
+            2. 主要なDEX (Virtuals DEX, Uniswap on Base) 間での特定トークンの価格差（アービトラージ機会）を調査。
+            3. 発見した価格差について、手数料を考慮する前の単純な乖離率を報告せよ。
+            """,
+            expected_output='最新トレンド情報と、特定されたDEX間の価格乖離データ。',
             agent=scout
         )
 

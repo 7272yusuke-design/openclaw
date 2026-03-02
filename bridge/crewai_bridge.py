@@ -10,6 +10,7 @@ class RiskPolicyModel(BaseModel):
 class StrategyInstructionModel(BaseModel):
     target_sectors: List[str] = Field(description="重点投資セクターのリスト")
     action_directive: str = Field(description="ACP Executorが実行すべき具体的な行動指針")
+    arbitrage_opportunity: Optional[Dict[str, Any]] = Field(description="検知された裁定取引の機会（DEX名、期待利益率、ルート等）", default=None)
     audit_summary: str = Field(description="監査官による最終的なリスク評価と修正の要約")
 
 class NeoStrategicPlan(BaseModel):
