@@ -28,8 +28,42 @@ def background_search_wrapper(query):
         }
     ]
 
+def check_manager_health():
+    """マネージャーによる自己健康診断: 前回のサイクルが正常に完了したか確認する"""
+    health_file = "logs/manager_heartbeat.json"
+    if not os.path.exists(health_file):
+        print("[Manager] No previous heartbeat found. Initializing first run.")
+        return True
+
+    try:
+        with open(health_file, "r") as f:
+            heartbeat = json.load(f)
+            last_run = datetime.fromisoformat(heartbeat.get("timestamp"))
+            time_diff = (datetime.now() - last_run).total_seconds() / 3600
+
+            if time_diff > 1.5:
+                print(f"⚠️ [CRITICAL] Manager Alert: Silence detected for {time_diff:.2f} hours!")
+                print(f"⚠️ [CRITICAL] Potential system stall detected in previous run.")
+                return False
+            else:
+                print(f"✅ [Manager] Health Check: System stable. Last run was {time_diff*60:.1f} minutes ago.")
+                return True
+    except Exception as e:
+        print(f"Warning: Failed to read health check: {e}")
+        return True
+
+def update_heartbeat():
+    """健康診断の記録を更新する"""
+    health_file = "logs/manager_heartbeat.json"
+    os.makedirs("logs", exist_ok=True)
+    with open(health_file, "w") as f:
+        json.dump({"status": "healthy", "timestamp": datetime.now().isoformat()}, f)
+
 def run_loop():
     print("Starting Neo Autonomous Cycle Loop (Hourly)...")
+    
+    # 起動時に自己診断を実行
+    check_manager_health()
     
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
@@ -43,6 +77,9 @@ def run_loop():
         try:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(f"\n[{current_time}] Executing cycle...")
+            
+            # --- サイクル実行の開始 ---
+            update_heartbeat() # 活動開始を記録
             
             topic = "Virtuals Protocol Market Update"
             
