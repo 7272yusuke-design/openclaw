@@ -1,1 +1,6 @@
+# Git ignore for OpenClaw workspace
+.venv/
+nohup.out
+get-pip.py
+logs/
 __pycache__/

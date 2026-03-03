@@ -99,12 +99,16 @@ class PlanningCrew(NeoBaseCrew):
         )
 
         # Crew編成 (Hierarchical Process を採用)
+        common_params = NeoConfig.get_common_crew_params()
+        if "process" in common_params:
+            del common_params["process"]
+
         crew = Crew(
             agents=[risk_manager, planner, auditor],
             tasks=[risk_task, strategy_task, audit_task],
             process=Process.hierarchical, # 階層型プロセスを有効化
-            manager_llm=NeoConfig.get_llm("google/gemini-3-flash-preview"), # Neo自身がマネージャー
-            **NeoConfig.get_common_crew_params()
+            manager_llm=NeoConfig.get_llm("google/gemini-2.5-flash"), # Neo自身がマネージャー
+            **common_params
         )
 
         return self.execute(crew)

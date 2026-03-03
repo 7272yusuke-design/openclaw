@@ -3,7 +3,7 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from neo_main import NeoSystem
 from agents.paper_trader import PaperTraderAgent
 
@@ -39,6 +39,10 @@ def check_manager_health():
         with open(health_file, "r") as f:
             heartbeat = json.load(f)
             last_run = datetime.fromisoformat(heartbeat.get("timestamp"))
+            # タイムゾーンなしのdatetimeに比較を合わせる
+            if last_run.tzinfo:
+                last_run = last_run.replace(tzinfo=None)
+            
             time_diff = (datetime.now() - last_run).total_seconds() / 3600
 
             if time_diff > 1.5:
@@ -106,14 +110,11 @@ def run_loop():
             planning_output = cycle_output.get("planning_output", None)
             
             if hasattr(planning_output, 'pydantic'):
-                # CrewAIのTaskOutputからPydanticオブジェクトを取得
                 pydantic_obj = planning_output.pydantic
                 if pydantic_obj:
-                    # オブジェクトをdictに変換してPaperTraderに渡す
                     strategy_json = pydantic_obj.model_dump()
                     print(f"[Pydantic] Successfully extracted structured plan: {strategy_json.get('status')}")
             
-            # フォールバック: 既存のdict/str処理 (念のため)
             if not strategy_json:
                 if isinstance(planning_output, dict):
                     strategy_json = planning_output
@@ -143,15 +144,55 @@ def run_loop():
             )
 
             # 結果のログ保存
+            def serializable_dict(obj):
+                """CrewOutputなどのPydantic/特殊オブジェクトをJSON保存可能な形式に変換"""
+                if isinstance(obj, (str, int, float, bool, type(None))):
+                    return obj
+                if isinstance(obj, dict):
+                    return {k: serializable_dict(v) for k, v in obj.items()}
+                if isinstance(obj, list):
+                    return [serializable_dict(i) for i in obj]
+                
+                if hasattr(obj, 'pydantic') and obj.pydantic:
+                    return obj.pydantic.model_dump()
+                if hasattr(obj, 'model_dump'):
+                    return obj.model_dump()
+                if hasattr(obj, 'json'):
+                    try: return json.loads(obj.json())
+                    except: pass
+                if hasattr(obj, 'dict'):
+                    try: return obj.dict()
+                    except: pass
+                
+                return str(obj)
+
+            # cycle_outputの中身をシリアライズ可能にする
+            clean_cycle_output = serializable_dict(cycle_output)
+
             final_result = {
                 "timestamp": current_time,
-                "cycle_output": cycle_output,
+                "cycle_output": clean_cycle_output,
                 "paper_trading_execution": trade_result,
-                "self_improvement_proposal": improvement_result
+                "self_improvement_proposal": serializable_dict(improvement_result)
             }
             
             with open(market_cycle_log_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(final_result, ensure_ascii=False) + "\n")
+            
+            # --- [能動的報告プロトコル] ---
+            try:
+                # 司令官への報告内容を構築
+                content_val = clean_cycle_output.get('content', '情報収集完了')
+                if isinstance(content_val, dict):
+                    content_val = content_val.get('summary', str(content_val))
+                
+                report_text = f"【Neo 自律哨戒報告】\n時刻: {current_time}\n状況: サイクル完了\n内容要約: {str(content_val)[:300]}..."
+                
+                print(f"📣 [Proactive Report]\n{report_text}")
+                
+            except Exception as msg_e:
+                print(f"Warning: Failed to build proactive report: {msg_e}")
+            # --- [能動的報告プロトコル END] ---
             
             print(f"Cycle completed. Next run in 1 hour.")
             time.sleep(3600) # 1時間待機
@@ -163,18 +204,25 @@ def run_loop():
             time.sleep(60)
 
 if __name__ == "__main__":
-    # シンプルな引数処理
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
         arg = sys.argv[2] if len(sys.argv) > 2 else "Virtuals Protocol"
         system = NeoSystem(web_search_tool=background_search_wrapper)
         
         if cmd == "post":
-            print(json.dumps(system.autonomous_post_cycle(arg), indent=2, ensure_ascii=False))
+            result = system.autonomous_post_cycle(arg)
+            def quick_serialize(obj):
+                if hasattr(obj, 'pydantic') and obj.pydantic: return obj.pydantic.model_dump()
+                if hasattr(obj, 'json'): 
+                    try: return json.loads(obj.json())
+                    except: pass
+                return str(obj)
+            
+            clean_res = {k: quick_serialize(v) for k, v in result.items()}
+            print(json.dumps(clean_res, indent=2, ensure_ascii=False))
         elif cmd == "plan":
             print(system.plan_project(arg, "Neo 2.0 Ecosystem"))
         else:
             print(f"Unknown command: {cmd}")
     else:
-        # デフォルトはループ実行
         run_loop()
