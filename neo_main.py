@@ -215,7 +215,9 @@ class NeoSystem:
         )
 
     def plan_project(self, goal: str, context: str, sentiment_score: float = 0.0, market_trends: str = ""):
-        """戦略企画部隊を派遣する"""
+        """
+        戦略企画部隊を派遣する
+        """
         print(f"派遣中: StrategicPlanningCrew...")
         return self.planning_crew.run(
             goal=goal,
@@ -225,7 +227,9 @@ class NeoSystem:
         )
 
     def execute_acp(self, strategy: str, context: str, credit_info: dict = None, sentiment_info: str = "Neutral"):
-        """ACP運用部隊を派遣する"""
+        """
+        ACP運用部隊を派遣する
+        """
         print(f"派遣中: ACPExecutorCrew (with AI decision logic)...")
         return self.acp_executor_crew.run(
             strategy=strategy,
@@ -235,7 +239,9 @@ class NeoSystem:
         )
 
     def calculate_credit(self, profile_data: dict):
-        """信用スコア計算ツールを実行する"""
+        """
+        信用スコア計算ツールを実行する
+        """
         print(f"実行中: CreditScoreCalculator...")
         try:
             profile = CreditProfile(**profile_data)
@@ -257,8 +263,8 @@ class NeoSystem:
                 print(f"ScoutCrew is researching: {topic}...")
                 scout_result = self.scout_ecosystem(
                     goal=f"{topic}に関する最新トレンドと機会の特定",
-                    context=f"Virtuals Protocolにおける最新の市場動向を調査せよ。\n{market_context}",
-                    constraints="Web検索を活用し、具体的で信頼性の高い情報を3つ抽出せよ。",
+                    context=f"現在の市場状況: Virtuals Protocolにおける最新の市場動向。\n{market_context}",
+                    constraints="- 具体的で信頼性の高い情報を収集すること。\n- 最低でも3つの異なる情報源から情報を抽出すること。\n- 抽出する情報は、Web検索で得られた客観的なデータに基づくこと。",
                     query=topic
                 )
                 
