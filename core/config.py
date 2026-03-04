@@ -20,6 +20,9 @@ class NeoConfig:
     
     REASONING_MODEL = "openrouter/openai/o1-mini"               # DeepSeek-R1 alternative (Pure Logic)
     
+    # Notification
+    DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1478693375090622559/f0AwGgXAWkyGWOZVk5LLI9A1MKYQBvzmdSGoc3crPNMZ2mCaJEe-JIbF9ATuAsQp8Ioe"
+
     # 安全装置 (安定化プロトコル v1.0)
     MAX_ITER = 3             # 無限ループ防止 (5→3に削減)
     MAX_RPM = 10             # APIレート制限遵守

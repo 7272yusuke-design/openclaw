@@ -4,6 +4,9 @@ import os
 import sys
 import traceback
 from datetime import datetime, timezone
+import urllib.request
+import urllib.parse
+from core.config import NeoConfig
 from neo_main import NeoSystem
 from agents.paper_trader import PaperTraderAgent
 
@@ -197,15 +200,118 @@ def run_loop():
             
             # --- [能動的報告プロトコル] ---
             try:
-                # 司令官への報告内容を構築
-                content_val = clean_cycle_output.get('content', '情報収集完了')
-                if isinstance(content_val, dict):
-                    content_val = content_val.get('summary', str(content_val))
+                # Retrieve data
+                scout_out = clean_cycle_output.get("scout_output", {})
+                sentiment_out = clean_cycle_output.get("sentiment_analysis_output", {})
+                planning_out = clean_cycle_output.get("planning_output", {})
+                content_out = clean_cycle_output.get("content", {})
                 
-                report_text = f"【Neo 自律哨戒報告】\n時刻: {current_time}\n状況: サイクル完了\n内容要約: {str(content_val)[:300]}..."
+                # Extract details safely
+                try:
+                    # Market Data (Scout - Hard to parse raw text, so we use dummy or try to extract if structured)
+                    # For now, we rely on the fact that scout output is usually text.
+                    market_summary = "データ取得完了"
+                    
+                    # Sentiment
+                    sentiment_score = "N/A"
+                    if isinstance(sentiment_out, dict):
+                         # If it's Pydantic/Dict
+                         sentiment_score = sentiment_out.get("sentiment_score", "N/A")
+                    elif isinstance(sentiment_out, str):
+                        # Simple extraction if possible, else just first line
+                        sentiment_score = sentiment_out[:50].split('\n')[0]
+
+                    # Strategy (Planning)
+                    strategy_action = "HOLD"
+                    risk_assessment = "Neutral"
+                    if isinstance(planning_out, dict):
+                        # Try to find strategy directive
+                        if "strategy" in planning_out:
+                            strategy_action = planning_out["strategy"].get("action_directive", "HOLD")
+                        if "risk_policy" in planning_out:
+                            risk_assessment = planning_out["risk_policy"].get("risk_appetite", "Neutral")
+                    elif hasattr(planning_out, 'pydantic') and planning_out.pydantic:
+                         model = planning_out.pydantic
+                         if hasattr(model, 'strategy'):
+                             strategy_action = model.strategy.action_directive
+                         if hasattr(model, 'risk_policy'):
+                             risk_assessment = model.risk_policy.risk_appetite
+
+                    # Paper Trader
+                    total_assets = trade_result.get("total_value_usd", 100000.0)
+                    virtual_holdings = trade_result.get("virtual_holdings", 0.0)
+                    pnl = total_assets - 100000.0
+                    pnl_sign = "+" if pnl >= 0 else ""
+                    
+                    # Content
+                    post_content = "N/A"
+                    if isinstance(content_out, dict):
+                        post_content = content_out.get("content", "N/A")
+                    elif hasattr(content_out, 'pydantic') and content_out.pydantic:
+                        post_content = content_out.pydantic.content
+                    else:
+                        post_content = str(content_out)
+
+                except Exception as e:
+                    print(f"Error parsing cycle output for report: {e}")
+                    market_summary = "Error parsing data"
+                    strategy_action = "Error"
+                    risk_assessment = "Error"
+                    post_content = "Error parsing content"
+                
+                # Report text construction (Markdown)
+                report_text = f"""### 📣 【Neo 自律哨戒報告】 ({current_time})
+
+**ステータス**: ✅ 正常完了 (Cycle Completed)
+
+#### 1. 📈 市場分析 (Scout & Sentiment)
+- **トレンド**: {market_summary}
+- **センチメント**: {sentiment_score}
+
+#### 2. 🛡️ 戦略判断 (Strategic Planning)
+- **リスク判定**: **{risk_assessment}**
+- **アクション**: **{strategy_action}**
+
+#### 3. 💰 資産状況 (Paper Wallet)
+- **総資産評価額**: **${total_assets:,.2f}** ({pnl_sign}${pnl:,.2f})
+- **保有内訳**:
+  - VIRTUAL: {virtual_holdings:,.2f} トークン
+
+#### 4. ✍️ 対外発信 (Content Creator)
+> {post_content}
+"""
                 
                 print(f"📣 [Proactive Report]\n{report_text}")
                 
+                # --- Send to Discord via Webhook ---
+                try:
+                    webhook_url = getattr(NeoConfig, 'DISCORD_WEBHOOK_URL', None)
+                    if webhook_url:
+                        # Construct JSON payload
+                        payload = {
+                            "content": report_text,
+                            "username": "Neo (Autonomous)",
+                            "avatar_url": "https://raw.githubusercontent.com/7272yusuke-design/openclaw/master/assets/neo-avatar.png" # Optional placeholder
+                        }
+                        
+                        data = json.dumps(payload).encode('utf-8')
+                        req = urllib.request.Request(
+                            webhook_url, 
+                            data=data, 
+                            headers={'Content-Type': 'application/json', 'User-Agent': 'Neo-Agent/1.0'}
+                        )
+                        
+                        with urllib.request.urlopen(req) as response:
+                            if 200 <= response.status < 300:
+                                print(f"✅ Discord notification sent successfully.")
+                            else:
+                                print(f"⚠️ Discord notification failed with status: {response.status}")
+                    else:
+                        print("ℹ️ Discord Webhook URL not configured. Skipping notification.")
+
+                except Exception as e:
+                    print(f"❌ Failed to send Discord notification: {e}")
+
             except Exception as msg_e:
                 print(f"Warning: Failed to build proactive report: {msg_e}")
             # --- [能動的報告プロトコル END] ---
