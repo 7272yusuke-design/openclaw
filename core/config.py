@@ -10,16 +10,20 @@ class NeoConfig:
     DEFAULT_MODEL = "openrouter/deepseek/deepseek-chat" # DeepSeek-V3 (最新)
     REASONING_MODEL = "openrouter/deepseek/deepseek-r1" # 推論特化モデル
     
-    # 安全装置 (ガイドライン第5項)
-    MAX_ITER = 3
-    MAX_RPM = 10
-    TASK_TIMEOUT = 300 # 5分
+    # 安全装置 (安定化プロトコル v1.0)
+    MAX_ITER = 3             # 無限ループ防止 (5→3に削減)
+    MAX_RPM = 10             # APIレート制限遵守
+    MAX_EXEC_TIME = 300      # 1タスク最大300秒 (5分)
+    VERBOSE = False          # メインログの肥大化を抑制 (True→False)
     
     @classmethod
     def setup_env(cls):
         """環境変数の同期"""
         os.environ["OPENAI_API_BASE"] = cls.OPENROUTER_BASE_URL
         os.environ["OPENAI_MODEL_NAME"] = cls.DEFAULT_MODEL
+        
+        # 安定性のための環境変数 (CrewAI/LiteLLM用)
+        os.environ["LITELLM_LOG"] = "ERROR" # 冗長なログを抑制
         
         # OPENROUTER_API_KEY を OPENAI_API_KEY に同期
         api_key = os.getenv("OPENROUTER_API_KEY")
@@ -31,12 +35,13 @@ class NeoConfig:
 
     @classmethod
     def get_common_crew_params(cls):
-        """Crewの共通パラメータを返す"""
+        """Crewの共通パラメータを返す (安定化設定)"""
         return {
-            "process": "sequential", # 必要に応じて階層型に変更
-            "memory": False,         # Embedding問題解決まで一時オフ
-            "verbose": True,
-            "max_rpm": cls.MAX_RPM
+            "process": "sequential", 
+            "memory": False,         
+            "verbose": cls.VERBOSE,
+            "max_rpm": cls.MAX_RPM,
+            "max_execution_time": cls.MAX_EXEC_TIME
         }
 
     @classmethod

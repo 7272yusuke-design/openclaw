@@ -13,15 +13,26 @@ class NeoBaseCrew:
         self.name = name
 
     def execute(self, crew: Crew):
-        """Crewを実行し、結果を標準化して返却する"""
-        try:
-            result = crew.kickoff()
-            self._save_log(result)
-            return result
-        except Exception as e:
-            error_msg = f"Error in {self.name}: {str(e)}"
-            print(error_msg)
-            return {"status": "failed", "error": error_msg}
+        """Crewを実行し、安定化された結果を標準化して返却する (Retry logic含む)"""
+        import time
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                # 共通の制限パラメータを適用
+                for task in crew.tasks:
+                    if not hasattr(task, 'max_execution_time') or task.max_execution_time is None:
+                        task.max_execution_time = NeoConfig.MAX_EXEC_TIME
+                
+                result = crew.kickoff()
+                self._save_log(result)
+                return result
+            except Exception as e:
+                error_msg = f"Attempt {attempt + 1} Failed in {self.name}: {str(e)}"
+                print(error_msg)
+                if attempt < max_retries - 1:
+                    time.sleep(2) # レート制限や一時的な接続エラー対策で待機
+                    continue
+                return {"status": "failed", "error": error_msg}
 
     def _save_log(self, result):
         """実行ログの保存"""
