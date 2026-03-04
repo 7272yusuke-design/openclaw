@@ -32,8 +32,9 @@ class SentimentCrew(NeoBaseCrew):
         analyst = Agent(
             role='Sentiment Analyst',
             goal='市場の感情スコアを特定し、トレンドの転換点を見極める',
-            backstory='市場の「空気」を読み取る専門家。必要であればWeb検索を駆使して最新情報を収集し、DeepSeek-V3により高度な分析を行います。',
+            backstory='市場の「空気」を読み取る専門家。必要であればWeb検索を駆使して最新情報を収集し、高度な分析を行います。',
             tools=tools, # ツールを追加
+            llm=NeoConfig.get_llm(NeoConfig.MODEL_EYES), # Gemini 2.0 Flash (Fast/Context)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
@@ -42,6 +43,7 @@ class SentimentCrew(NeoBaseCrew):
             role='Strategic Action Planner',
             goal='分析を元に具体的なACPアクションを立案する',
             backstory='感情データを利益に変える戦略家。',
+            llm=NeoConfig.get_llm(NeoConfig.MODEL_HANDS), # GPT-4o (Structured Output)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )

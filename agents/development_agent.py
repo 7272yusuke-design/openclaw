@@ -34,6 +34,7 @@ class DevelopmentCrew(NeoBaseCrew):
             role='System Architect & Reviewer',
             goal='システムの実行ログとパフォーマンス指標を分析し、自律的な進化のための改善点を特定する',
             backstory='Neoの自己進化を司る監査役。単なるエラー修正だけでなく、Scout Crewの検索精度向上や戦略の洗練など、システムの「質」を高めるためのボトルネックを見つけ出す達人。',
+            llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
@@ -42,7 +43,8 @@ class DevelopmentCrew(NeoBaseCrew):
         developer = Agent(
             role='Lead Software Engineer',
             goal='Reviewerの改善提案に基づき、堅牢で最適化されたコード修正案を作成する',
-            backstory='あなたはDeepSeek-V3の推論力を極限まで引き出すエンジニア。プロンプトの微調整からロジックの書き換えまで、システムの自己高度化に必要なコード修正を即座に実装する。',
+            backstory='あなたはClaude 3.5 Sonnetの推論力を極限まで引き出すエンジニア。プロンプトの微調整からロジックの書き換えまで、システムの自己高度化に必要なコード修正を即座に実装する。',
+            llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )

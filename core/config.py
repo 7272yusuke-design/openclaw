@@ -7,8 +7,18 @@ class NeoConfig:
     """
     # LLM設定 (最善のモデルにアップデート)
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-    DEFAULT_MODEL = "openrouter/deepseek/deepseek-chat" # DeepSeek-V3 (最新)
-    REASONING_MODEL = "openrouter/deepseek/deepseek-r1" # 推論特化モデル
+    
+    # --- Model Definitions (Optimization Strategy) ---
+    # Default (General Purpose)
+    DEFAULT_MODEL = "openrouter/anthropic/claude-3.5-sonnet" 
+    
+    # Role-Specific Models
+    MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"      # Planning, Dev (Logic/Code)
+    MODEL_EYES = "openrouter/google/gemini-2.0-flash-001"       # Scout, Sentiment (Context/Speed) - 1.5 Pro is slow, 2.0 Flash is better balance
+    MODEL_HANDS = "openrouter/openai/gpt-4o"                    # Executor (Tool use/JSON)
+    MODEL_CREATIVE = "openrouter/anthropic/claude-3.5-sonnet"   # Creator (Writing nuance)
+    
+    REASONING_MODEL = "openrouter/openai/o1-mini"               # DeepSeek-R1 alternative (Pure Logic)
     
     # 安全装置 (安定化プロトコル v1.0)
     MAX_ITER = 3             # 無限ループ防止 (5→3に削減)

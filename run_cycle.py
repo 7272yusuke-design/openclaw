@@ -109,23 +109,39 @@ def run_loop():
             strategy_json = None
             planning_output = cycle_output.get("planning_output", None)
             
-            if hasattr(planning_output, 'pydantic'):
-                pydantic_obj = planning_output.pydantic
-                if pydantic_obj:
-                    strategy_json = pydantic_obj.model_dump()
-                    print(f"[Pydantic] Successfully extracted structured plan: {strategy_json.get('status')}")
-            
+            # Case 1: CrewOutput object with pydantic attribute
+            if hasattr(planning_output, 'pydantic') and planning_output.pydantic:
+                try:
+                    strategy_json = planning_output.pydantic.model_dump()
+                    print(f"[Pydantic] Successfully extracted structured plan from pydantic attr: {strategy_json.get('status', 'unknown')}")
+                except Exception as e:
+                    print(f"[Pydantic] Error extracting from pydantic attr: {e}")
+
+            # Case 2: Dictionary (already serialized)
+            if not strategy_json and isinstance(planning_output, dict):
+                strategy_json = planning_output
+                print("[Pydantic] Extracted structured plan from dict")
+                
+            # Case 3: Raw string or CrewOutput with JSON string
             if not strategy_json:
-                if isinstance(planning_output, dict):
-                    strategy_json = planning_output
-                elif isinstance(planning_output, str):
-                    try:
-                        import re
-                        json_match = re.search(r"```json\s*(\{.*?\})\s*```", planning_output, re.DOTALL)
-                        if json_match:
-                            strategy_json = json.loads(json_match.group(1))
-                    except Exception as e:
-                        print(f"Warning: Failed to extract fallback JSON: {e}")
+                raw_output = str(planning_output)
+                if hasattr(planning_output, 'raw'):
+                    raw_output = planning_output.raw
+                
+                try:
+                    # Attempt to clean code blocks if present
+                    import re
+                    json_match = re.search(r"```json\s*(\{.*?\})\s*```", raw_output, re.DOTALL)
+                    if json_match:
+                        strategy_json = json.loads(json_match.group(1))
+                        print("[Pydantic] Extracted structured plan from regex (```json)")
+                    else:
+                        # Try parsing raw string directly if it looks like JSON
+                        if raw_output.strip().startswith("{") and raw_output.strip().endswith("}"):
+                            strategy_json = json.loads(raw_output)
+                            print("[Pydantic] Extracted structured plan from raw JSON string")
+                except Exception as e:
+                    print(f"Warning: Failed to extract fallback JSON: {e}")
             # --- [Pydantic 構造化データ取得 END] ---
             
             # ペーパートレード実行

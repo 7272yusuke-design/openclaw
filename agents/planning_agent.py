@@ -13,6 +13,7 @@ class PlanningCrew(NeoBaseCrew):
             role='Risk Manager',
             goal='市場環境に基づき、最適なリスク許容度と運用制限を決定する',
             backstory='市場の恐怖と強欲を冷静に分析し、Neoの資産を守りつつ増やすためのガードレールを設定する責任者。',
+            llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
@@ -22,6 +23,7 @@ class PlanningCrew(NeoBaseCrew):
             role='Strategic Planner',
             goal='リスク許容度に基づき、ACP Executorが実行すべき具体的な運用戦略を策定する',
             backstory='Virtuals Protocolの動向を捉え、どのエージェントセクターに資金を配分すべきかを決定する戦略家。',
+            llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
@@ -31,6 +33,7 @@ class PlanningCrew(NeoBaseCrew):
             role='Strategic Auditor',
             goal='Plannerの戦略を批判的に検証し、リスクの見落としや論理的欠陥がないか確認する',
             backstory='元リスク管理責任者。Plannerの楽観的な予測を疑い、最悪のシナリオ（ブラックスワン）を想定して戦略を磨き上げる役割。',
+            llm=NeoConfig.get_llm(NeoConfig.REASONING_MODEL), # o1-mini (Logic Check)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
@@ -107,7 +110,7 @@ class PlanningCrew(NeoBaseCrew):
             agents=[risk_manager, planner, auditor],
             tasks=[risk_task, strategy_task, audit_task],
             process=Process.hierarchical, # 階層型プロセスを有効化
-            manager_llm=NeoConfig.get_llm("google/gemini-2.5-flash"), # Neo自身がマネージャー
+            manager_llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Neo自身がマネージャー (Claude 3.5 Sonnet)
             **common_params
         )
 

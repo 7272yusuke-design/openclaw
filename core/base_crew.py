@@ -18,10 +18,14 @@ class NeoBaseCrew:
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                # 共通の制限パラメータを適用
+                # 共通の制限パラメータを適用 (Taskオブジェクトが属性を許容する場合のみ)
+                # Pydantic v2 や CrewAI のバージョンによっては動的属性追加が禁止されているため
                 for task in crew.tasks:
-                    if not hasattr(task, 'max_execution_time') or task.max_execution_time is None:
-                        task.max_execution_time = NeoConfig.MAX_EXEC_TIME
+                    try:
+                        if hasattr(task, 'max_execution_time') and task.max_execution_time is None:
+                            task.max_execution_time = NeoConfig.MAX_EXEC_TIME
+                    except Exception:
+                        pass # 属性がない、または設定できない場合は無視する
                 
                 result = crew.kickoff()
                 self._save_log(result)

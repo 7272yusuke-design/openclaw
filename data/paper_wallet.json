@@ -1,7 +1,22 @@
 {
-  "usd_balance": 100000.0,
-  "holdings": {},
-  "history": [],
+  "usd_balance": 90000.0,
+  "holdings": {
+    "VIRTUAL": {
+      "amount": 13609.145345672292,
+      "avg_price": 0.7348
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-03-04T07:23:22.668869",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.7348,
+      "amount_token": 13609.145345672292,
+      "amount_usd": 10000.0,
+      "reason": "Risk On (LTV 0.7 >= 0.65). Increasing exposure."
+    }
+  ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-02-28T07:13:32.439388"
+  "last_updated": "2026-03-04T07:23:22.668915"
 }
