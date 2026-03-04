@@ -13,7 +13,10 @@ class MarketData:
     def fetch_token_data(query: str):
         """
         クエリ（トークン名、シンボル、アドレス）に基づいて市場データを取得する。
+        キャッシュファイルを使用してAPIエラー時や異常値（価格0など）に対する耐性を持たせる。
         """
+        cache_path = f"data/market_cache_{query.upper()}.json"
+        
         try:
             params = {"q": query}
             response = requests.get(MarketData.BASE_URL, params=params, timeout=10)
@@ -23,26 +26,46 @@ class MarketData:
             pairs = data.get("pairs", [])
             
             if not pairs:
-                return {"status": "error", "message": "No pairs found"}
+                raise ValueError("No pairs found in API response")
 
             # 最も流動性が高いペアを抽出
-            # Virtuals Protocol関連 (Baseチェーン) を優先するロジックなどをここに追加可能
             best_pair = pairs[0] 
+            price_usd = best_pair.get("priceUsd")
             
-            return {
+            # 価格が0またはNoneの場合は異常値として扱う
+            if not price_usd or float(price_usd) <= 0:
+                raise ValueError(f"Invalid price detected: {price_usd}")
+            
+            result = {
                 "status": "success",
                 "symbol": best_pair.get("baseToken", {}).get("symbol"),
                 "name": best_pair.get("baseToken", {}).get("name"),
-                "priceUsd": best_pair.get("priceUsd"),
-                "priceChange": best_pair.get("priceChange", {}), # 5m, 1h, 6h, 24h
+                "priceUsd": price_usd,
+                "priceChange": best_pair.get("priceChange", {}),
                 "volume": best_pair.get("volume", {}),
                 "liquidity": best_pair.get("liquidity", {}),
                 "url": best_pair.get("url"),
                 "pairAddress": best_pair.get("pairAddress"),
-                "chainId": best_pair.get("chainId")
+                "chainId": best_pair.get("chainId"),
+                "timestamp": __import__("time").time()
             }
             
+            # 正常データをキャッシュに保存
+            os.makedirs("data", exist_ok=True)
+            with open(cache_path, "w") as f:
+                json.dump(result, f)
+                
+            return result
+            
         except Exception as e:
+            # APIエラー時はキャッシュから復旧を試みる
+            if os.path.exists(cache_path):
+                with open(cache_path, "r") as f:
+                    cached_data = json.load(f)
+                    cached_data["status"] = "success_from_cache"
+                    cached_data["error_info"] = str(e)
+                    return cached_data
+            
             return {"status": "error", "message": str(e)}
 
     @staticmethod

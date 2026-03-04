@@ -35,9 +35,16 @@ class NeoBaseCrew:
                 return {"status": "failed", "error": error_msg}
 
     def _save_log(self, result):
-        """実行ログの保存"""
+        """実行ログの保存。ファイル競合を避けるため追記モード(JSONL)での保存も検討"""
+        import os
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        os.makedirs("logs/crewai", exist_ok=True)
+        
+        # 個別ログ
         log_path = f"logs/crewai/{self.name}_{timestamp}.json"
+        
+        # 統合JSONLログ (追記専用・競合に強い)
+        history_path = "logs/execution_history.jsonl"
         
         log_data = {
             "timestamp": timestamp,
@@ -46,5 +53,13 @@ class NeoBaseCrew:
             "final_output": str(result)
         }
         
-        with open(log_path, "w") as f:
-            json.dump(log_data, f, indent=2, ensure_ascii=False)
+        # 個別ファイル書き出し
+        try:
+            with open(log_path, "w") as f:
+                json.dump(log_data, f, indent=2, ensure_ascii=False)
+            
+            # JSONLへの追記 (Atomic append)
+            with open(history_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_data, ensure_ascii=False) + "\n")
+        except Exception as e:
+            print(f"Failed to save log: {e}")
