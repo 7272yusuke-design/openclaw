@@ -10,11 +10,11 @@ class NeoConfig:
     
     # --- Model Definitions (Optimization Strategy) ---
     # Default (General Purpose)
-    DEFAULT_MODEL = "openrouter/anthropic/claude-3.5-sonnet" 
+    DEFAULT_MODEL = "openrouter/google/gemini-2.0-flash-001" 
     
     # Role-Specific Models
-    MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"      # Planning, Dev (Logic/Code)
-    MODEL_EYES = "openrouter/google/gemini-2.0-flash-001"       # Scout, Sentiment (Context/Speed) - 1.5 Pro is slow, 2.0 Flash is better balance
+    MODEL_BRAIN = "openrouter/google/gemini-2.0-flash-001"      # Planning, Dev (Logic/Code) - Replaced Sonnet with Gemini 2.0 Flash for speed/cost
+    MODEL_EYES = "openrouter/google/gemini-2.0-flash-001"       # Scout, Sentiment (Context/Speed)
     MODEL_HANDS = "openrouter/openai/gpt-4o"                    # Executor (Tool use/JSON)
     MODEL_CREATIVE = "openrouter/anthropic/claude-3.5-sonnet"   # Creator (Writing nuance)
     

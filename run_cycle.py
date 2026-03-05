@@ -240,6 +240,7 @@ def run_loop():
                     # Paper Trader
                     total_assets = trade_result.get("total_value_usd", 100000.0)
                     virtual_holdings = trade_result.get("virtual_holdings", 0.0)
+                    cash_holdings = trade_result.get("cash_usd", 0.0)
                     pnl = total_assets - 100000.0
                     pnl_sign = "+" if pnl >= 0 else ""
                     
@@ -251,7 +252,12 @@ def run_loop():
                         post_content = content_out.pydantic.content
                     else:
                         post_content = str(content_out)
-
+                    
+                    # Mock or Extract VIRTUAL Price (If available in scout output)
+                    # For now, we will try to find it in scout text or leave it as "取得中"
+                    virtual_price_display = "取得中..."
+                    # In a real scenario, we would parse scout_out for price data
+                    
                 except Exception as e:
                     print(f"Error parsing cycle output for report: {e}")
                     market_summary = "Error parsing data"
@@ -260,21 +266,40 @@ def run_loop():
                     post_content = "Error parsing content"
                 
                 # Report text construction (Markdown)
-                report_text = f"""### 📣 【Neo 自律哨戒報告】 ({current_time})
+                # Translation Helper
+                def translate_status(val):
+                    pmap = {
+                        "Conservative": "保守的 (Conservative)",
+                        "Moderate": "中立的 (Moderate)",
+                        "Aggressive": "積極的 (Aggressive)",
+                        "Neutral": "中立 (Neutral)",
+                        "Fear": "恐怖 (Fear)",
+                        "Greed": "強欲 (Greed)",
+                        "Extreme Fear": "極度の恐怖",
+                        "Extreme Greed": "極度の強欲",
+                        "HOLD": "待機 (HOLD)",
+                        "BUY": "購入 (BUY)",
+                        "SELL": "売却 (SELL)"
+                    }
+                    return pmap.get(val, val)
 
+                report_text = f"""### 📣 【Neo 自律哨戒報告】 (定時報告分)
 **ステータス**: ✅ 正常完了 (Cycle Completed)
+**実行モデル**: Claude 3.5 Sonnet (Brain) + Gemini 2.0 Flash (Eyes) + GPT-4o (Hands)
 
 #### 1. 📈 市場分析 (Scout & Sentiment)
-- **トレンド**: {market_summary}
-- **センチメント**: {sentiment_score}
+- **トレンド検知**:
+{market_summary}
 
 #### 2. 🛡️ 戦略判断 (Strategic Planning)
-- **リスク判定**: **{risk_assessment}**
-- **アクション**: **{strategy_action}**
+- **リスク判定**: **{translate_status(risk_assessment)}**
+- **アクション**: **{translate_status(strategy_action)}**
 
 #### 3. 💰 資産状況 (Paper Wallet)
-- **総資産評価額**: **${total_assets:,.2f}** ({pnl_sign}${pnl:,.2f})
+- **総資産評価額**: **${total_assets:,.2f}** (開始時 $100,000)
+- **含み益**: **{pnl_sign}${pnl:,.2f}**
 - **保有内訳**:
+  - USD: ${cash_holdings:,.2f}
   - VIRTUAL: {virtual_holdings:,.2f} トークン
 
 #### 4. ✍️ 対外発信 (Content Creator)

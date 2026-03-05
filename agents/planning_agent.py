@@ -81,6 +81,7 @@ class PlanningCrew(NeoBaseCrew):
 
         【重要】監査を経て、最終的にACP ExecutorおよびPaperTraderが実行可能な「確定版戦略指令書」を出力せよ。
         DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。
+        JSON内の文字列値（特に action_directive, sector_advice, audit_summary）は必ず【日本語】で記述すること。
         JSONは必ず ```json ... ``` で囲むこと。
 
         出力に含める要素 (NeoStrategicPlan型):
@@ -111,6 +112,7 @@ class PlanningCrew(NeoBaseCrew):
             tasks=[risk_task, strategy_task, audit_task],
             process=Process.hierarchical, # 階層型プロセスを有効化
             manager_llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Neo自身がマネージャー (Claude 3.5 Sonnet)
+            planning=True, # 計画機能を有効化（効率的なタスク配分）
             **common_params
         )
 
