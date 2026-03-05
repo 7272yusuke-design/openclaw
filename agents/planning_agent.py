@@ -8,6 +8,9 @@ class PlanningCrew(NeoBaseCrew):
         super().__init__(name="StrategicPlanning")
 
     def run(self, goal: str, context: str, sentiment_score: float = 0.0, market_trends: str = ""):
+        # Ensure env is setup before getting LLMs
+        NeoConfig.setup_env() 
+        
         # 1. Risk Manager: 市場環境に基づきリスク許容度を決定
         risk_manager = Agent(
             role='Risk Manager',
@@ -15,7 +18,8 @@ class PlanningCrew(NeoBaseCrew):
             backstory='市場の恐怖と強欲を冷静に分析し、Neoの資産を守りつつ増やすためのガードレールを設定する責任者。',
             llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
-            allow_delegation=False
+            allow_delegation=False,
+            verbose=True
         )
 
         # 2. Strategic Planner: 具体的な運用戦略を策定
@@ -25,7 +29,8 @@ class PlanningCrew(NeoBaseCrew):
             backstory='Virtuals Protocolの動向を捉え、どのエージェントセクターに資金を配分すべきかを決定する戦略家。',
             llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
-            allow_delegation=False
+            allow_delegation=False,
+            verbose=True
         )
 
         # 3. Strategic Auditor: 戦略の妥当性とリスクを厳格に監査
@@ -35,7 +40,8 @@ class PlanningCrew(NeoBaseCrew):
             backstory='元リスク管理責任者。Plannerの楽観的な予測を疑い、最悪のシナリオ（ブラックスワン）を想定して戦略を磨き上げる役割。',
             llm=NeoConfig.get_llm(NeoConfig.REASONING_MODEL), # o1-mini (Logic Check)
             max_iter=NeoConfig.MAX_ITER,
-            allow_delegation=False
+            allow_delegation=False,
+            verbose=True
         )
 
         # タスク定義

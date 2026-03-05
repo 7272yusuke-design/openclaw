@@ -9,16 +9,16 @@ class NeoConfig:
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     
     # --- Model Definitions (Optimization Strategy) ---
-    # Default (General Purpose)
-    DEFAULT_MODEL = "openrouter/google/gemini-2.0-flash-001" 
+    # Default (General Purpose - Neo Orchestrator uses Google AI Studio Direct)
+    DEFAULT_MODEL = "gemini/gemini-3.0-flash-preview"  # Explicitly requesting 3.0 Flash via Direct API
     
-    # Role-Specific Models
-    MODEL_BRAIN = "openrouter/google/gemini-2.0-flash-001"      # Planning, Dev (Logic/Code) - Replaced Sonnet with Gemini 2.0 Flash for speed/cost
-    MODEL_EYES = "openrouter/google/gemini-2.0-flash-001"       # Scout, Sentiment (Context/Speed)
-    MODEL_HANDS = "openrouter/openai/gpt-4o"                    # Executor (Tool use/JSON)
-    MODEL_CREATIVE = "openrouter/anthropic/claude-3.5-sonnet"   # Creator (Writing nuance)
+    # Role-Specific Models (Enforcing the requested hybrid architecture via OpenRouter)
+    MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"        # Strategic Planning, Dev (Logic/Code)
+    MODEL_EYES = "openrouter/google/gemini-2.5-flash"             # Scout, Sentiment (Context/Speed) - Keeping 2.5 as requested for crew
+    MODEL_HANDS = "openrouter/openai/gpt-4o"                      # Executor, ACP Architect (Tool use/JSON)
+    MODEL_CREATIVE = "openrouter/anthropic/claude-3.5-sonnet"     # Content Creator (Writing nuance)
     
-    REASONING_MODEL = "openrouter/openai/o1-mini"               # DeepSeek-R1 alternative (Pure Logic)
+    REASONING_MODEL = "openrouter/openai/o1-mini"                 # Strategic Auditor (Pure Logic)
     
     # Notification
     DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1478693375090622559/f0AwGgXAWkyGWOZVk5LLI9A1MKYQBvzmdSGoc3crPNMZ2mCaJEe-JIbF9ATuAsQp8Ioe"
@@ -61,6 +61,12 @@ class NeoConfig:
     def get_llm(cls, model_name=None):
         """指定されたモデル名のLLMインスタンスを返す"""
         try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+        except ImportError:
+            # If Google library is missing, fallback to OpenRouter (safer)
+            pass
+            
+        try:
             from langchain_openai import ChatOpenAI
         except ImportError:
             try:
@@ -68,9 +74,30 @@ class NeoConfig:
             except ImportError:
                 from langchain.chat_models import ChatOpenAI
         
-        model = model_name or cls.DEFAULT_MODEL
+        target_model = model_name or cls.DEFAULT_MODEL
+
+        # Handle Google AI Studio Direct API (gemini/ prefix)
+        if target_model.startswith("gemini/") and "openrouter" not in target_model:
+            # Simple check to differentiate from openrouter/google/...
+            if not os.environ.get("GOOGLE_API_KEY"):
+                print("[Config] Critical: GOOGLE_API_KEY missing. Falling back to OpenRouter/Env.")
+            else:
+                try:
+                    # Clean model name: 'gemini/gemini-3-flash' -> 'gemini-3-flash'
+                    clean_name = target_model.split("/")[-1]
+                    return ChatGoogleGenerativeAI(
+                        model=clean_name,
+                        google_api_key=os.environ.get("GOOGLE_API_KEY"),
+                        convert_system_message_to_human=True,
+                        temperature=0.7
+                    )
+                except ImportError:
+                    print("[Config] langchain_google_genai not installed. Using OpenRouter fallback.")
+
+        # Default: Use OpenRouter (OpenAI Compatible)
         return ChatOpenAI(
-            model=model,
-            base_url=cls.OPENROUTER_BASE_URL,
-            api_key=os.environ.get("OPENAI_API_KEY")
+            model=target_model,
+            openai_api_base=cls.OPENROUTER_BASE_URL,
+            api_key=os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"),
+            temperature=0.7
         )

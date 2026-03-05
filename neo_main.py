@@ -24,7 +24,7 @@ USE_CACHE = ENVIRONMENT != "production"
 DEBUG_LOGGING = ENVIRONMENT == "development"
 
 # --- LLM モデル設定 ---
-DEFAULT_LLM_MODEL = "google/gemini-3-flash-preview"
+DEFAULT_LLM_MODEL = "gemini/gemini-3.0-flash-preview"
 
 # --- キャッシュ設定 ---
 CACHE_TTL_SECONDS = 300 
@@ -51,17 +51,14 @@ class NeoSystem:
         self.logger = ExecutionLogger() # 追加
         print(f"[Neo] Blackboard, CostGuard & Logger activated.")
 
-        # Crew-specific model configuration
-        default_v3 = NeoConfig.DEFAULT_MODEL
-        reasoning_r1 = NeoConfig.REASONING_MODEL
-
+        # Crew-specific model configuration (Hybrid Architecture)
         self.crew_model_map = {
-            "sentiment_crew": default_v3,
-            "scout_crew": default_v3,
-            "creator_crew": default_v3,
-            "planning_crew": reasoning_r1,
-            "development_crew": reasoning_r1,
-            "acp_executor_crew": default_v3,
+            "sentiment_crew": NeoConfig.MODEL_EYES,
+            "scout_crew": NeoConfig.MODEL_EYES,
+            "creator_crew": NeoConfig.MODEL_CREATIVE,
+            "planning_crew": NeoConfig.MODEL_BRAIN,
+            "development_crew": NeoConfig.MODEL_BRAIN,
+            "acp_executor_crew": NeoConfig.MODEL_HANDS,
         }
         
         # --- LLM Client Instances ---

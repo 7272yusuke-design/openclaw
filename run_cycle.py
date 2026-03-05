@@ -154,6 +154,20 @@ def run_loop():
                 print("[Paper Trader] Executing trades based on planning strategy...")
                 trade_result = paper_trader.execute_strategy(strategy_json)
                 print(f"[Paper Trader] Trade execution result: {trade_result}")
+                
+                # --- [Blackboard Update Fix] ---
+                # ウォレット残高をBlackboardに反映 (コンテキスト共有のため)
+                if trade_result:
+                    wallet_state = {
+                        "balance": trade_result.get("usd_balance", 0.0),
+                        "virtual_holdings": trade_result.get("virtual_holdings", 0.0),
+                        "total_value": trade_result.get("total_value_usd", 0.0),
+                        "currency": "USDT",
+                        "updated_at": time.time()
+                    }
+                    system.blackboard.update("wallet", wallet_state)
+                    print(f"[Blackboard] Wallet state updated: {wallet_state['balance']} USDT")
+                # -------------------------------
 
             # システム改善提案の生成
             print("[Development Crew] Analyzing performance and seeking improvements...")
