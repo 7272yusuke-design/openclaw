@@ -10,7 +10,7 @@ class NeoConfig:
     
     # --- Model Definitions (Optimization Strategy) ---
     # Default (General Purpose - Neo Orchestrator uses Google AI Studio Direct)
-    DEFAULT_MODEL = "gemini/gemini-3-flash-preview"  # Corrected ID for Gemini 3 Flash
+    DEFAULT_MODEL = "gemini/gemini-2.5-flash"  # Switched to 2.5 Flash due to 3.0 limits
     
     # Role-Specific Models (Enforcing the requested hybrid architecture via OpenRouter)
     MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"        # Strategic Planning, Dev (Logic/Code)

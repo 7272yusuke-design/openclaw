@@ -3,7 +3,7 @@
   "current_price": {
     "token": "VIRTUAL",
     "price": 0.0,
-    "updated_at": 1772703135.486839
+    "updated_at": 1772706213.0823884
   },
   "sentiment": {
     "score": 0.5,
@@ -22,7 +22,7 @@
   },
   "last_cycle_summary": "Posted about Virtuals Protocol Market Analysis",
   "confidence_matrix": {},
-  "current_price_updated_at": 1772703135.4868417,
+  "current_price_updated_at": 1772706213.0823913,
   "sentiment_updated_at": 1772703186.3182158,
   "active_strategy_updated_at": 1772703186.3256948,
   "last_cycle_summary_updated_at": 1772703186.328368
