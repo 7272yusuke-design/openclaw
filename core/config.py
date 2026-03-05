@@ -10,7 +10,7 @@ class NeoConfig:
     
     # --- Model Definitions (Optimization Strategy) ---
     # Default (General Purpose - Neo Orchestrator uses Google AI Studio Direct)
-    DEFAULT_MODEL = "gemini/gemini-3-flash-preview"  # Switched back to 3 Flash per command
+    DEFAULT_MODEL = "gemini/gemini-2.5-flash"  # Switched to 2.5 Flash for stability and limits
     
     # Role-Specific Models (Enforcing the requested hybrid architecture via OpenRouter)
     MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"        # Strategic Planning, Dev (Logic/Code)
@@ -31,17 +31,17 @@ class NeoConfig:
     
     @classmethod
     def setup_env(cls):
-        """環境変数の同期"""
+        """環境変数の同期とOpenRouterへの物理的固定"""
+        # OpenRouterを唯一のエンドポイントとして強制
         os.environ["OPENAI_API_BASE"] = cls.OPENROUTER_BASE_URL
-        os.environ["OPENAI_MODEL_NAME"] = cls.DEFAULT_MODEL
         
-        # 安定性のための環境変数 (CrewAI/LiteLLM用)
-        os.environ["LITELLM_LOG"] = "ERROR" # 冗長なログを抑制
-        
-        # OPENROUTER_API_KEY を OPENAI_API_KEY に同期
+        # 混乱の元となるキーをOpenRouterのキーで完全に上書き
         api_key = os.getenv("OPENROUTER_API_KEY")
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
+            os.environ["ANTHROPIC_API_KEY"] = api_key
+            # LiteLLM/CrewAI用のプレフィックス指定
+            os.environ["OPENAI_MODEL_NAME"] = cls.DEFAULT_MODEL
         
         # ログディレクトリの確保
         os.makedirs("logs/crewai", exist_ok=True)
@@ -95,16 +95,21 @@ class NeoConfig:
                     print("[Config] langchain_google_genai not installed. Using OpenRouter fallback.")
 
         # --- Case B: OpenRouter via ChatOpenAI ---
-        # その他のCrewで使用。OpenRouter経由で様々なモデルにアクセス。
+        # プレフィックスを維持し、LiteLLMがOpenRouterを確実に認識するようにする
+        final_model_name = target_model
+        if not final_model_name.startswith("openrouter/"):
+            final_model_name = f"openrouter/{final_model_name}"
         
-        # 'openrouter/provider/model' -> 'provider/model'
-        # ChatOpenAIに渡す際、LiteLLM用のプレフィックス(openrouter/)は不要。
-        final_model_name = target_model.replace("openrouter/", "")
-        
+        # 不要なprovider名の重複を避ける (例: openrouter/openrouter/ -> openrouter/)
+        final_model_name = final_model_name.replace("openrouter/openrouter/", "openrouter/")
+
         return ChatOpenAI(
             model=final_model_name,
-            openai_api_base=cls.OPENROUTER_BASE_URL,  # For langchain < 0.3
-            base_url=cls.OPENROUTER_BASE_URL,         # For langchain >= 0.3 / newer clients
+            base_url=cls.OPENROUTER_BASE_URL,
             api_key=os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"),
-            temperature=0.7
+            temperature=0.7,
+            default_headers={
+                "HTTP-Referer": "https://openclaw.ai",
+                "X-Title": "Neo Autonomous Agent"
+            }
         )

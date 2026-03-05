@@ -192,17 +192,26 @@ class NeoSystem:
             
             # 1. Scout
             if search_results is None:
-                scout_result = self.scout_ecosystem(
+                scout_output = self.scout_ecosystem(
                     goal=f"{topic}に関する最新トレンドと機会の特定",
                     context=f"Focus on: {topic}",
                     constraints="具体的かつ信頼性の高い情報。",
                     query=topic
                 )
-                raw_data = [{"title": "Scout Report", "snippet": str(scout_result), "url": "Internal Scout Crew"}]
+                # CrewOutputから確実にテキストを抽出
+                scout_text = ""
+                if hasattr(scout_output, 'raw'):
+                    scout_text = scout_output.raw
+                else:
+                    scout_text = str(scout_output)
+                
+                print(f"[Neo] Scout Report Length: {len(scout_text)}")
+                raw_data = [{"title": "Scout Intelligence", "snippet": scout_text, "url": "Internal Scout Crew"}]
             else:
                 raw_data = search_results
 
             # 2. Credit Check (Sample)
+            # ... (変更なし) ...
             sample_profile = {
                 "agent_id": "Quantify-X",
                 "on_chain_volume": 500000,
@@ -228,7 +237,13 @@ class NeoSystem:
             )
             
             # Blackboard Update (Sentiment)
-            summary = str(getattr(analysis, 'raw', analysis))
+            summary = ""
+            if hasattr(analysis, 'raw'):
+                summary = analysis.raw
+            else:
+                summary = str(analysis)
+                
+            print(f"[Neo] Sentiment Analysis Length: {len(summary)}")
             # 簡易的にスコア抽出と仮定
             sentiment_score = 0.5 
             self.blackboard.update("sentiment", {"score": sentiment_score, "label": "Analysis Done", "updated_at": time.time()})
@@ -240,24 +255,40 @@ class NeoSystem:
                 sentiment_score=sentiment_score,
                 market_trends=str(raw_data)
             )
-            strategy_summary = str(getattr(planning_result, 'raw', planning_result))
+            strategy_summary = ""
+            if hasattr(planning_result, 'raw'):
+                strategy_summary = planning_result.raw
+            else:
+                strategy_summary = str(planning_result)
             
+            print(f"[Neo] Planning Result Length: {len(strategy_summary)}")
             # Blackboard Update (Strategy)
             self.blackboard.update("active_strategy", {"name": "New Strategy", "risk_level": "Computed", "updated_at": time.time()})
 
             # 5. Creator
+            # 材料が不完全（エラー等）な場合のフォールバックロジック
+            creator_input = f"Analysis: {summary}\n\nStrategy: {strategy_summary}"
+            if "Error" in strategy_summary or not strategy_summary:
+                print("[Neo] Strategy failed. Falling back to Scout Report for content creation.")
+                creator_input = f"Analysis: {summary}\n\nNote: Strategy planning is currently in maintenance. Focus on the scout report."
+
             creation = self._safe_dispatch(
                 "creator_crew", self.creator_crew, "run",
-                sentiment_summary=f"Analysis: {summary}\n\nStrategy: {strategy_summary}", current_trends=topic
+                sentiment_summary=creator_input, current_trends=topic
             )
             
             post_content = ""
-            if hasattr(creation, 'pydantic') and creation.pydantic:
-                post_content = creation.pydantic.content
-            elif hasattr(creation, 'raw'):
+            if hasattr(creation, 'raw'):
                 post_content = creation.raw
+            elif hasattr(creation, 'pydantic') and creation.pydantic:
+                post_content = creation.pydantic.content
             else:
                 post_content = str(creation)
+
+            # 万が一Creatorが空を返した場合の最終防衛ライン
+            if (not post_content or "Error" in post_content) and len(summary) > 50:
+                 print("[Neo] Creator failed. Using raw analysis as post content.")
+                 post_content = f"【Neo市場調査速報】\n\n{summary[:1000]}"
 
             if post_content:
                 clean_content = post_content.strip().strip('"').strip("'")
@@ -315,6 +346,10 @@ class NeoSystem:
 
 
 if __name__ == "__main__":
+    # Ensure environment is set up correctly for CLI mode
+    from core.config import NeoConfig
+    NeoConfig.setup_env()
+    
     # Use OpenClaw's native web_search tool for CLI execution
     # No need for GoogleSerperAPIWrapper as OpenClaw provides its own web_search tool
     
