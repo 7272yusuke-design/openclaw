@@ -54,7 +54,8 @@
 
 ## 2026-03-05 (Night) 本日の成果まとめ (Model Adjustment & Stability)
 1.  **モデルの緊急切り替え**:
-    - Gemini 3.0 Flash の利用制限に達したため、Neo本体（チャットおよび自律サイクル）のモデルを **`gemini-2.5-flash`** (Google Direct API) に変更しました。
+    - Gemini 3 Flash の利用制限に達したため、Neo本体（チャットおよび自律サイクル）のモデルを **`gemini-2.5-flash`** (Google Direct API) に一時的に変更しました。
+    - **司令官の指示により、`gemini-3-flash-preview` へ再度切り戻し**を行いました。
     - **モデル同期ルール**に従い、チャットインターフェースとコード設定の両方を同時に更新しました。
 2.  **インフラの正常化**:
     - 外部APIキー（SERPER）に依存しない、本来のスキル装備（`crypto-market-data` 等）による情報収集体制を確認しました。
