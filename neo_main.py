@@ -315,23 +315,17 @@ class NeoSystem:
 
 
 if __name__ == "__main__":
-    # Fix: Use real web search tool instead of mock for CLI execution
-    from langchain_community.utilities import GoogleSerperAPIWrapper
+    # Use OpenClaw's native web_search tool for CLI execution
+    # No need for GoogleSerperAPIWrapper as OpenClaw provides its own web_search tool
     
-    def real_web_search(query):
-        search = GoogleSerperAPIWrapper()
-        try:
-            results = search.results(query)
-            return results.get("organic", [])[:5] # Return top 5 organic results
-        except Exception as e:
-            print(f"[CLI] Search Error: {e}")
-            return []
+    def openclaw_web_search(query):
+        print(f"[CLI] Web search is currently disabled. Query: {query}")
+        return [] # 空の結果を返すことで、検索は行われません
 
-    # Initialize System with Real Tools
-    # Note: ENVIRONMENT defaults to 'development' in code but we want real tools here
-    os.environ["ENVIRONMENT"] = "production" # Temporarily force production mode for tool usage
-    system_cli = NeoSystem(web_search_tool=real_web_search)
-    print("[CLI] NeoSystem initialized with REAL tools.")
+    # Initialize System with OpenClaw's native web_search tool
+    os.environ["ENVIRONMENT"] = "production"
+    system_cli = NeoSystem(web_search_tool=openclaw_web_search)
+    print("[CLI] NeoSystem initialized with OpenClaw's native web_search tool.")
 
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
