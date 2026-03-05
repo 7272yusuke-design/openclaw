@@ -24,7 +24,7 @@ USE_CACHE = ENVIRONMENT != "production"
 DEBUG_LOGGING = ENVIRONMENT == "development"
 
 # --- LLM モデル設定 ---
-DEFAULT_LLM_MODEL = "gemini/gemini-3.0-flash-preview"
+DEFAULT_LLM_MODEL = NeoConfig.DEFAULT_MODEL # 統一管理に変更
 
 # --- キャッシュ設定 ---
 CACHE_TTL_SECONDS = 300 
@@ -315,22 +315,35 @@ class NeoSystem:
 
 
 if __name__ == "__main__":
-    def standalone_web_search(query):
-        print(f"[Standalone] Mock web search for: {query}")
-        return [{"title": "Mock Result", "snippet": f"Result for {query}", "url": "http://mock"}]
+    # Fix: Use real web search tool instead of mock for CLI execution
+    from langchain_community.utilities import GoogleSerperAPIWrapper
+    
+    def real_web_search(query):
+        search = GoogleSerperAPIWrapper()
+        try:
+            results = search.results(query)
+            return results.get("organic", [])[:5] # Return top 5 organic results
+        except Exception as e:
+            print(f"[CLI] Search Error: {e}")
+            return []
 
-    if ENVIRONMENT == "development":
-        os.environ["ENVIRONMENT"] = "development"
-        system_dev = NeoSystem(web_search_tool=standalone_web_search)
-        print("Dev mode initialized.")
+    # Initialize System with Real Tools
+    # Note: ENVIRONMENT defaults to 'development' in code but we want real tools here
+    os.environ["ENVIRONMENT"] = "production" # Temporarily force production mode for tool usage
+    system_cli = NeoSystem(web_search_tool=real_web_search)
+    print("[CLI] NeoSystem initialized with REAL tools.")
 
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
         arg = sys.argv[2] if len(sys.argv) > 2 else ""
-        current_system = NeoSystem(web_search_tool=standalone_web_search)
+        
         if cmd == "post":
-            print(json.dumps(current_system.autonomous_post_cycle(arg), indent=2, ensure_ascii=False))
+            print(f"[CLI] Starting autonomous post cycle for topic: {arg}")
+            result = system_cli.autonomous_post_cycle(arg)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
         elif cmd == "plan":
-            print(current_system.plan_project(arg, "Neo 2.0 Ecosystem"))
+            print(f"[CLI] Planning project: {arg}")
+            print(system_cli.plan_project(arg, "Neo 2.0 Ecosystem"))
         elif cmd == "execute":
-            print(current_system.execute_acp(arg, "Neo Strategy"))
+            print(f"[CLI] Executing ACP: {arg}")
+            print(system_cli.execute_acp(arg, "Neo Strategy"))

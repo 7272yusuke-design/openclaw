@@ -5,16 +5,16 @@ class NeoConfig:
     Neoのシステム全体で共有される設定クラス。
     ガイドラインに基づき、コストと安全性を制御する。
     """
-    # LLM設定 (最善のモデルにアップデート)
+    # OpenRouter API Base URL
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
     
     # --- Model Definitions (Optimization Strategy) ---
     # Default (General Purpose - Neo Orchestrator uses Google AI Studio Direct)
-    DEFAULT_MODEL = "gemini/gemini-3.0-flash-preview"  # Explicitly requesting 3.0 Flash via Direct API
+    DEFAULT_MODEL = "gemini/gemini-3-flash-preview"  # Corrected ID for Gemini 3 Flash
     
     # Role-Specific Models (Enforcing the requested hybrid architecture via OpenRouter)
     MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"        # Strategic Planning, Dev (Logic/Code)
-    MODEL_EYES = "openrouter/google/gemini-2.5-flash"             # Scout, Sentiment (Context/Speed) - Keeping 2.5 as requested for crew
+    MODEL_EYES = "openrouter/google/gemini-2.5-flash"             # Scout, Sentiment (Context/Speed)
     MODEL_HANDS = "openrouter/openai/gpt-4o"                      # Executor, ACP Architect (Tool use/JSON)
     MODEL_CREATIVE = "openrouter/anthropic/claude-3.5-sonnet"     # Content Creator (Writing nuance)
     
@@ -27,7 +27,7 @@ class NeoConfig:
     MAX_ITER = 3             # 無限ループ防止 (5→3に削減)
     MAX_RPM = 10             # APIレート制限遵守
     MAX_EXEC_TIME = 300      # 1タスク最大300秒 (5分)
-    VERBOSE = False          # メインログの肥大化を抑制 (True→False)
+    VERBOSE = False          # メインログの肥大化を抑制
     
     @classmethod
     def setup_env(cls):
@@ -60,10 +60,10 @@ class NeoConfig:
     @classmethod
     def get_llm(cls, model_name=None):
         """指定されたモデル名のLLMインスタンスを返す"""
+        # Import conditionally to avoid overhead or errors if packages missing
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
         except ImportError:
-            # If Google library is missing, fallback to OpenRouter (safer)
             pass
             
         try:
@@ -76,14 +76,14 @@ class NeoConfig:
         
         target_model = model_name or cls.DEFAULT_MODEL
 
-        # Handle Google AI Studio Direct API (gemini/ prefix)
+        # --- Case A: Google AI Studio Direct API (gemini/ prefix) ---
+        # Neo本体で使用。Googleの無料枠/高速枠を利用するため直接アクセス。
         if target_model.startswith("gemini/") and "openrouter" not in target_model:
-            # Simple check to differentiate from openrouter/google/...
             if not os.environ.get("GOOGLE_API_KEY"):
-                print("[Config] Critical: GOOGLE_API_KEY missing. Falling back to OpenRouter/Env.")
+                print("[Config] Critical: GOOGLE_API_KEY missing. Falling back to OpenRouter.")
             else:
                 try:
-                    # Clean model name: 'gemini/gemini-3-flash' -> 'gemini-3-flash'
+                    # 'gemini/gemini-3-flash' -> 'gemini-3-flash'
                     clean_name = target_model.split("/")[-1]
                     return ChatGoogleGenerativeAI(
                         model=clean_name,
@@ -94,10 +94,17 @@ class NeoConfig:
                 except ImportError:
                     print("[Config] langchain_google_genai not installed. Using OpenRouter fallback.")
 
-        # Default: Use OpenRouter (OpenAI Compatible)
+        # --- Case B: OpenRouter via ChatOpenAI ---
+        # その他のCrewで使用。OpenRouter経由で様々なモデルにアクセス。
+        
+        # 'openrouter/provider/model' -> 'provider/model'
+        # ChatOpenAIに渡す際、LiteLLM用のプレフィックス(openrouter/)は不要。
+        final_model_name = target_model.replace("openrouter/", "")
+        
         return ChatOpenAI(
-            model=target_model,
-            openai_api_base=cls.OPENROUTER_BASE_URL,
+            model=final_model_name,
+            openai_api_base=cls.OPENROUTER_BASE_URL,  # For langchain < 0.3
+            base_url=cls.OPENROUTER_BASE_URL,         # For langchain >= 0.3 / newer clients
             api_key=os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"),
             temperature=0.7
         )

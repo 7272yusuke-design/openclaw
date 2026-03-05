@@ -13,7 +13,9 @@ class CostGuard:
         "gpt-4o": 0.03,  # $0.03 per 1K output (example)
         "claude-3-5-sonnet": 0.015,
         "gemini-2.0-flash": 0.001, # Extremely cheap
-        "gemini-3.0-flash-preview": 0.001,
+        "gemini-2.5-flash": 0.001, # Explicitly for 2.5
+        "gemini-3-flash-preview": 0.001,
+        "gemini-flash": 0.001,     # Fallback for any flash model
         "deepseek-chat": 0.005
     }
 
@@ -28,6 +30,9 @@ class CostGuard:
         """
         Evaluates whether a Crew execution is financially viable.
         """
+        # [Override] CostGuard Disabled by Commander
+        return True
+
         cost = self._estimate_cost(model_name, estimated_input_tokens, estimated_output_tokens)
         
         # Check budget
