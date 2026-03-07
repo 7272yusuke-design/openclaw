@@ -4,10 +4,12 @@ from core.config import NeoConfig
 from bridge.crewai_bridge import CrewResult
 import json
 import os
+from tools.gsd_tool import get_gsd_tools
 
 class DevelopmentCrew(NeoBaseCrew):
     def __init__(self):
         super().__init__(name="AgentDevelopment")
+        self.gsd_tools = get_gsd_tools()
 
     def run(self, spec: str, language: str = "python", execution_logs: str = "", error_report: str = "", performance_log_path: str = None, market_cycle_log_path: str = None):
         # 1. パフォーマンスログと市場サイクルログの読み込み
@@ -42,11 +44,12 @@ class DevelopmentCrew(NeoBaseCrew):
         # 2. Senior Developer: 具体的な修正コードを実装
         developer = Agent(
             role='Lead Software Engineer',
-            goal='Reviewerの改善提案に基づき、堅牢で最適化されたコード修正案を作成する',
+            goal='Reviewerの改善提案に基づき、堅牢で最適化されたコード修正案を作成する。大規模な改修が必要な場合はGSD (Get-Shit-Done) フレームワークを用いて計画的に進める。',
             backstory='あなたはClaude 3.5 Sonnetの推論力を極限まで引き出すエンジニア。プロンプトの微調整からロジックの書き換えまで、システムの自己高度化に必要なコード修正を即座に実装する。',
             llm=NeoConfig.get_llm(NeoConfig.MODEL_BRAIN), # Claude 3.5 Sonnet
             max_iter=NeoConfig.MAX_ITER,
-            allow_delegation=False
+            allow_delegation=False,
+            tools=self.gsd_tools  # GSDツールを追加
         )
 
         # タスク定義

@@ -4,3 +4,5 @@ nohup.out
 get-pip.py
 logs/
 __pycache__/
+.env
+*.pyc

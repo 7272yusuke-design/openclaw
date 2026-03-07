@@ -1,4 +1,10 @@
 import json
+import sys
+import os
+
+# Add parent directory to sys.path to allow imports from agents/ and tools/
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from agents.paper_trader import PaperTraderAgent
 from tools.paper_wallet import PaperWallet
 

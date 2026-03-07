@@ -10,15 +10,15 @@ class NeoConfig:
     
     # --- Model Definitions (Optimization Strategy) ---
     # Default (General Purpose)
-    DEFAULT_MODEL = "openrouter/anthropic/claude-3.5-sonnet" 
+    DEFAULT_MODEL = "google/gemini-3-pro-preview" 
     
     # Role-Specific Models
-    MODEL_BRAIN = "openrouter/anthropic/claude-3.5-sonnet"      # Planning, Dev (Logic/Code)
-    MODEL_EYES = "openrouter/google/gemini-2.0-flash-001"       # Scout, Sentiment (Context/Speed) - 1.5 Pro is slow, 2.0 Flash is better balance
-    MODEL_HANDS = "openrouter/openai/gpt-4o"                    # Executor (Tool use/JSON)
-    MODEL_CREATIVE = "openrouter/anthropic/claude-3.5-sonnet"   # Creator (Writing nuance)
+    MODEL_BRAIN = "google/gemini-3-pro-preview"      # Planning, Dev (Logic/Code)
+    MODEL_EYES = "google/gemini-3-pro-preview"       # Scout, Sentiment (Context/Speed)
+    MODEL_HANDS = "google/gemini-3-pro-preview"      # Executor (Tool use/JSON)
+    MODEL_CREATIVE = "google/gemini-3-pro-preview"   # Creator (Writing nuance)
     
-    REASONING_MODEL = "openrouter/openai/o1-mini"               # DeepSeek-R1 alternative (Pure Logic)
+    REASONING_MODEL = "google/gemini-3-pro-preview"  # DeepSeek-R1 alternative (Pure Logic)
     
     # 安全装置 (安定化プロトコル v1.0)
     MAX_ITER = 3             # 無限ループ防止 (5→3に削減)
@@ -26,6 +26,10 @@ class NeoConfig:
     MAX_EXEC_TIME = 300      # 1タスク最大300秒 (5分)
     VERBOSE = False          # メインログの肥大化を抑制 (True→False)
     
+    # Context Management (Token Limit Control)
+    MAX_CONTEXT_TOKENS = 4000  # これを超えたら要約を発動
+    SUMMARY_MODEL = MODEL_EYES # 要約には高速なモデルを使用 (Gemini 2.0 Flash)
+
     @classmethod
     def setup_env(cls):
         """環境変数の同期"""

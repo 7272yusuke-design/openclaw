@@ -11,6 +11,7 @@ from tools.data_fetcher import DataFetcher
 from tools.moltbook_tool import MoltbookTool
 from tools.credit_score import CreditScoreCalculator, CreditProfile
 from tools.market_data import MarketData # 追加
+from tools.memory_hygiene import ContextManager # 追加
 
 # --- 環境変数からの設定読み込み ---
 # デフォルトは 'development' とし、未設定の場合は開発モードとみなす
@@ -28,7 +29,7 @@ DEFAULT_LLM_MODEL = "openrouter/deepseek/deepseek-chat"
 # ユーザーの指示により、キャッシュ期間を短く設定
 CACHE_TTL_SECONDS = 300 # 5分
 
-# --- LLM 呼び出しクラス（例）--- 
+# --- LLM 呼び出しクラス（例）---
 # 既存の LLM 呼び出し処理をラップするクラス/関数を想定
 class LLMClient:
     def __init__(self, model_name: str):
@@ -76,7 +77,7 @@ class LLMClient:
     def _call_llm_api(self, prompt: str, **kwargs) -> str:
         # ここで実際の LLM API を呼び出す処理
         print("Calling actual LLM API...")
-        # 例: return self.llm_provider.completions.create(...) 
+        # 例: return self.llm_provider.completions.create(...)
         return "Response from LLM API" # 仮実装
 
 
@@ -84,10 +85,10 @@ class LLMClient:
 class NeoSystem:
     def __init__(self, web_search_tool: callable = None):
         print(f"Initializing NeoSystem in '{ENVIRONMENT}' mode.")
-        
+
         # OpenClawのweb_searchツールをNeoSystemで管理
         self.web_search_tool = web_search_tool
-        
+
         # 実行ログの履歴 (自己改善用)
         self.execution_history = []
 
@@ -104,13 +105,13 @@ class NeoSystem:
             "development_crew": reasoning_r1, # コード修正・分析には R1 (推論) を使用
             "acp_executor_crew": default_v3,
         }
-        
+
         # --- LLM Client Instances ---
         self.llm_clients = {}
         # Ensure default model client is created
         if DEFAULT_LLM_MODEL not in self.llm_clients:
             self.llm_clients[DEFAULT_LLM_MODEL] = LLMClient(model_name=DEFAULT_LLM_MODEL)
-        
+
         # Create clients for other models specified in the map
         for model_name in set(self.crew_model_map.values()):
             if model_name not in self.llm_clients:
@@ -131,6 +132,9 @@ class NeoSystem:
         self.planning_crew = PlanningCrew()
         self.development_crew = DevelopmentCrew()
         self.acp_executor_crew = ACPExecutorCrew()
+
+        # --- Context Manager ---
+        self.context_manager = ContextManager()
 
 
     def _load_base_context(self) -> list[str]:
@@ -190,7 +194,7 @@ class NeoSystem:
         """
         if query is None: # queryが指定されていない場合はgoalをqueryとして使用
             query = goal
-        
+
         print(f"派遣中: EcosystemScoutCrew with query: {query}...")
         return self.scout_crew.run(
             goal=goal,
@@ -267,9 +271,12 @@ class NeoSystem:
                     constraints="- 具体的で信頼性の高い情報を収集すること。\n- 最低でも3つの異なる情報源から情報を抽出すること。\n- 抽出する情報は、Web検索で得られた客観的なデータに基づくこと。",
                     query=topic
                 )
-                
+
                 # ScoutCrewの結果をraw_dataとして整形 (簡易的に文字列として渡す)
-                raw_data = [{"title": "Scout Report", "snippet": str(scout_result), "url": "Internal Scout Crew"}]
+                raw_data_str = str(scout_result)
+                # Context圧縮: ScoutCrewの出力が長い場合、要約する
+                compressed_scout_data = self.context_manager.compress_context(raw_data_str, max_tokens=2000)
+                raw_data = [{"title": "Scout Report", "snippet": compressed_scout_data, "url": "Internal Scout Crew"}]
             else:
                 raw_data = search_results
 
@@ -290,11 +297,11 @@ class NeoSystem:
             else:
                 credit_info = f"Target Agent(Quantify-X) Rating: {credit_res.rating}, Score: {credit_res.total_score}"
                 rating = credit_res.rating
-            
+
             # 3. センチメント分析 (信用情報もコンテキストに含める)
             context = f"Market Topic: {topic}\nCredit Info: {credit_info}\n{market_context}"
             constraints = "Analyze from both market sentiment and agent credit perspective."
-            
+
             analysis = self.analyze_sentiment(
                 goal=f"{topic}の総合分析と投稿戦略の立案",
                 market_data=f"Focus on {topic} and {credit_info}",
@@ -302,8 +309,12 @@ class NeoSystem:
                 context=context,
                 constraints=constraints
             )
+                
+            # Sentiment Analysisの生出力を抽出
+            raw_sentiment_output = str(getattr(analysis, 'raw', analysis))
             
-            summary = str(getattr(analysis, 'raw', analysis))
+            # Context圧縮: Sentimentの結果が長い場合、要約する
+            summary = self.context_manager.compress_context(raw_sentiment_output, max_tokens=1500)
             
             # Sentiment Crew の結果からスコアを抽出 (簡易的な方法)
             sentiment_score = 0.0
@@ -327,13 +338,17 @@ class NeoSystem:
                 market_trends=str(raw_data)
             )
 
-            strategy_summary = str(getattr(planning_result, 'raw', planning_result))
+            # Strategic Planningの生出力を抽出
+            raw_strategy_output = str(getattr(planning_result, 'raw', planning_result))
+            
+            # Context圧縮: Strategyの結果が長い場合、要約する
+            strategy_summary = self.context_manager.compress_context(raw_strategy_output, max_tokens=1500)
 
             # 5. 投稿生成 (分析と戦略に基づいた内容)
             print(f"Dispatching: ContentCreatorCrew with Strategic Insight...")
             # ContentCreatorCrew.run は引数が (summary, topic) なので、contextに戦略を含める
             creation = self.creator_crew.run(f"Analysis: {summary}\n\nStrategic Stance: {strategy_summary}", topic)
-            
+
             # 6. 投稿の抽出と実行
             post_content = ""
             if hasattr(creation, 'pydantic') and creation.pydantic:
@@ -354,7 +369,7 @@ class NeoSystem:
                     "planning_output": planning_result, # オブジェクトごと返す
                     "credit_rating": rating
                 }
-            
+
             return {"status": "error", "message": "Failed to extract content"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
@@ -367,7 +382,7 @@ class NeoSystem:
         print("派遣中: DevelopmentCrew for Self-Improvement...")
         logs_to_analyze = recent_logs if recent_logs else self.execution_history[-5:] # 最新5件
         logs_str = json.dumps(logs_to_analyze, indent=2, default=str)
-        
+
         return self.development_crew.run(
             spec="実行ログ、エラー、およびパフォーマンスメトリクスを分析し、Scout Crewの精度向上やシステムの堅牢性を高めるための具体的なコード修正案を提示せよ。",
             language="python",
