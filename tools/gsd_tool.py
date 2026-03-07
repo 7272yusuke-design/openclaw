@@ -2,7 +2,7 @@ import os
 import re
 from typing import List, Dict, Any
 from langchain_core.messages import HumanMessage
-from langchain_core.tools import Tool
+from crewai.tools import tool
 from core.config import NeoConfig
 from tools.memory_hygiene import ContextManager
 
@@ -184,10 +184,13 @@ class GSDTool:
         dispatcher = ParallelDispatcher(tasks)
         return dispatcher.get_executable_tasks()
 
-def get_gsd_tools():
-    gsd = GSDTool()
-    
-    def init_wrapper(input_str):
+# Global GSD Tool Instance
+_gsd_instance = GSDTool()
+
+class GSDTools:
+    @tool("Initialize Project")
+    def init_project(input_str: str):
+        """Initialize a new project or milestone. Input: 'Vision: ... Goals: ...'"""
         vision = "Project Vision"
         goals = ["Goal 1"]
         if "Vision:" in input_str:
@@ -195,27 +198,30 @@ def get_gsd_tools():
             vision = parts[0].replace("Vision:", "").strip()
             if len(parts) > 1:
                 goals = [g.strip() for g in parts[1].split(",")]
-        return gsd.init_project(vision, goals)
+        return _gsd_instance.init_project(vision, goals)
 
+    @tool("Plan Phase")
+    def plan_phase(dummy: str):
+        """Generate a detailed plan (PLAN.md). Input can be ignored."""
+        return _gsd_instance.plan_phase()
+
+    @tool("Execute Phase")
+    def execute_phase(dummy: str):
+        """Execute the current plan defined in PLAN.md. Input can be ignored."""
+        return _gsd_instance.execute_phase()
+
+    @tool("Get Parallel Tasks")
+    def get_parallel_tasks(roadmap_path: str = "ROADMAP.md"):
+        """Get a list of tasks from ROADMAP.md that are ready for parallel execution. Input: 'ROADMAP.md'"""
+        # Note: CrewAI passes string arguments, ensure roadmap_path is correctly handled
+        # If input is empty string or None, default to "ROADMAP.md"
+        path = roadmap_path if roadmap_path and roadmap_path.strip() else "ROADMAP.md"
+        return str(_gsd_instance.get_parallel_tasks(path))
+
+def get_gsd_tools():
     return [
-        Tool(
-            name="GSD_Init_Project",
-            func=init_wrapper,
-            description="Initialize a new project or milestone."
-        ),
-        Tool(
-            name="GSD_Plan_Phase",
-            func=lambda x: gsd.plan_phase(),
-            description="Generate a detailed plan (PLAN.md)."
-        ),
-        Tool(
-            name="GSD_Execute_Phase",
-            func=lambda x: gsd.execute_phase(),
-            description="Execute the current plan defined in PLAN.md."
-        ),
-        Tool(
-            name="GSD_Get_Parallel_Tasks",
-            func=lambda x: str(gsd.get_parallel_tasks()),
-            description="Get a list of tasks from ROADMAP.md that are ready for parallel execution."
-        )
+        GSDTools.init_project,
+        GSDTools.plan_phase,
+        GSDTools.execute_phase,
+        GSDTools.get_parallel_tasks
     ]

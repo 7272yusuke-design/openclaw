@@ -11,18 +11,18 @@ class NeoConfig:
     
     # --- Model Definitions ---
     # Neo (Orchestrator) - Google Direct
-    NEO_MODEL = "gemini-3.0-flash-preview" # User requested model
+    NEO_MODEL = "gemini-2.5-flash" 
     
     # Agents (Workers) - OpenRouter
-    DEFAULT_MODEL = "google/gemini-3-flash-preview" # OpenRouter ID for Agents
+    DEFAULT_MODEL = "google/gemini-3-flash-preview-preview-02-05:free" # Fallback if 2.5 not avail on OR
     
     # Role-Specific Models (OpenRouter IDs)
-    MODEL_BRAIN = "google/gemini-2.0-flash-lite-preview-02-05:free"
-    MODEL_EYES = "google/gemini-2.0-flash-lite-preview-02-05:free"
-    MODEL_HANDS = "google/gemini-2.0-flash-lite-preview-02-05:free"
-    MODEL_CREATIVE = "google/gemini-2.0-flash-lite-preview-02-05:free"
+    MODEL_BRAIN = "google/gemini-2.0-pro-exp-02-05:free" # Keep reasoning strong
+    MODEL_EYES = "google/gemini-2.0-flash-001"
+    MODEL_HANDS = "google/gemini-2.0-flash-001"
+    MODEL_CREATIVE = "google/gemini-2.0-flash-001"
     
-    REASONING_MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
+    REASONING_MODEL = "google/gemini-2.0-pro-exp-02-05:free"
     
     # 安全装置 (安定化プロトコル v1.0)
     MAX_ITER = 3             # 無限ループ防止 (5→3に削減)
@@ -99,3 +99,45 @@ class NeoConfig:
     def get_llm(cls, model_name=None):
         """互換性のためのラッパー (デフォルトはAgent用)"""
         return cls.get_agent_llm(model_name)
+
+# --- 2026/03/07 Gemini 3 Flash & CrewAI Fix ---
+import os
+
+def get_neo_llm():
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    # 司令官を Gemini 3.0 Flash に変更
+    return ChatGoogleGenerativeAI(
+        model="gemini-3.0-flash",
+        google_api_key=os.getenv("GEMINI_API_KEY")
+    )
+
+def get_agent_llm(model_name="google/gemini-3-flash-preview"):
+    from crewai import LLM
+    # CrewAIの誤認バグを防ぐため openrouter/ プレフィックスを強制
+    full_model_name = f"openrouter/{model_name}" if not model_name.startswith("openrouter/") else model_name
+    return LLM(
+        model=full_model_name,
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY")
+    )
+
+# --- 2026/03/07 FINAL FIX: Correct Model IDs ---
+import os
+
+def get_neo_llm():
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    # 3.0 を取り除き gemini-3-flash に修正
+    return ChatGoogleGenerativeAI(
+        model="gemini-3-flash",
+        google_api_key=os.getenv("GEMINI_API_KEY")
+    )
+
+def get_agent_llm(model_name="google/gemini-3-flash"):
+    from crewai import LLM
+    # OpenRouter用も .0 を抜いた名前に
+    full_model_name = f"openrouter/{model_name}" if not model_name.startswith("openrouter/") else model_name
+    return LLM(
+        model=full_model_name,
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY")
+    )

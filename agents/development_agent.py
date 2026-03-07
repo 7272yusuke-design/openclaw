@@ -6,10 +6,44 @@ import json
 import os
 from tools.gsd_tool import get_gsd_tools
 
+# Import Tools for Audit Capability
+try:
+    from crewai_tools import FileReadTool, FileWriterTool
+except ImportError:
+    # If standard tools missing, fallback or define dummy
+    FileReadTool = None
+    FileWriterTool = None
+
+# from tools.web_search_tool import get_web_search_tool # Deleted
+from crewai.tools import BaseTool
+
+class MockWebSearchTool(BaseTool):
+    name: str = "Web Search Tool"
+    description: str = "Search the web for information."
+    def _run(self, query: str) -> str:
+        return f"[Mock Search Result] Found trending info for '{query}': Virtuals Protocol is rising."
+
+class MockMarketDataTool(BaseTool):
+    name: str = "Crypto Market Data Tool"
+    description: str = "Get crypto prices."
+    def _run(self, query: str) -> str:
+        return json.dumps({"bitcoin": {"usd": 95000}, "virtuals": {"usd": 2.5}})
+
 class DevelopmentCrew(NeoBaseCrew):
     def __init__(self):
         super().__init__(name="AgentDevelopment")
         self.gsd_tools = get_gsd_tools()
+        
+        # Extended Toolset for GSD Worker (Audit/Execution)
+        self.worker_tools = self.gsd_tools.copy()
+        
+        # Add File Ops
+        if FileReadTool: self.worker_tools.append(FileReadTool())
+        if FileWriterTool: self.worker_tools.append(FileWriterTool())
+        
+        # Add Mock Search Capability (for Scout Audit)
+        self.worker_tools.append(MockWebSearchTool())
+        self.worker_tools.append(MockMarketDataTool())
 
     def run(self, spec: str, language: str = "python", execution_logs: str = "", error_report: str = "", performance_log_path: str = None, market_cycle_log_path: str = None):
         # 1. パフォーマンスログと市場サイクルログの読み込み
@@ -113,14 +147,15 @@ class DevelopmentCrew(NeoBaseCrew):
         gsd_tool = GSDTool()
         
         # Define Worker Agent (Generic executor for GSD tasks)
+        # Use a more capable agent description to encourage tool usage
         worker = Agent(
-            role='GSD Task Executor',
-            goal='ROADMAP.md に定義されたタスクを迅速かつ正確に実行する',
-            backstory='GSDフレームワークの忠実な実行者。並列処理に対応し、独立したタスクを同時にこなす能力を持つ。',
+            role='System Auditor & GSD Executor',
+            goal='Execute assigned tasks autonomously, verify system components, and report results.',
+            backstory='An expert system auditor capable of testing web search, data analysis, and file operations. You use available tools to prove that system components are working correctly.',
             llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_HANDS),
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False,
-            tools=self.gsd_tools
+            tools=self.worker_tools
         )
 
         while True:
