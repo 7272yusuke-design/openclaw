@@ -7,5 +7,9 @@
 - [x] Task 4: **Audit Creator Crew** - Verify `ContentCreation` logic. Feed dummy strategy data and ensure valid `Moltbook Post` draft output. [Depends on: None]
 - [x] Task 5: **Audit Executor Crew** - Verify `ACPExecutor` logic in **Simulation Mode**. Construct a dummy transaction payload and verify JSON schema validity. [Depends on: None]
 
-## Phase 2: Integration Audit (Sequential Execution)
-- [x] Task 6: **Full Cycle Dry Run** - Execute `run_cycle.py` (or equivalent script) in `dry_run` mode to verify end-to-end data flow (Scout -> Sentiment -> Planning -> Executor). [Depends on: Task 1, Task 2, Task 3, Task 4, Task 5]
+## Phase 3: Live Operations & Optimization
+- [x] Mission 2: **Real-time Market Scouting** - Activated Scout Crew for VIRTUAL Protocol trends and performed first live post. [Depends on: Task 6]
+- [x] Mission 4: **ClawHub Integration** - Replace temporary requests-based logic with official ClawHub moltbook skill structure and de-obfuscation logic. [Depends on: Mission 2]
+    - [x] 4.1: Manually install moltbook skill (ClawHub registry issue bypassed).
+    - [x] 4.2: Update `tools/moltbook_tool.py` with AI Verification de-obfuscator.
+    - [x] 4.3: Perform single test post. (Immediate success, trusted status detected).
