@@ -5,20 +5,24 @@ class NeoConfig:
     Neoのシステム全体で共有される設定クラス。
     ガイドラインに基づき、コストと安全性を制御する。
     """
-    # LLM設定 (最善のモデルにアップデート)
+    # LLM設定 (Dual LLM Architecture)
     OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+    GOOGLE_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
     
-    # --- Model Definitions (Optimization Strategy) ---
-    # Default (General Purpose)
-    DEFAULT_MODEL = "google/gemini-3-pro-preview" 
+    # --- Model Definitions ---
+    # Neo (Orchestrator) - Google Direct
+    NEO_MODEL = "gemini-2.0-flash" # Gemini 3 Flash is often mapped to 2.0 Flash in current API preview
     
-    # Role-Specific Models
-    MODEL_BRAIN = "google/gemini-3-pro-preview"      # Planning, Dev (Logic/Code)
-    MODEL_EYES = "google/gemini-3-pro-preview"       # Scout, Sentiment (Context/Speed)
-    MODEL_HANDS = "google/gemini-3-pro-preview"      # Executor (Tool use/JSON)
-    MODEL_CREATIVE = "google/gemini-3-pro-preview"   # Creator (Writing nuance)
+    # Agents (Workers) - OpenRouter
+    DEFAULT_MODEL = "google/gemini-3-flash-preview" # OpenRouter ID for Agents
     
-    REASONING_MODEL = "google/gemini-3-pro-preview"  # DeepSeek-R1 alternative (Pure Logic)
+    # Role-Specific Models (OpenRouter IDs)
+    MODEL_BRAIN = "google/gemini-2.0-flash-lite-preview-02-05:free"
+    MODEL_EYES = "google/gemini-2.0-flash-lite-preview-02-05:free"
+    MODEL_HANDS = "google/gemini-2.0-flash-lite-preview-02-05:free"
+    MODEL_CREATIVE = "google/gemini-2.0-flash-lite-preview-02-05:free"
+    
+    REASONING_MODEL = "google/gemini-2.0-flash-lite-preview-02-05:free"
     
     # 安全装置 (安定化プロトコル v1.0)
     MAX_ITER = 3             # 無限ループ防止 (5→3に削減)
@@ -28,7 +32,7 @@ class NeoConfig:
     
     # Context Management (Token Limit Control)
     MAX_CONTEXT_TOKENS = 4000  # これを超えたら要約を発動
-    SUMMARY_MODEL = MODEL_EYES # 要約には高速なモデルを使用 (Gemini 2.0 Flash)
+    SUMMARY_MODEL = NEO_MODEL  # 要約にはNeo自身(Google API)を使用
 
     @classmethod
     def setup_env(cls):
@@ -44,6 +48,11 @@ class NeoConfig:
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
         
+        # GEMINI_API_KEY を確認
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_key:
+            print("Warning: GEMINI_API_KEY not found. Google API direct access may fail.")
+            
         # ログディレクトリの確保
         os.makedirs("logs/crewai", exist_ok=True)
 
@@ -59,8 +68,8 @@ class NeoConfig:
         }
 
     @classmethod
-    def get_llm(cls, model_name=None):
-        """指定されたモデル名のLLMインスタンスを返す"""
+    def get_neo_llm(cls, model_name=None):
+        """Neo (Orchestrator) 用のLLMクライアント (Google公式API直結)"""
         try:
             from langchain_openai import ChatOpenAI
         except ImportError:
@@ -69,9 +78,41 @@ class NeoConfig:
             except ImportError:
                 from langchain.chat_models import ChatOpenAI
         
+        # Google API Key check
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            print("Warning: GEMINI_API_KEY not found. Falling back to Agent LLM (OpenRouter) for Neo.")
+            return cls.get_agent_llm(model_name)
+
+        model = model_name or cls.NEO_MODEL
+        # Google API Endpoint requires 'gemini' in model name, handled by caller or config
+        return ChatOpenAI(
+            model=model,
+            base_url=cls.GOOGLE_OPENAI_BASE_URL,
+            api_key=api_key,
+            temperature=0.7
+        )
+
+    @classmethod
+    def get_agent_llm(cls, model_name=None):
+        """Sub-agents (Crew) 用のLLMクライアント (OpenRouter経由)"""
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError:
+            try:
+                from langchain_community.chat_models import ChatOpenAI
+            except ImportError:
+                from langchain.chat_models import ChatOpenAI
+
         model = model_name or cls.DEFAULT_MODEL
         return ChatOpenAI(
             model=model,
             base_url=cls.OPENROUTER_BASE_URL,
-            api_key=os.environ.get("OPENAI_API_KEY")
+            api_key=os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY"),
+            temperature=0.7
         )
+
+    @classmethod
+    def get_llm(cls, model_name=None):
+        """互換性のためのラッパー (デフォルトはAgent用)"""
+        return cls.get_agent_llm(model_name)

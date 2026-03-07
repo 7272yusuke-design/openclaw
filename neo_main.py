@@ -209,7 +209,10 @@ class NeoSystem:
         感情分析部隊を派遣する
         """
         formatted_sns = DataFetcher.format_for_crew(raw_sns_data)
-        inputs = DataFetcher.create_sentiment_input(goal, context, constraints)
+        # 修正: DataFetcher.create_sentiment_input の引数を正しく渡す
+        # (goal, market_data, sns_data) -> market_data引数には context(市場情報等) を、sns_data引数には formatted_sns(Scout結果) を渡す
+        inputs = DataFetcher.create_sentiment_input(goal, context, formatted_sns)
+        
         print(f"Dispatching: SentimentAnalysisCrew...")
         return self.sentiment_crew.run(
             goal=inputs["goal"],
@@ -316,18 +319,50 @@ class NeoSystem:
             # Context圧縮: Sentimentの結果が長い場合、要約する
             summary = self.context_manager.compress_context(raw_sentiment_output, max_tokens=1500)
             
-            # Sentiment Crew の結果からスコアを抽出 (簡易的な方法)
+            # Sentiment Crew の結果からスコアを抽出 (堅牢化版)
             sentiment_score = 0.0
             try:
-                if hasattr(analysis, 'pydantic') and analysis.pydantic:
-                    payload = getattr(analysis.pydantic, 'virtuals_payload', {})
+                payload = None
+                
+                # 1. Pydanticモデルそのものの場合 (CrewResult)
+                if hasattr(analysis, 'virtuals_payload'):
+                    payload = analysis.virtuals_payload
+                
+                # 2. CrewOutputオブジェクトの場合 (.pydantic)
+                elif hasattr(analysis, 'pydantic') and analysis.pydantic:
+                    # analysis.pydantic が Pydanticモデルの場合と Dictの場合がある
+                    pyd = analysis.pydantic
+                    if hasattr(pyd, 'virtuals_payload'):
+                         payload = pyd.virtuals_payload
+                    elif isinstance(pyd, dict):
+                         payload = pyd.get('virtuals_payload')
+
+                # 3. CrewOutputオブジェクトの場合 (.json_dict)
+                elif hasattr(analysis, 'json_dict') and analysis.json_dict:
+                    payload = analysis.json_dict.get('virtuals_payload')
+
+                # Payloadからスコア抽出
+                if payload:
                     if isinstance(payload, dict):
-                        sentiment_score = payload.get('market_sentiment_score', 0.0)
+                        sentiment_score = float(payload.get('market_sentiment_score', 0.0))
+                        if sentiment_score == 0.0: # 別キーの可能性
+                            sentiment_score = float(payload.get('sentiment_score', 0.0))
                     else:
-                        # Pydanticモデルの場合
-                        sentiment_score = getattr(payload, 'market_sentiment_score', 0.0)
+                        # Payload自体がオブジェクトの場合
+                        sentiment_score = float(getattr(payload, 'market_sentiment_score', 0.0))
+                
+                # 4. 最終手段: 正規表現で生テキストから抽出
+                if sentiment_score == 0.0:
+                    raw_text = str(getattr(analysis, 'raw', analysis))
+                    import re
+                    match = re.search(r"['\"]market_sentiment_score['\"]:\s*([+-]?\d*\.\d+|[+-]?\d+)", raw_text)
+                    if match:
+                        sentiment_score = float(match.group(1))
+                        print(f"Recovered sentiment score from raw text: {sentiment_score}")
+
             except Exception as e:
                 print(f"Warning: Failed to extract sentiment score: {e}")
+                sentiment_score = 0.0 # Default to neutral
 
             # 4. 戦略立案 (Risk Management & Strategy Formulation)
             print(f"Dispatching: StrategicPlanningCrew for Risk Assessment...")

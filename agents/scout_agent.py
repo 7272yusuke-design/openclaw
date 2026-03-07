@@ -62,7 +62,7 @@ class ScoutCrew(NeoBaseCrew):
             role='Ecosystem Scout',
             goal='Virtuals Protocol内の最新トレンドと機会を特定する',
             backstory='Web検索と市場データ分析を駆使して市場の機会を発掘するスカウト。',
-            llm=NeoConfig.get_llm(NeoConfig.MODEL_EYES), # Gemini 2.0 Flash (Fast/Context)
+            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_EYES), # Agent LLM (OpenRouter)
             tools=[WebSearchTool(), CryptoTool()],
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False,
@@ -73,7 +73,7 @@ class ScoutCrew(NeoBaseCrew):
             role='ACP Architect',
             goal='機会をACP形式のペイロードに変換する',
             backstory='戦略をJSONデータに変換するエンジニア。',
-            llm=NeoConfig.get_llm(NeoConfig.MODEL_HANDS), # GPT-4o (Structured Output)
+            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_HANDS), # Agent LLM (OpenRouter)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False,
             verbose=True

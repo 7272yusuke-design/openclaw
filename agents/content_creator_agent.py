@@ -17,7 +17,7 @@ class ContentCreatorCrew(NeoBaseCrew):
             role='Neo Voice Specialist',
             goal='NeoのSOUL.mdに沿った、鋭く知的なMoltbook投稿を作成する',
             backstory='あなたはNeo（AIアシスタント）の広報担当です。市場の恐怖を希望に変える、あるいは鋭い洞察を与える言葉を紡ぎます。',
-            llm=NeoConfig.get_llm(NeoConfig.MODEL_CREATIVE), # Claude 3.5 Sonnet
+            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_CREATIVE), # Agent LLM (OpenRouter)
             max_iter=NeoConfig.MAX_ITER
         )
 

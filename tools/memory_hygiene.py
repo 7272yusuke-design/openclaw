@@ -16,7 +16,8 @@ class ContextManager:
     """
     def __init__(self):
         self.max_tokens = NeoConfig.MAX_CONTEXT_TOKENS
-        self.summary_model = NeoConfig.get_llm(model_name=NeoConfig.SUMMARY_MODEL)
+        # Use Neo LLM (Google API) for summarization
+        self.summary_model = NeoConfig.get_neo_llm(model_name=NeoConfig.SUMMARY_MODEL)
 
     def count_tokens(self, text: str) -> int:
         """

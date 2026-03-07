@@ -13,10 +13,12 @@ class GSDTool:
     Manages project initialization, planning, and execution using GSD methodology.
     """
     def __init__(self):
+        NeoConfig.setup_env()  # Initialize environment variables
         self.context_manager = ContextManager()
-        # Initialize LLMs
-        self.planner_llm = NeoConfig.get_llm(model_name=NeoConfig.MODEL_BRAIN) # Brain (Claude) for planning
-        self.executor_llm = NeoConfig.get_llm(model_name=NeoConfig.MODEL_HANDS) # Hands (GPT-4o) for execution
+        # Initialize LLMs (Dual Architecture)
+        # Planner = Neo (Google API), Executor = Agent (OpenRouter)
+        self.planner_llm = NeoConfig.get_neo_llm(model_name=NeoConfig.MODEL_BRAIN)
+        self.executor_llm = NeoConfig.get_agent_llm(model_name=NeoConfig.MODEL_HANDS)
 
     def _read_prompt(self, filename):
         path = os.path.join(PROMPT_DIR, filename)

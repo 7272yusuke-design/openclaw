@@ -23,6 +23,7 @@ class ACPExecutorCrew(NeoBaseCrew):
             role='On-chain Architect',
             goal=f'戦略 {strategy} と信用・市場状況に基づき、最適なACP準拠JSONを生成せよ。',
             backstory='Virtuals ProtocolとACPの技術仕様に精通し、信用リスクに応じた動的パラメータ設定を得意とするエンジニア。',
+            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_HANDS), # Agent LLM (OpenRouter)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=True
         )
@@ -32,6 +33,7 @@ class ACPExecutorCrew(NeoBaseCrew):
             role='Risk Validator',
             goal='ACPペイロードの安全性、信用リスク、市場センチメントとの適合性を検証せよ。',
             backstory='オンチェーン操作とマクロリスク管理の専門家。信用格付けやセンチメントに応じた厳格なバリデーションを行う。',
+            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_BRAIN), # Agent LLM (OpenRouter)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
