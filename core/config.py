@@ -11,7 +11,7 @@ class NeoConfig:
     
     # --- Model Definitions ---
     # Neo (Orchestrator) - Google Direct
-    NEO_MODEL = "gemini-2.0-flash" # Gemini 3 Flash is often mapped to 2.0 Flash in current API preview
+    NEO_MODEL = "gemini-3.0-flash-preview" # User requested model
     
     # Agents (Workers) - OpenRouter
     DEFAULT_MODEL = "google/gemini-3-flash-preview" # OpenRouter ID for Agents
@@ -69,29 +69,12 @@ class NeoConfig:
 
     @classmethod
     def get_neo_llm(cls, model_name=None):
-        """Neo (Orchestrator) 用のLLMクライアント (Google公式API直結)"""
-        try:
-            from langchain_openai import ChatOpenAI
-        except ImportError:
-            try:
-                from langchain_community.chat_models import ChatOpenAI
-            except ImportError:
-                from langchain.chat_models import ChatOpenAI
+        """Neo (Orchestrator) 用のLLMクライアント"""
+        # User requested Gemini 3 Flash, which is currently only available via OpenRouter (Preview).
+        # Fallback to OpenRouter for Neo as well to satisfy the model requirement.
+        model = model_name or cls.DEFAULT_MODEL # Use Agent model (Gemini 3 Flash)
         
-        # Google API Key check
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            print("Warning: GEMINI_API_KEY not found. Falling back to Agent LLM (OpenRouter) for Neo.")
-            return cls.get_agent_llm(model_name)
-
-        model = model_name or cls.NEO_MODEL
-        # Google API Endpoint requires 'gemini' in model name, handled by caller or config
-        return ChatOpenAI(
-            model=model,
-            base_url=cls.GOOGLE_OPENAI_BASE_URL,
-            api_key=api_key,
-            temperature=0.7
-        )
+        return cls.get_agent_llm(model)
 
     @classmethod
     def get_agent_llm(cls, model_name=None):

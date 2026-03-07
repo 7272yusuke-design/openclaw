@@ -1,11 +1,97 @@
 import os
 import re
+from typing import List, Dict, Any
 from langchain_core.messages import HumanMessage
+from langchain_core.tools import Tool
 from core.config import NeoConfig
 from tools.memory_hygiene import ContextManager
 
 # プロンプトの保存場所
 PROMPT_DIR = "skills/get-shit-done/prompts"
+
+# --- Task Parser & Dispatcher Logic ---
+class TaskParser:
+    """Parses a markdown ROADMAP.md and extracts task dependencies."""
+    def __init__(self, roadmap_path="ROADMAP.md"):
+        self.roadmap_path = roadmap_path
+
+    def parse(self) -> List[Dict[str, Any]]:
+        if not os.path.exists(self.roadmap_path):
+            print(f"DEBUG: Roadmap file not found at {self.roadmap_path}")
+            return []
+            
+        with open(self.roadmap_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        tasks = []
+        task_counter = 1
+        lines = content.split('\n')
+        
+        for line in lines:
+            stripped_line = line.strip()
+            if stripped_line.startswith("- [ ]") or stripped_line.startswith("- [x]"):
+                print(f"DEBUG: Found task: {stripped_line}")
+                status = "completed" if stripped_line.startswith("- [x]") else "pending"
+                raw_desc = stripped_line[5:].strip()
+                
+                # Extract Dependency Metadata
+                depends_on = []
+                dep_match = re.search(r'\[Depends on: (.*?)\]', raw_desc, re.IGNORECASE)
+                
+                clean_desc = raw_desc
+                if dep_match:
+                    deps_str = dep_match.group(1)
+                    if deps_str.lower() != 'none':
+                        depends_on = [d.strip() for d in deps_str.split(',')]
+                    clean_desc = raw_desc.replace(dep_match.group(0), '').strip()
+                
+                task = {
+                    "id": f"Task {task_counter}",
+                    "desc": clean_desc,
+                    "status": status,
+                    "depends_on": depends_on,
+                    "original_line": line # Keep original line for exact replacement
+                }
+                tasks.append(task)
+                task_counter += 1
+        return tasks
+
+class ParallelDispatcher:
+    """Manages task dependencies and returns executable tasks."""
+    def __init__(self, tasks: List[Dict[str, Any]]):
+        self.tasks = tasks
+        self.completed_tasks = set(t['id'] for t in tasks if t['status'] == 'completed')
+
+    def get_executable_tasks(self) -> List[Dict[str, Any]]:
+        executable = []
+        for task in self.tasks:
+            if task['status'] == 'completed':
+                continue
+            
+            dependencies_met = True
+            for dep in task['depends_on']:
+                # Heuristic: check if dependency matches any completed task ID or Description
+                is_resolved = False
+                
+                # 1. Direct ID match (e.g., "Task 1")
+                if dep in self.completed_tasks:
+                    is_resolved = True
+                
+                # 2. Description match (e.g., "Research Agent" in "Task 1: Research Agent...")
+                if not is_resolved:
+                    for t in self.tasks:
+                        if t['status'] == 'completed' and (dep in t['desc'] or dep in t['id']):
+                            is_resolved = True
+                            break
+                
+                if not is_resolved:
+                    dependencies_met = False
+                    break
+            
+            if dependencies_met:
+                executable.append(task)
+        
+        return executable
 
 class GSDTool:
     """
@@ -16,14 +102,13 @@ class GSDTool:
         NeoConfig.setup_env()  # Initialize environment variables
         self.context_manager = ContextManager()
         # Initialize LLMs (Dual Architecture)
-        # Planner = Neo (Google API), Executor = Agent (OpenRouter)
         self.planner_llm = NeoConfig.get_neo_llm(model_name=NeoConfig.MODEL_BRAIN)
         self.executor_llm = NeoConfig.get_agent_llm(model_name=NeoConfig.MODEL_HANDS)
 
     def _read_prompt(self, filename):
         path = os.path.join(PROMPT_DIR, filename)
         if not os.path.exists(path):
-            raise FileNotFoundError(f"Prompt file not found: {path}")
+            return ""
         with open(path, 'r') as f:
             return f.read()
 
@@ -33,20 +118,12 @@ class GSDTool:
         print(f"Created/Updated: {filename}")
 
     def init_project(self, vision: str, goals: list):
-        """
-        Initializes a new GSD project.
-        Creates PROJECT.md and ROADMAP.md based on vision and goals.
-        """
         prompt_template = self._read_prompt("init_project.md")
         full_prompt = f"{prompt_template}\n\n# User Input\nVision: {vision}\nGoals: {', '.join(goals)}"
         
         print("GSD: Initializing project...")
         response = self.planner_llm.invoke([HumanMessage(content=full_prompt)]).content
-        print("GSD: LLM Response received.")
-        print(f"DEBUG Response Snippet: {response[:200]}...")
         
-        # Parse output (More flexible regex)
-        # Try finding ```markdown (optional) blocks after headers
         project_match = re.search(r"PROJECT\.md.*?\n+```(?:markdown)?\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
         roadmap_match = re.search(r"ROADMAP\.md.*?\n+```(?:markdown)?\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
         
@@ -59,80 +136,58 @@ class GSDTool:
             saved_files.append("ROADMAP.md")
             
         if not saved_files:
-            print("Warning: Could not parse PROJECT.md or ROADMAP.md from LLM response.")
             return self.context_manager.compress_context(response, max_tokens=500)
 
-        # Return a summary via ContextManager
         summary = f"Project initialized. Files created: {', '.join(saved_files)}.\n\nVision: {vision[:100]}..."
         return self.context_manager.compress_context(summary, max_tokens=500)
 
     def plan_phase(self):
-        """
-        Generates a detailed plan (PLAN.md) for the current phase in ROADMAP.md.
-        """
-        if not os.path.exists("ROADMAP.md"):
-            return "Error: ROADMAP.md not found. Run init_project first."
-        if not os.path.exists("PROJECT.md"):
-            return "Error: PROJECT.md not found. Run init_project first."
+        if not os.path.exists("ROADMAP.md") or not os.path.exists("PROJECT.md"):
+            return "Error: Project files not found."
             
-        with open("ROADMAP.md", 'r') as f:
-            roadmap = f.read()
-        with open("PROJECT.md", 'r') as f:
-            project = f.read()
+        with open("ROADMAP.md", 'r') as f: roadmap = f.read()
+        with open("PROJECT.md", 'r') as f: project = f.read()
 
         prompt_template = self._read_prompt("plan_phase.md")
         full_prompt = f"{prompt_template}\n\n# Current State\n## PROJECT.md\n{project}\n\n## ROADMAP.md\n{roadmap}"
         
         print("GSD: Planning next phase...")
         response = self.planner_llm.invoke([HumanMessage(content=full_prompt)]).content
-        print("GSD: LLM Response received (Planning).")
-        print(f"DEBUG Plan Response: {response[:200]}...")
         
-        # Extract PLAN.md content (Flexible)
         plan_match = re.search(r"```(?:xml|markdown)?\n(.*?)\n```", response, re.DOTALL | re.IGNORECASE)
-        
         if plan_match:
             plan_content = plan_match.group(1)
             self._save_file("PLAN.md", plan_content)
             return self.context_manager.compress_context(f"Created PLAN.md:\n{plan_content}", max_tokens=1000)
         else:
-            return self.context_manager.compress_context(f"Failed to extract plan. Raw response:\n{response}", max_tokens=500)
+            return self.context_manager.compress_context(f"Failed to extract plan.\n{response}", max_tokens=500)
 
     def execute_phase(self):
-        """
-        Executes the tasks defined in PLAN.md.
-        Generates code and verification steps.
-        """
         if not os.path.exists("PLAN.md"):
-            return "Error: PLAN.md not found. Run plan_phase first."
-            
-        with open("PLAN.md", 'r') as f:
-            plan = f.read()
+            return "Error: PLAN.md not found."
+        with open("PLAN.md", 'r') as f: plan = f.read()
             
         prompt_template = self._read_prompt("execute_phase.md")
         full_prompt = f"{prompt_template}\n\n# Current Plan\n{plan}"
         
         print("GSD: Executing phase...")
-        # Use Executor model for code generation
         response = self.executor_llm.invoke([HumanMessage(content=full_prompt)]).content
-        print("GSD: LLM Response received (Execution).")
-        
-        # Save execution log
         self._save_file("EXECUTION_LOG.md", response)
-        
         return self.context_manager.compress_context(response, max_tokens=2000)
 
+    def get_parallel_tasks(self, roadmap_path="ROADMAP.md") -> List[Dict[str, Any]]:
+        """
+        Parses ROADMAP.md and returns a list of tasks ready for parallel execution.
+        """
+        parser = TaskParser(roadmap_path)
+        tasks = parser.parse()
+        dispatcher = ParallelDispatcher(tasks)
+        return dispatcher.get_executable_tasks()
+
 def get_gsd_tools():
-    """
-    Returns a list of LangChain Tools for GSD operations.
-    Used by CrewAI agents.
-    """
-    from langchain_core.tools import Tool
     gsd = GSDTool()
     
     def init_wrapper(input_str):
-        # Simple parsing for string input
-        # Expected: "Vision: ..., Goals: ..."
         vision = "Project Vision"
         goals = ["Goal 1"]
         if "Vision:" in input_str:
@@ -146,16 +201,21 @@ def get_gsd_tools():
         Tool(
             name="GSD_Init_Project",
             func=init_wrapper,
-            description="Initialize a new project or milestone. Input string must contain 'Vision: ... Goals: ...'"
+            description="Initialize a new project or milestone."
         ),
         Tool(
             name="GSD_Plan_Phase",
             func=lambda x: gsd.plan_phase(),
-            description="Generate a detailed plan (PLAN.md) for the current phase based on ROADMAP.md. Input: empty string."
+            description="Generate a detailed plan (PLAN.md)."
         ),
         Tool(
             name="GSD_Execute_Phase",
             func=lambda x: gsd.execute_phase(),
-            description="Execute the current plan defined in PLAN.md. Generates code. Input: empty string."
+            description="Execute the current plan defined in PLAN.md."
+        ),
+        Tool(
+            name="GSD_Get_Parallel_Tasks",
+            func=lambda x: str(gsd.get_parallel_tasks()),
+            description="Get a list of tasks from ROADMAP.md that are ready for parallel execution."
         )
     ]

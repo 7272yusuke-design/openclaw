@@ -102,3 +102,107 @@ class DevelopmentCrew(NeoBaseCrew):
         )
 
         return self.execute(crew)
+
+    def run_parallel_roadmap(self, roadmap_path: str = "ROADMAP.md"):
+        """
+        ROADMAP.md を読み込み、依存関係のないタスクを並列実行する動的ループ。
+        """
+        from tools.gsd_tool import GSDTool
+        
+        print(f"--- Starting Parallel Execution Loop for {roadmap_path} ---")
+        gsd_tool = GSDTool()
+        
+        # Define Worker Agent (Generic executor for GSD tasks)
+        worker = Agent(
+            role='GSD Task Executor',
+            goal='ROADMAP.md に定義されたタスクを迅速かつ正確に実行する',
+            backstory='GSDフレームワークの忠実な実行者。並列処理に対応し、独立したタスクを同時にこなす能力を持つ。',
+            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_HANDS),
+            max_iter=NeoConfig.MAX_ITER,
+            allow_delegation=False,
+            tools=self.gsd_tools
+        )
+
+        while True:
+            # Step A: Get Parallel Tasks
+            executable_tasks = gsd_tool.get_parallel_tasks(roadmap_path)
+            
+            # Step B: Termination Check
+            if not executable_tasks:
+                print("✅ All tasks completed or no executable tasks found.")
+                break
+            
+            print(f"🚀 Dispatching {len(executable_tasks)} tasks in parallel: {[t['id'] for t in executable_tasks]}")
+            
+            # Step C: Create CrewAI Tasks (Async)
+            crew_tasks = []
+            for task_info in executable_tasks:
+                # 実際のタスク内容（ファイル作成など）を指示に含める
+                task_desc = f"""
+                Execute the following GSD Task:
+                {task_info['desc']}
+                
+                If the task involves creating a file, use the 'write' tool (via Python or GSD tools).
+                If the task is just analysis, provide the report.
+                
+                Original definition: {task_info['original_line']}
+                """
+                
+                crew_task = Task(
+                    description=task_desc,
+                    expected_output="Detailed execution result and confirmation of completion.",
+                    agent=worker,
+                    async_execution=True # Key for Parallelism
+                )
+                crew_tasks.append(crew_task)
+            
+            # Step D: Aggregation Task (Sync) - Required for async batch to complete
+            aggregator_task = Task(
+                description="Wait for all parallel tasks to complete and summarize their results.",
+                expected_output="Summary of all completed tasks.",
+                agent=worker,
+                context=crew_tasks # Depends on async tasks -> Forces wait
+            )
+            
+            # Execute Batch
+            crew = Crew(
+                agents=[worker],
+                tasks=crew_tasks + [aggregator_task],
+                verbose=True,
+                process=Process.sequential # Async tasks run in background, aggregator waits
+            )
+            
+            result = crew.kickoff()
+            
+            # Step E: Update Status
+            self._mark_tasks_complete(roadmap_path, executable_tasks)
+            
+        print("--- Parallel Execution Loop Completed ---")
+
+    def _mark_tasks_complete(self, roadmap_path, tasks):
+        """Helper to update ROADMAP.md status from [ ] to [x]"""
+        if not os.path.exists(roadmap_path):
+             return
+
+        with open(roadmap_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        updated_count = 0
+        for t in tasks:
+            # Replace "- [ ] Task..." with "- [x] Task..."
+            # Using original_line which contains the exact line from the file.
+            original = t['original_line']
+            # Only replace the first occurrence of "- [ ]" in that specific line context
+            # A safer way is to replace the whole line.
+            
+            if original in content:
+                # Assuming standard format "- [ ] ..."
+                completed_line = original.replace("- [ ]", "- [x]", 1)
+                content = content.replace(original, completed_line, 1) # Replace only one occurrence to be safe
+                updated_count += 1
+            else:
+                print(f"Warning: Could not find original line in ROADMAP.md: '{original}'")
+        
+        with open(roadmap_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Updated ROADMAP.md: Marked {updated_count} tasks as complete.")

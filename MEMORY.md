@@ -1,6 +1,7 @@
 
-4.  **Dual LLM Architecture (2026-03-07)**:
-    - オーケストレーター (Neo) とサブエージェント (CrewAI) のLLMプロバイダを分離し、API競合とコストを最適化。
-        - **Neo (Orchestrator)**: Google公式API (Gemini 2.0 Flash) を直接使用。`get_neo_llm()`
-        - **Agents (Workers)**: OpenRouter経由 (Google Gemini 3 Flash Preview) を使用。`get_agent_llm()`
-    - `core/config.py` に `get_neo_llm()` と `get_agent_llm()` を実装し、システム全体で使い分けを徹底。
+5.  **GSD Parallel Execution Engine (2026-03-07)**:
+    - **機能概要**: GSDロードマップの依存関係を解析し、独立したタスクを複数のエージェントで並列処理するエンジンを実装。
+    - **実装**:
+        - `tools/gsd_tool.py`: `TaskParser` (ロードマップ解析) と `ParallelDispatcher` (実行可能タスク抽出) を追加。
+        - `agents/development_agent.py`: `run_parallel_roadmap` メソッドを追加し、タスクの動的生成・非同期実行・完了記録のループを実装。
+    - **効果**: `tests/test_parallel_integration.py` にて、依存関係のないタスクが並列実行され、依存タスクが完了を待機する挙動を確認済み。

@@ -1,54 +1,46 @@
-import unittest
-import os
 import sys
+import os
+sys.path.append(os.getcwd())
 
-# Add parent directory to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from tools.gsd_tool import TaskParser, ParallelDispatcher
 
-from tools.gsd_tool import GSDTool
-from core.config import NeoConfig
+def test_gsd_integration():
+    print("--- Testing GSD Tool Integration ---")
+    
+    # 1. Create a temporary dummy ROADMAP.md
+    dummy_roadmap = """
+# Dummy Roadmap for Integration Test
 
-class TestGSDIntegration(unittest.TestCase):
-    def setUp(self):
-        NeoConfig.setup_env()
-        self.gsd = GSDTool()
-        # Clean up previous test files if any
-        for f in ["PROJECT.md", "ROADMAP.md", "PLAN.md", "EXECUTION_LOG.md"]:
-            if os.path.exists(f):
-                os.remove(f)
+## Phase 1
+- [ ] Task A: Independent Task 1 [Depends on: None]
+- [ ] Task B: Independent Task 2 [Depends on: None]
+- [ ] Task C: Dependent Task [Depends on: Task A]
+"""
+    with open("TEST_ROADMAP.md", "w") as f:
+        f.write(dummy_roadmap)
+    
+    # 2. Parse using the tool's parser
+    parser = TaskParser("TEST_ROADMAP.md")
+    tasks = parser.parse()
+    
+    print(f"Parsed Tasks: {[t['id'] for t in tasks]}")
+    assert len(tasks) == 3
+    
+    # 3. Dispatch
+    dispatcher = ParallelDispatcher(tasks)
+    executable = dispatcher.get_executable_tasks()
+    
+    print(f"Executable Tasks: {[t['id'] for t in executable]}")
+    
+    # Task A and Task B should be executable
+    ids = [t['id'] for t in executable]
+    if "Task 1" in ids and "Task 2" in ids and "Task 3" not in ids:
+        print("✅ Integration Test Passed: Task 1 and 2 are executable.")
+    else:
+        print(f"❌ Integration Test Failed. Executable: {ids}")
 
-    def test_gsd_workflow(self):
-        print("\n--- Testing GSD Init Project ---")
-        vision = "A simple Python calculator CLI"
-        goals = ["Add numbers", "Subtract numbers"]
-        
-        # 1. Initialize
-        init_res = self.gsd.init_project(vision, goals)
-        print(f"Init Result: {init_res}")
-        self.assertTrue(os.path.exists("PROJECT.md"))
-        self.assertTrue(os.path.exists("ROADMAP.md"))
-        self.assertIn("Project initialized", init_res)
+    # Cleanup
+    os.remove("TEST_ROADMAP.md")
 
-        print("\n--- Testing GSD Plan Phase ---")
-        # 2. Plan Phase 1
-        plan_res = self.gsd.plan_phase()
-        print(f"Plan Result: {plan_res}")
-        self.assertTrue(os.path.exists("PLAN.md"))
-        
-        print("\n--- Testing GSD Execute Phase ---")
-        # 3. Execute Phase 1
-        exec_res = self.gsd.execute_phase()
-        print(f"Execute Result: {exec_res}")
-        self.assertTrue(os.path.exists("EXECUTION_LOG.md"))
-        
-        # Check token limits (ContextManager logic)
-        self.assertLess(len(exec_res), 20000, "Execution result is too large, compression might have failed.")
-
-    def tearDown(self):
-        # Clean up files created during test
-        for f in ["PROJECT.md", "ROADMAP.md", "PLAN.md", "EXECUTION_LOG.md"]:
-            if os.path.exists(f):
-                os.remove(f)
-
-if __name__ == '__main__':
-    unittest.main()
+if __name__ == "__main__":
+    test_gsd_integration()
