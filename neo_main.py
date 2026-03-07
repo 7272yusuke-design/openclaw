@@ -23,7 +23,7 @@ DEBUG_LOGGING = ENVIRONMENT == "development"
 
 # --- LLM モデル設定 ---
 # Neoのメイン頭脳として DeepSeek-V3 (deepseek-chat) を使用
-DEFAULT_LLM_MODEL = "openrouter/deepseek/deepseek-chat"
+from core.config import get_agent_llm, get_neo_llm
 
 # --- キャッシュ設定 ---
 # ユーザーの指示により、キャッシュ期間を短く設定
@@ -31,56 +31,6 @@ CACHE_TTL_SECONDS = 300 # 5分
 
 # --- LLM 呼び出しクラス（例）---
 # 既存の LLM 呼び出し処理をラップするクラス/関数を想定
-class LLMClient:
-    def __init__(self, model_name: str):
-        self.model_name = model_name
-        # ここで LLM API クライアントを初期化 (例: LiteLLM, OpenAI client など)
-        print(f"Initializing LLM client with model: {self.model_name}")
-
-    def call(self, prompt: str, **kwargs) -> str:
-        # キャッシュ機構をここに実装
-        cache_key = self._generate_cache_key(prompt, kwargs)
-        if USE_CACHE and self._is_cache_valid(cache_key):
-            print(f"Cache hit for key: {cache_key}")
-            return self._get_from_cache(cache_key)
-        else:
-            print(f"Cache miss or disabled for key: {cache_key}")
-            # 実際の LLM API 呼び出し
-            response = self._call_llm_api(prompt, **kwargs)
-            if USE_CACHE:
-                self._save_to_cache(cache_key, response)
-            return response
-
-    def _generate_cache_key(self, prompt: str, kwargs: dict) -> str:
-        # プロンプトとパラメータから一意のキャッシュキーを生成
-        # (例: hash(prompt + json.dumps(kwargs)))
-        import hashlib
-        data_to_hash = prompt + json.dumps(kwargs, sort_keys=True)
-        return hashlib.sha256(data_to_hash.encode()).hexdigest()
-
-    def _is_cache_valid(self, key: str) -> bool:
-        # キャッシュデータが存在し、有効期限内かチェック
-        # (実際には Redis やファイルシステムで実装)
-        # 例: cache_data = redis_client.get(key); if cache_data and time.time() < cache_data['timestamp'] + CACHE_TTL_SECONDS: return True
-        return False # 仮実装
-
-    def _get_from_cache(self, key: str) -> str:
-        # キャッシュからデータを取得
-        # return redis_client.get(key)['response'] # 仮実装
-        return "Cached Response" # 仮実装
-
-    def _save_to_cache(self, key: str, response: str):
-        # キャッシュにデータを保存
-        # redis_client.set(key, {'response': response, 'timestamp': time.time()}) # 仮実装
-        pass
-
-    def _call_llm_api(self, prompt: str, **kwargs) -> str:
-        # ここで実際の LLM API を呼び出す処理
-        print("Calling actual LLM API...")
-        # 例: return self.llm_provider.completions.create(...)
-        return "Response from LLM API" # 仮実装
-
-
 # --- NeoSystem クラスの改修例 ---
 class NeoSystem:
     def __init__(self, web_search_tool: callable = None):
@@ -92,30 +42,23 @@ class NeoSystem:
         # 実行ログの履歴 (自己改善用)
         self.execution_history = []
 
-        # Crew-specific model configuration (Optimized for DeepSeek-V3 & R1)
+        # Crew-specific model configuration
         from core.config import NeoConfig
-        default_v3 = NeoConfig.DEFAULT_MODEL
-        reasoning_r1 = NeoConfig.REASONING_MODEL
+        default_model = NeoConfig.DEFAULT_AGENT_MODEL
+        reasoning_model = NeoConfig.REASONING_MODEL
 
         self.crew_model_map = {
-            "sentiment_crew": default_v3,
-            "scout_crew": default_v3,
-            "creator_crew": default_v3,
-            "planning_crew": reasoning_r1,   # 戦略立案には R1 (推論) を使用
-            "development_crew": reasoning_r1, # コード修正・分析には R1 (推論) を使用
-            "acp_executor_crew": default_v3,
+            "sentiment_crew": default_model,
+            "scout_crew": default_model,
+            "creator_crew": default_model,
+            "planning_crew": reasoning_model,
+            "development_crew": reasoning_model,
+            "acp_executor_crew": default_model,
         }
 
         # --- LLM Client Instances ---
-        self.llm_clients = {}
-        # Ensure default model client is created
-        if DEFAULT_LLM_MODEL not in self.llm_clients:
-            self.llm_clients[DEFAULT_LLM_MODEL] = LLMClient(model_name=DEFAULT_LLM_MODEL)
-
-        # Create clients for other models specified in the map
-        for model_name in set(self.crew_model_map.values()):
-            if model_name not in self.llm_clients:
-                self.llm_clients[model_name] = LLMClient(model_name=model_name)
+        # Neoの司令官LLMを初期化
+        self.neo_llm = get_neo_llm()
 
         self.cache_enabled = USE_CACHE
         self.debug_logging_enabled = DEBUG_LOGGING

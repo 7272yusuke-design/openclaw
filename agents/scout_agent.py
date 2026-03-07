@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import json
 import os
 from core.base_crew import NeoBaseCrew
-from core.config import NeoConfig
+from core.config import NeoConfig, get_agent_llm
 from bridge.crewai_bridge import CrewResult
 from tools.crypto_data import CryptoMarketData
 
@@ -62,7 +62,7 @@ class ScoutCrew(NeoBaseCrew):
             role='Ecosystem Scout',
             goal='Virtuals Protocol内の最新トレンドと機会を特定する',
             backstory='Web検索と市場データ分析を駆使して市場の機会を発掘するスカウト。',
-            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_EYES), # Agent LLM (OpenRouter)
+            llm=get_agent_llm(model_name=NeoConfig.MODEL_EYES), # Agent LLM (OpenRouter)
             tools=[WebSearchTool(), CryptoTool()],
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False,
@@ -73,7 +73,7 @@ class ScoutCrew(NeoBaseCrew):
             role='ACP Architect',
             goal='機会をACP形式のペイロードに変換する',
             backstory='戦略をJSONデータに変換するエンジニア。',
-            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_HANDS), # Agent LLM (OpenRouter)
+            llm=get_agent_llm(model_name=NeoConfig.MODEL_HANDS), # Agent LLM (OpenRouter)
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False,
             verbose=True

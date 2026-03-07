@@ -1,6 +1,6 @@
 from crewai import Agent, Task, Crew
 from core.base_crew import NeoBaseCrew
-from core.config import NeoConfig
+from core.config import NeoConfig, get_agent_llm
 from pydantic import BaseModel, Field
 
 class MoltbookContent(BaseModel):

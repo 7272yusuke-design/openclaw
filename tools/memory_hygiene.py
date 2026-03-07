@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from core.config import NeoConfig
+from core.config import NeoConfig, get_neo_llm
 
 LOG_FILE = "logs/execution_history.jsonl"
 ARCHIVE_DIR = "logs/archive"
@@ -17,7 +17,7 @@ class ContextManager:
     def __init__(self):
         self.max_tokens = NeoConfig.MAX_CONTEXT_TOKENS
         # Use Neo LLM (Google API) for summarization
-        self.summary_model = NeoConfig.get_neo_llm(model_name=NeoConfig.SUMMARY_MODEL)
+        self.summary_model = get_neo_llm()
 
     def count_tokens(self, text: str) -> int:
         """

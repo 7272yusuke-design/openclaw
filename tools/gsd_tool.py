@@ -3,7 +3,7 @@ import re
 from typing import List, Dict, Any
 from langchain_core.messages import HumanMessage
 from crewai.tools import tool
-from core.config import NeoConfig
+from core.config import NeoConfig, get_neo_llm, get_agent_llm
 from tools.memory_hygiene import ContextManager
 
 # プロンプトの保存場所
@@ -102,8 +102,8 @@ class GSDTool:
         NeoConfig.setup_env()  # Initialize environment variables
         self.context_manager = ContextManager()
         # Initialize LLMs (Dual Architecture)
-        self.planner_llm = NeoConfig.get_neo_llm(model_name=NeoConfig.MODEL_BRAIN)
-        self.executor_llm = NeoConfig.get_agent_llm(model_name=NeoConfig.MODEL_HANDS)
+        self.planner_llm = get_neo_llm() # 司令官モデルを直接呼び出し
+        self.executor_llm = get_agent_llm(model_name=NeoConfig.MODEL_HANDS)
 
     def _read_prompt(self, filename):
         path = os.path.join(PROMPT_DIR, filename)
