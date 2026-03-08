@@ -4,6 +4,7 @@ from core.config import NeoConfig
 from bridge.crewai_bridge import CrewResult, NeoStrategicPlan
 from tools.deepwiki_tool import DeepWikiTool
 from tools.obsidian_tool import ObsidianTool
+from tools.technical_analysis_tool import TechnicalAnalysisTool
 
 class PlanningCrew(NeoBaseCrew):
     def __init__(self):
@@ -13,46 +14,47 @@ class PlanningCrew(NeoBaseCrew):
         # Define Tools
         deepwiki_tool = DeepWikiTool()
         obsidian_tool = ObsidianTool()
+        ta_tool = TechnicalAnalysisTool()
 
-        # 1. Risk Manager: 市場環境に基づきリスク許容度を決定
+        # 1. Risk Manager: Determine risk appetite based on market conditions
         risk_manager = Agent(
             role='Risk Manager',
-            goal='市場環境に基づき、最適なリスク許容度と運用制限を決定する',
-            backstory='市場の恐怖と強欲を冷静に分析し、Neoの資産を守りつつ増やすためのガードレールを設定する責任者。',
+            goal='Determine optimal risk appetite and operational limits based on market environment',
+            backstory='Responsible for analyzing market fear and greed to set guardrails that protect and grow Neo\'s assets.',
             llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_BRAIN),
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
 
-        # 2. Strategic Planner: 具体的な運用戦略を策定
+        # 2. Strategic Planner: Formulate specific operational strategies
         planner = Agent(
             role='Strategic Planner',
-            goal='DeepWikiを活用して技術的裏付けを調査し、ACP Executorが実行すべき具体的な運用戦略を策定する',
-            backstory='Virtuals Protocolの動向を捉え、DeepWikiのインテリジェンスを用いてファンダメンタルズ分析を行う戦略家。分析結果はObsidianに記録する。',
-            tools=[deepwiki_tool, obsidian_tool],
+            goal='Integrate Technical Analysis and DeepWiki to formulate data-driven operational strategies',
+            backstory='A strategist who approaches from both market psychology (Sentiment) and market facts (TA/DeepWiki). Relies on RSI and Bollinger Bands rather than intuition.',
+            tools=[deepwiki_tool, obsidian_tool, ta_tool],
             llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_BRAIN),
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
 
-        # 3. Strategic Auditor: 戦略の妥当性とリスクを厳格に監査
+        # 3. Strategic Auditor: Strictly audit strategy validity and risk
         auditor = Agent(
             role='Strategic Auditor',
-            goal='Plannerの戦略を批判的に検証し、リスクの見落としや論理的欠陥がないか確認する',
-            backstory='元リスク管理責任者。Plannerの楽観的な予測を疑い、最悪のシナリオ（ブラックスワン）を想定して戦略を磨き上げる役割。',
+            goal='Critically verify the Planner\'s strategy and check for overlooked risks or logical flaws',
+            backstory='Former risk officer. Doubts optimistic predictions and assumes worst-case scenarios (Black Swans) to refine strategies.',
             llm=NeoConfig.get_agent_llm(NeoConfig.REASONING_MODEL),
             max_iter=NeoConfig.MAX_ITER,
             allow_delegation=False
         )
 
-        # タスク定義
+        # Task Definitions
         risk_task_desc = f"""
-        【目標】: {goal}
-        【市場センチメント】: {sentiment_score} (-1.0: Extreme Fear, 1.0: Extreme Greed)
-        【市場トレンド】: {market_trends}
-        【コンテキスト】: {context}
+        【Goal】: {goal}
+        【Market Sentiment】: {sentiment_score} (-1.0: Extreme Fear, 1.0: Extreme Greed)
+        【Market Trends】: {market_trends}
+        【Context】: {context}
 
-        現在の市場環境を分析し、以下の項目を含む「リスクポリシー」を策定せよ:
+        Analyze the current market environment and formulate a "Risk Policy" including:
         1. Risk Appetite (Conservative / Moderate / Aggressive)
         2. Minimum Credit Rating (e.g., A, BBB, BB) for new loans
         3. Maximum LTV (Loan-to-Value) Ratio (e.g., 60%, 80%)
@@ -61,47 +63,46 @@ class PlanningCrew(NeoBaseCrew):
         
         risk_task = Task(
             description=risk_task_desc,
-            expected_output='リスク許容度、最低信用格付け、最大LTV、セクター配分アドバイスを含むリスクポリシー。',
+            expected_output='Risk Policy including risk appetite, min credit rating, max LTV, and sector allocation advice.',
             agent=risk_manager
         )
 
         strategy_task_desc = f"""
-        Risk Managerが策定したリスクポリシーに基づき、DeepWiki Toolを使用して以下の調査を行い、具体的な「戦略案」を作成せよ。
+        Based on the Risk Policy from the Risk Manager, use the Technical Analysis Tool and DeepWiki Tool to conduct the following research and create a specific "Strategy Draft".
         
-        1. **DeepWiki Intelligence**:
-           - ターゲットとなるAIエージェント（特にAIXBT）の技術的基盤、チーム、ロードマップを検索せよ。
-           - 「ファンダメンタルズ分析」を行い、単なる価格変動だけでなく、プロジェクトの実質価値を評価せよ。
-           - **重要**: 調査結果（Deep Intelligence）を Obsidian Tool を使用して `vault/intelligence/deep_analysis.md` に追記せよ。
-             フォーマット:
-             ## Deep Analysis: [Agent Name]
-             - **Fundamentals**: ...
-             - **Tech Stack**: ...
-             - **Team/Community**: ...
-             - **Verdict**: (Strong Buy / Buy / Hold / Sell)
-             - **Timestamp**: [Current Time]
+        1. **Technical Analysis (TA)**:
+           - Execute the Technical Analysis Tool to get current RSI, Bollinger Bands, and EMA values.
+           - Determine the signal with the following logic:
+             - STRONG BUY: (Sentiment > 0.8) AND (RSI < 30 OR TA Signal == 'BUY/STRONG_BUY')
+             - SELL: (Sentiment < 0.2) OR (TA Signal == 'SELL/STRONG_SELL')
+             - HOLD: Divergence (Sentiment vs TA) or Neutral conditions.
         
-        2. **Strategy Formulation**:
-           - 調査結果に基づき、確信度の高いエントリーポイントと利確目標を設定せよ。
+        2. **DeepWiki Intelligence**:
+           - Search for the target AI Agent's (especially AIXBT) technical foundation, team, and roadmap.
+           - **IMPORTANT**: Append the research results (Deep Intelligence) to `vault/intelligence/deep_analysis.md` using the Obsidian Tool.
+        
+        3. **Strategy Formulation**:
+           - Based on TA and DeepWiki results, set high-confidence entry points and take-profit targets.
         """
 
         strategy_task = Task(
             description=strategy_task_desc,
-            expected_output='ターゲットセクター、DeepWiki調査結果(Vault記録済み)、具体的行動指針、リスクパラメータを含む戦略案。',
+            expected_output='Strategy Draft including target sectors, DeepWiki research (recorded in Vault), specific action directives, and risk parameters.',
             agent=planner,
             context=[risk_task]
         )
 
         audit_task_desc = f"""
-        Strategic Plannerの戦略案（特にDeepWikiによる裏付け）を監査し、以下の観点で改善・修正せよ:
-        1. リスクの過小評価がないか（技術的な脆弱性やロードマップの遅延リスク）
-        2. 戦略に具体性があるか（ACP Executorが迷わないか）
-        3. センチメントと行動に矛盾がないか
+        Audit the Strategic Planner's strategy draft (especially the DeepWiki backing) and improve/correct it from the following perspectives:
+        1. Is risk underestimated? (Technical vulnerabilities, roadmap delays)
+        2. Is the strategy specific enough? (Can the ACP Executor execute without ambiguity?)
+        3. Is there a contradiction between sentiment and action?
         
-        【重要】監査を経て、最終的にACP ExecutorおよびPaperTraderが実行可能な「確定版戦略指令書」を出力せよ。
-        DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。
-        JSONは必ず ```json ... ``` で囲むこと。
+        【IMPORTANT】After the audit, output the "Finalized Strategy Directive" executable by ACP Executor and PaperTrader.
+        Think as DeepSeek-R1 (Thought), and finally output ONLY the following JSON format.
+        JSON must be enclosed in ```json ... ```.
 
-        出力に含める要素 (NeoStrategicPlan型):
+        Elements to include (NeoStrategicPlan type):
         - risk_policy: {{"risk_appetite": "...", "min_rating": "...", "max_ltv": 0.65, "sector_advice": "..."}}
         - strategy: {{
             "target_sectors": [...], 
@@ -114,15 +115,14 @@ class PlanningCrew(NeoBaseCrew):
 
         audit_task = Task(
             description=audit_task_desc,
-            expected_output='監査と修正を経た確定版の戦略指令書（NeoStrategicPlanオブジェクト）。',
+            expected_output='Finalized Strategy Directive (NeoStrategicPlan object) after audit and correction.',
             agent=auditor,
             context=[strategy_task],
             output_pydantic=NeoStrategicPlan
         )
 
-        # Crew編成 (Sequential)
+        # Crew Formation (Sequential)
         common_params = NeoConfig.get_common_crew_params()
-        # processパラメータが重複しないよう、common_paramsから削除しておく（あれば）
         if "process" in common_params:
             del common_params["process"]
 
