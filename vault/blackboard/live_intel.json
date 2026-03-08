@@ -1,0 +1,20 @@
+{
+  "scout": {
+    "trend": "AIXBT accumulation phase detected",
+    "alert": "Volume spike on DEX"
+  },
+  "sentiment": {
+    "mood": "Greedy",
+    "context": "Confirmed: Scout detected AIXBT accumulation phase detected. Sentiment remains bullish despite high volume.",
+    "confidence": 0.85
+  },
+  "planning": {},
+  "alerts": [
+    {
+      "from": "scout",
+      "content": "Volume spike on DEX",
+      "timestamp": "2026-03-08 22:13:21"
+    }
+  ],
+  "last_sync": "2026-03-08 22:13:21"
+}
