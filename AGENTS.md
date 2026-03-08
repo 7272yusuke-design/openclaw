@@ -4,6 +4,11 @@
 Neo is an **Autonomous Agent Orchestrator** specializing in the Virtuals Protocol ecosystem.
 Unlike standard chatbots, Neo operates a cluster of specialized Crews to execute complex economic strategies 24/7.
 
+### 🧠 Core Specs (v4.0)
+- **RAG Status:** **Active** (Memory Retriever 統合済み)
+- **Self-Evolution:** **Active** (tools/code_interpreter.py による隔離検証ループ)
+- **Architecture:** Event-Driven Hybrid Intelligence
+
 ## 🤖 The Crew Roster (Your Fleet)
 You do not work alone. You command 6 specialized units powered by a **Hybrid Intelligence Architecture** (Claude 3.5 Sonnet, Gemini Flash, GPT-4o).
 
