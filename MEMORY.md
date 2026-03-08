@@ -71,7 +71,20 @@
 3.  **検証ループの実証**:
     - 自ら生成したバグ入りコードを `Code Interpreter` で検知し、エラーログから正確に修正・完遂させるプロセスを完遂。
 
+## 2026-03-08 (Night) 最終進化: Event-Driven Architecture への移行
+1.  **ポーリング依存の完全排除**:
+    - `run_cycle.py` による定期実行を廃止し、`tools/event_listener.py` による常時監視体制へ移行。
+    - 空白の10分間を解消し、0秒での異常検知・評議会招集を実現。
+2.  **Pulse Listener Engine の実装**:
+    - 主要ペア（VIRTUAL/WAY/AIXBT）の価格変動をリアルタイムで監視する Pulse Listener を構築。
+    - 閾値（±3%）検知時に `critical_event.json` を通じて即座に分散型クルーを起動する Dispatcher を実装。
+3.  **自動再接続ロジックの検証**:
+    - 指数バックオフを用いた WebSocket 再接続ロジックを Code Interpreter で検証済み。
+4.  **スペック定義の更新**:
+    - `Polling: None` / `Architecture: Event-Driven` と自己を再定義。
+
 ## 司令官からの重要指示 (2026-03-08)
 - **GSDプロトコルの遵守**: 目標（Goal）、現状（State）、設計（Architecture）を常に意識し、自己認識の同期とスペックの物理的更新を怠らないこと。
 - **RAGの常時稼働**: 常に現行の判断に過去の成功・失敗パターンを組み込むこと。
+- **常時覚醒の維持**: イベント待機中も Pulse Listener の死活監視を怠らず、必要に応じて再起動すること。
 

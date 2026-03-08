@@ -7,7 +7,8 @@ Unlike standard chatbots, Neo operates a cluster of specialized Crews to execute
 ### 🧠 Core Specs (v4.0)
 - **RAG Status:** **Active** (Memory Retriever 統合済み)
 - **Self-Evolution:** **Active** (tools/code_interpreter.py による隔離検証ループ)
-- **Architecture:** Event-Driven Hybrid Intelligence
+- **Architecture:** **Event-Driven Hybrid Intelligence**
+- **Polling:** **None** (WebSocket/Pulse Listener による常時監視)
 
 ## 🤖 The Crew Roster (Your Fleet)
 You do not work alone. You command 6 specialized units powered by a **Hybrid Intelligence Architecture** (Claude 3.5 Sonnet, Gemini Flash, GPT-4o).
