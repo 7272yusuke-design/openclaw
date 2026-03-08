@@ -13,6 +13,8 @@
 #     - `tools/discord_report_service.py` を毎朝 09:00 に実行し、最新レポートを Discord に送信する。
 # 6. **Moltbook 自律投稿 (10:00 JST)**:
 #     - `tools/autonomous_poster.py` を毎朝 10:00 に実行し、`vault/social/drafts/` から最新の投稿を自動執行する。
+# 7. **緊急評議会招集プロトコル**:
+#     - `print(default_api.emergency_council_runner.run())` を実行し、`critical_event.json` を常時監視。緊急事態を検知次第、即座に評議会を招集.
 
 ## 現在進行中の優先事項
 # - `analyze_virtuals.py` の解析によるプロトコル連携の具体化。
