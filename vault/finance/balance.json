@@ -1,0 +1,12 @@
+{
+  "assets": {
+    "VIRTUAL": 1000.0,
+    "ETH": 0.5,
+    "USDC": 5000.0
+  },
+  "liabilities": {
+    "gas_fees": 0.0
+  },
+  "last_updated": "2026-03-08T09:50:00Z",
+  "status": "INITIALIZED"
+}

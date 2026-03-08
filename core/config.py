@@ -12,12 +12,12 @@ class NeoConfig:
     DEFAULT_AGENT_MODEL = "google/gemini-3-flash-preview"
     
     # 役割別設定
-    MODEL_BRAIN = "google/gemini-2.0-pro-exp-02-05:free"
-    MODEL_EYES = "google/gemini-3-flash-preview"
-    MODEL_HANDS = "google/gemini-3-flash-preview"
-    MODEL_CREATIVE = "google/gemini-3-flash-preview"
-    REASONING_MODEL = "google/gemini-2.0-pro-exp-02-05:free"
-    SUMMARY_MODEL = "gemini-3-flash"
+    MODEL_BRAIN = "google/gemini-2.0-flash-001"
+    MODEL_EYES = "google/gemini-2.0-flash-001"
+    MODEL_HANDS = "google/gemini-2.0-flash-001"
+    MODEL_CREATIVE = "google/gemini-2.0-flash-001"
+    REASONING_MODEL = "google/gemini-2.0-flash-001"
+    SUMMARY_MODEL = "google/gemini-2.0-flash-001"
 
     # システム設定
     MAX_ITER = 3

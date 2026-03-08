@@ -3,6 +3,7 @@ from crewai.tools import BaseTool
 from core.base_crew import NeoBaseCrew
 from core.config import NeoConfig, get_agent_llm
 from bridge.crewai_bridge import CrewResult
+from tools.obsidian_tool import ObsidianTool
 
 class SentimentCrew(NeoBaseCrew):
     def __init__(self):
@@ -28,15 +29,20 @@ class SentimentCrew(NeoBaseCrew):
             
             tools.append(WebSearchTool())
 
+        # Obsidian MCP Tool (Append Capability)
+        obsidian_tool = ObsidianTool()
+        tools.append(obsidian_tool)
+
         # エージェント定義
         analyst = Agent(
             role='Sentiment Analyst',
-            goal='市場の感情スコアを特定し、トレンドの転換点を見極める',
-            backstory='市場の「空気」を読み取る専門家。必要であればWeb検索を駆使して最新情報を収集し、高度な分析を行います。',
+            goal='市場の感情スコアを特定し、Obsidian Vaultに記録する',
+            backstory='市場の「空気」を読み取る専門家。分析結果は必ずObsidianの `vault/strategy/sentiment_analysis.md` に追記します。',
             tools=tools, # ツールを追加
             llm=get_agent_llm(model_name=NeoConfig.MODEL_EYES), # Agent LLM (OpenRouter)
-            max_iter=NeoConfig.MAX_ITER,
-            allow_delegation=False
+            max_iter=10, # 試行回数を増やす
+            allow_delegation=False,
+            verbose=True # デバッグ出力を有効化
         )
 
         planner = Agent(
@@ -49,14 +55,18 @@ class SentimentCrew(NeoBaseCrew):
         )
 
         # タスク定義
-        # 分析タスクの説明にWeb検索の使用指示を追加
+        # 分析タスクの説明にObsidianへの追記指示を追加
         task_desc = f'分析目標: {goal}\nデータ: {context}'
         if web_search_tool:
             task_desc += '\n必要に応じてWeb Search Toolを使用し、最新の市場センチメントや関連ニュースを調査して分析に反映させよ。'
+        
+        task_desc += '\n\nIMPORTANT: 分析が完了したら、必ず Obsidian Tool を使用して結果を `vault/strategy/sentiment_analysis.md` に追記(append_content)せよ。'
+        task_desc += '\n追記する内容は以下のフォーマットに従うこと:\n'
+        task_desc += '## Sentiment Analysis Report\n- **Target**: [Target Name]\n- **Score**: [Score]\n- **Summary**: [Summary]\n- **Timestamp**: [Current Time]\n'
 
         analysis_task = Task(
             description=task_desc,
-            expected_output='市場の感情スコア(-1.0 to 1.0)と主要要因。',
+            expected_output='市場の感情スコア(-1.0 to 1.0)と主要要因。Obsidianへの追記完了メッセージを含むこと。',
             agent=analyst
         )
 
