@@ -1,1 +1,25 @@
-{"status": "success", "symbol": "VIRTUAL", "name": "Virtual Protocol", "priceUsd": "0.7474", "priceChange": {"m5": -0.16, "h1": -0.84, "h6": 1.45, "h24": -1.83}, "volume": {"h24": 6272485.02, "h6": 1053271.7, "h1": 256951.24, "m5": 14361.86}, "liquidity": {"usd": 873328.24, "base": 722883, "quote": 155.08805}, "url": "https://dexscreener.com/base/0x3f0296bf652e19bca772ec3df08b32732f93014a", "pairAddress": "0x3f0296BF652e19bca772EC3dF08b32732F93014A", "chainId": "base", "timestamp": 1772710437.9824867}
+{
+    "status": "success",
+    "symbol": "VIRTUAL",
+    "name": "Virtual Protocol",
+    "priceUsd": "0.6395",
+    "priceChange": {
+        "m5": 0.16,
+        "h1": 1.27,
+        "h6": 0.26,
+        "h24": -1.99
+    },
+    "volume": {
+        "h24": 3501017.88,
+        "h6": 1162664.78,
+        "h1": 150990.05,
+        "m5": 18047.28
+    },
+    "liquidity": {
+        "usd": 731613.42,
+        "base": 850987,
+        "quote": 95.01693
+    },
+    "url": "https://dexscreener.com/base/0x3f0296bf652e19bca772ec3df08b32732f93014a",
+    "timestamp": 1773025666.5104697
+}

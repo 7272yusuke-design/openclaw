@@ -8,6 +8,10 @@
     "crypto-market-data": {
       "version": "1.0.2",
       "installedAt": 1772607130134
+    },
+    "virtuals-protocol-acp": {
+      "version": "1.0.1",
+      "installedAt": 1773042681748
     }
   }
 }

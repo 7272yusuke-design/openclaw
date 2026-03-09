@@ -1,1 +1,55 @@
-from crewai import Agent, Task, Crew, Process\nfrom core.base_crew import NeoBaseCrew\nfrom core.config import NeoConfig # 修正: get_llm は NeoConfig クラス内で定義された get_agent_llm または get_neo_llm を使用する\nfrom bridge.crewai_bridge import CrewResult, NeoStrategicPlan\n\nclass PlanningCrew(NeoBaseCrew):\n    def __init__(self):\n        super().__init__(name=\"StrategicPlanning\")\n\n    def run(self, goal: str, context: str, sentiment_score: float = 0.0, market_trends: str = \"\"):\n        # Ensure env is setup before getting LLMs\n        NeoConfig.setup_env() \n        \n        # 1. Risk Manager: 市場環境に基づきリスク許容度を決定\n        risk_manager = Agent(\n            role=\'Risk Manager\',\n            goal=\'市場環境に基づき、最適なリスク許容度と運用制限を決定する\',\n            backstory=\'市場の恐怖と強欲を冷静に分析し、Neoの資産を守りつつ増やすためのガードレールを設定する責任者。\',\n            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_BRAIN), # 修正: get_llm -> get_agent_llm\n            max_iter=NeoConfig.MAX_ITER,\n            allow_delegation=False,\n            verbose=True\n        )\n\n        # 2. Strategic Planner: 具体的な運用戦略を策定\n        planner = Agent(\n            role=\'Strategic Planner\',\n            goal=\'リスク許容度に基づき、ACP Executorが実行すべき具体的な運用戦略を策定する\',\n            backstory=\'Virtuals Protocolの動向を捉え、どのエージェントセクターに資金を配分すべきかを決定する戦略家。\',\n            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_BRAIN), # 修正: get_llm -> get_agent_llm\n            max_iter=NeoConfig.MAX_ITER,\n            allow_delegation=False,\n            verbose=True\n        )\n\n        # 3. Strategic Auditor: 戦略の妥当性とリスクを厳格に監査\n        auditor = Agent(\n            role=\'Strategic Auditor\',\n            goal=\'Plannerの戦略を批判的に検証し、リスクの見落としや論理的欠陥がないか確認する\',\n            backstory=\'元リスク管理責任者。Plannerの楽観的な予測を疑い、最悪のシナリオ（ブラックスワン）を想定して戦略を磨き上げる役割。\',\n            llm=NeoConfig.get_agent_llm(NeoConfig.REASONING_MODEL), # 修正: get_llm -> get_agent_llm\n            max_iter=NeoConfig.MAX_ITER,\n            allow_delegation=False,\n            verbose=True\n        )\n\n        # タスク定義\n        # (Risk Assessment Task は変更なし)\n        risk_task_desc = f\"\"\"\n        【目標】: {goal}\n        【市場センチメント】: {sentiment_score} (-1.0: Extreme Fear, 1.0: Extreme Greed)\n        【市場トレンド】: {market_trends}\n        【コンテキスト】: {context}\n\n        現在の市場環境を分析し、以下の項目を含む「リスクポリシー」を策定せよ:\n        1. Risk Appetite (Conservative / Moderate / Aggressive)\n        2. Minimum Credit Rating (e.g., A, BBB, BB) for new loans\n        3. Maximum LTV (Loan-to-Value) Ratio (e.g., 60%, 80%)\n        4. Sector Allocation Advice (e.g., Focus on Gaming agents, Avoid DeFi agents)\n        \"\"\"\n        \n        risk_task = Task(\n            description=risk_task_desc,\n            expected_output=\'リスク許容度、最低信用格付け、最大LTV、セクター配分アドバイスを含むリスクポリシー。\',\n            agent=risk_manager\n        )\n\n        # Strategy Formulation Task\n        strategy_task_desc = f\"\"\"\n        Risk Managerが策定したリスクポリシーに基づき、具体的な「戦略案」を作成せよ。\n        \"\"\"\n\n        strategy_task = Task(\n            description=strategy_task_desc,\n            expected_output=\'ターゲットセクター、具体的行動指針、リスクパラメータを含む戦略案。\',\n            agent=planner,\n            context=[risk_task]\n        )\n\n        # Strategy Audit & Refinement Task (Self-Reflection Loop)\n        audit_task_desc = f\"\"\"\n        Strategic Plannerの戦略案を監査し、以下の観点で改善・修正せよ:\n        1. リスクの過小評価がないか（特に市場急変時のLTV超過リスク）\n        2. 戦略に具体性があるか（ACP Executorが迷わないか）\n        3. センチメントと行動に矛盾がないか\n        4. 【新規】Scoutが報告したDEX間の価格乖離を精査し、手数料（0.3%〜）とスリッページを差し引いても 0.6% 以上の純利益が出るアービトラージ機会があるか検証せよ。\n\n        【重要】監査を経て、最終的にACP ExecutorおよびPaperTraderが実行可能な「確定版戦略指令書」を出力せよ。\n        DeepSeek-R1として思考（Thought）を行った後、最後に必ず以下のJSON形式のみを出力せよ。\n        JSON内の文字列値（特に action_directive, sector_advice, audit_summary）は必ず【日本語】で記述すること。\n        JSONは必ず ```json ... ``` で囲むこと。\n\n        出力に含める要素 (NeoStrategicPlan型):\n        - risk_policy: { {\"risk_appetite\": \"...\", \"min_rating\": \"...\", \"max_ltv\": 0.65, \"sector_advice\": \"...\"} }\n        - strategy: { {\n            \"target_sectors\": [...], \n            \"action_directive\": \"...\", \n            \"arbitrage_opportunity\": { {\"dex_pair\": \"Virtuals-Uniswap\", \"expected_profit_pct\": 0.85, \"token\": \"VIRTUAL\", \"route\": \"...\"} },\n            \"audit_summary\": \"...\"\n          } }\n        \"\"\"\n\n        audit_task = Task(\n            description=audit_task_desc,\n            expected_output=\'監査と修正を経た確定版の戦略指令書（NeoStrategicPlanオブジェクト）。\',\n            agent=auditor,\n            context=[strategy_task],\n            output_pydantic=NeoStrategicPlan # Pydanticによる型出力を指定\n        )\n\n        # Crew編成 (Hierarchical Process を採用)\n        common_params = NeoConfig.get_common_crew_params()\n        if \"process\" in common_params:\n            del common_params[\"process\"]\n\n        crew = Crew(\n            agents=[risk_manager, planner, auditor],\n            tasks=[risk_task, strategy_task, audit_task],\n            process=Process.hierarchical, # 階層型プロセスを有効化\n            manager_llm=NeoConfig.get_neo_llm(NeoConfig.MODEL_BRAIN), # 修正: get_llm -> get_neo_llm (司令官LLMを使用)\n            planning=True, # 計画機能を有効化（効率的なタスク配分）\n            **common_params\n        )\n\n        return self.execute(crew)
+from crewai import Agent, Task, Crew
+from core.base_crew import NeoBaseCrew
+from bridge.crewai_bridge import CrewResult
+from pydantic import BaseModel, Field
+from typing import List
+
+class PlanningPayload(BaseModel):
+    strategy_name: str = Field(..., description="戦略の名称")
+    expected_net_profit: float = Field(..., description="USD換算の期待純利益 (手数料・スリッページ考慮後)")
+    probability_of_success: float = Field(..., description="0.0 to 1.0 で表す勝率予測")
+    worst_case_scenario: str = Field(..., description="最悪のシナリオ（Worst Case）の定義")
+    mitigation_plan: str = Field(..., description="最悪のシナリオが発生した際の防衛策/損切りルール")
+    risk_level: str = Field(..., description="Low, Medium, High")
+    action_directives: List[str] = Field(..., description="具体的なアクション項目")
+    success_metrics: List[str] = Field(..., description="この戦略が成功したと判断する数値指標")
+
+class PlanningCrew(NeoBaseCrew):
+    def __init__(self):
+        super().__init__(name="StrategicPlanning")
+
+    def run(self, goal: str, context: str, sentiment_score: float = 0.0, market_trends: str = ""):
+        # 最高戦略責任者 (Neo-CSO) としてのアイデンティティを注入
+        cso = Agent(
+            role='Chief Strategy Officer (Neo-CSO)',
+            goal='データと感情を分離し、リスクを最小化しながら最大のVIRTUAL拡大戦略を策定する。',
+            backstory=(
+                'あなたは数理モデルと市場心理学に精通したエリート・ストラテジストです。'
+                '特に Uniswap Arbitrage Analysis に基づく金融計算に長け、'
+                'ガス代、手数料、スリッページを差し引いた「真の期待値」がプラスでない限り、'
+                '「Wait（待機）」を断固として選択する冷徹な判断力を持ちます。'
+            ),
+            llm=self.llm,
+            verbose=True
+        )
+
+        task = Task(
+            description=(
+                f"【ミッション】: {goal}\n"
+                f"【市場動向】: {market_trends}\n"
+                f"【感情スコア】: {sentiment_score}\n"
+                f"【前提コンテキスト】: {context}\n\n"
+                "以下の『高度なリスク評価テンプレート』を遵守して戦略を策定せよ：\n"
+                "1. 期待純利益 (Expected Net Profit) を手数料・スリッページを考慮して算出せよ。\n"
+                "2. 期待純利益が 0 以下の場合、必ず 'Wait（待機）' と判断せよ。\n"
+                "3. 勝率予測 (Probability of Success) を数値化せよ。\n"
+                "4. 最悪のシナリオを明確にし、その防衛策（損切り基準）を定義せよ。"
+            ),
+            expected_output='高度なリスク評価、期待純利益、成功指標を含む、CSOグレードの戦略ドキュメント。',
+            agent=cso,
+            output_json=PlanningPayload
+        )
+
+        crew = Crew(agents=[cso], tasks=[task], verbose=True)
+        result = crew.kickoff()
+        return CrewResult.from_crew_output(result)

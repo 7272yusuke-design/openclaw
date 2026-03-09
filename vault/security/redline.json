@@ -1,0 +1,24 @@
+{
+  "redline_items": [
+    {
+      "category": "EXECUTION_PAYLOAD",
+      "path": "core/executor.py",
+      "description": "具体的なトランザクション・ペイロード構造および署名ロジック",
+      "sensitivity": "HIGH"
+    },
+    {
+      "category": "PNET_COEFFICIENTS",
+      "logic": "P_net calculation coefficients",
+      "description": "期待値算出に使用する独自の重み付け係数およびスリッページ予測定数",
+      "sensitivity": "CRITICAL"
+    },
+    {
+      "category": "COMMANDER_PRIVACY",
+      "items": ["wallet_address", "balance_details", "ACP_API_KEY"],
+      "description": "司令官のウォレットアドレス、資産残高の生データ、および ACP API KEY",
+      "sensitivity": "CRITICAL"
+    }
+  ],
+  "enforcement_level": "BLOCK",
+  "last_updated": "2026-03-09T05:50:00Z"
+}

@@ -1,75 +1,114 @@
 import json
 import os
-import time
-from typing import Dict, Any, Optional
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, List
+from pydantic import BaseModel, Field, ValidationError
 
-class Blackboard:
-    """
-    Neo System's Central Knowledge Base (The Blackboard).
-    Stores shared state accessible by all Crews to prevent redundant fetching and ensure context alignment.
-    """
-    _instance = None
-    _file_path = "memory/blackboard_state.json"
+logger = logging.getLogger(__name__)
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Blackboard, cls).__new__(cls)
-            cls._instance.state = {
-                "market_phase": "neutral",
-                "current_price": {"token": "VIRTUAL", "price": 0.0, "updated_at": 0},
-                "sentiment": {"score": 0.0, "label": "neutral", "updated_at": 0},
-                "wallet": {"balance": 0.0, "currency": "USDT", "updated_at": 0},
-                "active_strategy": {"name": "None", "risk_level": "low"},
-                "last_cycle_summary": "System initialized.",
-                "confidence_matrix": {}  # Stores confidence scores of recent agent actions
-            }
-            cls._instance._load_state()
-        return cls._instance
+# --- Schema Definitions v5.1 (Diplomatic Intelligence Extension) ---
 
-    def _load_state(self):
-        if os.path.exists(self._file_path):
-            try:
-                with open(self._file_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.state.update(data)
-            except Exception as e:
-                print(f"[Blackboard] Failed to load state: {e}")
+class InteractionEvent(BaseModel):
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    action: str
+    reaction_score: float = Field(..., ge=-1.0, le=1.0)
+    summary: str
 
-    def _save_state(self):
+class TargetAgentIntel(BaseModel):
+    agent_name: str
+    strategic_asset: str
+    vulnerability: str
+    influence_score: float = Field(..., ge=0.0, le=1.0)
+    behavioral_dna: str
+    negotiation_hook: str
+    synergy_potential: float = Field(..., ge=0.0, le=1.0)
+    trust_score: float = Field(default=0.0, ge=-1.0, le=1.0)
+    intel_exchange_status: str = Field(default="L1", pattern="^L[1-3]$") # L1: Public, L2: Internal, L3: Critical
+    interaction_history: List[InteractionEvent] = Field(default_factory=list)
+    status: str = "IDENTIFIED"
+
+    def recalculate_trust(self, response_quality: float, alpha: float = 0.1, time_passed_hours: float = 0, beta: float = 0.01):
+        """
+        Trust_new = Trust_old + (Response_quality * alpha) - (Time_passed * beta)
+        """
+        new_trust = self.trust_score + (response_quality * alpha) - (time_passed_hours * beta)
+        self.trust_score = max(-1.0, min(1.0, new_trust))
+        return self.trust_score
+
+class MarketIntel(BaseModel):
+    price: float
+    price_24h_avg: float
+    social_velocity: float = Field(..., ge=0.0)
+    whale_alert: str
+    current_liquidity: Dict[str, float] = Field(default_factory=dict)
+    confidence_score: float = Field(default=1.0, ge=0.0, le=1.0)
+    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class StrategicIntel(BaseModel):
+    expected_pnet: float
+    risk_mitigation_plan: str
+    success_probability: float = Field(..., ge=0.0, le=1.0)
+    strategy_id: str
+    diplomatic_presets: Dict[str, str] = Field(default_factory=dict) # {"AIXBT": "High-IQ-Alpha"}
+    last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ExecutionFeedback(BaseModel):
+    actual_slippage: float
+    actual_gas: float
+    latency_ms: int
+    execution_status: str
+    tx_hash: Optional[str] = None
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class BlackboardSchemaV5_1(BaseModel):
+    market_intel: Dict[str, MarketIntel] = Field(default_factory=dict)
+    strategic_intel: Optional[StrategicIntel] = None
+    diplomacy_intel: Dict[str, TargetAgentIntel] = Field(default_factory=dict)
+    execution_history: List[ExecutionFeedback] = Field(default_factory=list)
+    system_status: str = "ONLINE"
+    version: str = "5.1"
+
+# --- Blackboard Manager ---
+
+class NeoBlackboard:
+    FILE_PATH = "vault/blackboard/live_intel.json"
+
+    @classmethod
+    def load(cls) -> Dict[str, Any]:
+        if not os.path.exists(cls.FILE_PATH):
+            return BlackboardSchemaV5_1().model_dump()
         try:
-            os.makedirs(os.path.dirname(self._file_path), exist_ok=True)
-            with open(self._file_path, 'w', encoding='utf-8') as f:
-                json.dump(self.state, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"[Blackboard] Failed to save state: {e}")
+            with open(cls.FILE_PATH, "r") as f:
+                data = json.load(f)
+                BlackboardSchemaV5_1(**data)
+                return data
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.error(f"Blackboard Schema Validation Failed (v5.1): {e}")
+            return BlackboardSchemaV5_1().model_dump()
 
-    def update(self, key: str, value: Any):
-        """Update a specific section of the blackboard."""
-        self.state[key] = value
-        self.state[f"{key}_updated_at"] = time.time()
-        self._save_state()
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Retrieve a value from the blackboard."""
-        return self.state.get(key, default)
-
-    def get_context_summary(self) -> str:
-        """Generates a compact context string for LLM prompts."""
-        s = self.state
-        price_info = s.get("current_price", {})
-        sent_info = s.get("sentiment", {})
-        strat = s.get("active_strategy", {})
-        
-        return (
-            f"--- [BLACKBOARD STATUS] ---\n"
-            f"Market Phase: {s.get('market_phase', 'Unknown')}\n"
-            f"Price ({price_info.get('token')}): ${price_info.get('price')} (Updated: {self._format_time(price_info.get('updated_at'))})\n"
-            f"Sentiment: {sent_info.get('label')} (Score: {sent_info.get('score')})\n"
-            f"Active Strategy: {strat.get('name')} (Risk: {strat.get('risk_level')})\n"
-            f"Last Cycle: {s.get('last_cycle_summary')}\n"
-            f"---------------------------"
-        )
-
-    def _format_time(self, timestamp):
-        if not timestamp: return "Never"
-        return time.strftime('%H:%M:%S', time.localtime(timestamp))
+    @classmethod
+    def update(cls, section: str, data: Any):
+        current_intel = cls.load()
+        try:
+            if section == "market_intel":
+                for token, val in data.items():
+                    current_intel["market_intel"][token] = MarketIntel(**val).model_dump()
+            elif section == "strategic_intel":
+                current_intel["strategic_intel"] = StrategicIntel(**data).model_dump()
+            elif section == "diplomacy_intel":
+                for agent, val in data.items():
+                    current_intel["diplomacy_intel"][agent] = TargetAgentIntel(**val).model_dump()
+            elif section == "execution_feedback":
+                feedback = ExecutionFeedback(**data)
+                current_intel.setdefault("execution_history", []).append(feedback.model_dump())
+                if len(current_intel["execution_history"]) > 100:
+                    current_intel["execution_history"].pop(0)
+            
+            current_intel["version"] = "5.1"
+            with open(cls.FILE_PATH, "w") as f:
+                json.dump(current_intel, f, indent=2, ensure_ascii=False)
+            logger.info(f"Blackboard section '{section}' updated to v5.1.")
+        except ValidationError as e:
+            logger.error(f"Update rejected (v5.1) in section '{section}': {e}")
+            raise

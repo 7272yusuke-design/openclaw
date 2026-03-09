@@ -1,2 +1,79 @@
-from crewai import Agent, Task, Crew\nfrom crewai.tools import BaseTool\nfrom datetime import datetime, timezone\nimport json\nimport os\nfrom core.base_crew import NeoBaseCrew\nfrom core.config import NeoConfig\nfrom bridge.crewai_bridge import CrewResult\nfrom tools.crypto_data import CryptoMarketData\n\nclass ScoutCrew(NeoBaseCrew):\n    def __init__(self):\n        super().__init__(name=\"EcosystemScout\")\n\n    def run(self, goal: str, context: str, constraints: str, query: str = None, web_search_tool: callable = None):\n        # ツール定義\n        tools = []\n        \n        # Web検索ツール (提供されている場合のみ)\n        if web_search_tool:\n            class WebSearchTool(BaseTool):\n                name: str = \"Web Search Tool\"\n                description: str = \"Useful for searching the internet to find current trends and news.\"\n                def _run(self, search_query: str) -> str:\n                    try:\n                        results = web_search_tool(search_query)\n                        if not results: return \"No results found.\"\n                        formatted = \"\"\n                        for res in results:\n                            formatted += f\"Title: {res.get(\'title\', \'N/A\')}\\nSnippet: {res.get(\'snippet\', \'N/A\')}\\nURL: {res.get(\'url\', \'N/A\')}\\n\\n\"\n                        return formatted\n                    except Exception as e:\n                        return f\"Search failed: {str(e)}\"\n            tools.append(WebSearchTool())\n\n        # 暗号資産データツール (メイン武器: データをAIが読みやすい形式に要約する)\n        class CryptoTool(BaseTool):\n            name: str = \"Crypto Market Data Tool\"\n            description: str = \"Useful for getting real-time crypto prices, trending coins, and top coins. Actions: \'price <symbol>\', \'trending\', \'top\'.\"\n            \n            def _run(self, action_query: str) -> str:\n                try:\n                    parts = action_query.split()\n                    action = parts[0].lower()\n                    \n                    if action == \"price\":\n                        coin_ids = parts[1:] if len(parts) > 1 else [\"virtuals-protocol\"]\n                        raw = CryptoMarketData.get_price(coin_ids)\n                        # AIが読みやすいように要約\n                        summary = \"\"\n                        for coin, data in raw.items():\n                            usd = data.get(\"usd\", \"N/A\")\n                            change = data.get(\"usd_24h_change\", 0)\n                            summary += f\"- {coin.upper()}: ${usd} ({change:+.2f}% 24h)\\n\"\n                        return summary if summary else \"No price data found.\"\n                        \n                    elif action == \"trending\":\n                        raw = CryptoMarketData.get_trending()\n                        # トレンド上位5件の情報を抽出\n                        coins = raw.get(\"coins\", [])[:5]\n                        summary = \"### Trending Coins (Top 5)\\n\"\n                        for c in coins:\n                            item = c.get(\"item\", { })\n                            summary += f\"- {item.get(\'name\')} ({item.get(\'symbol\')}): Price BTC: {item.get(\'price_btc\', \'N/A\')}, Rank: {item.get(\'score\', \'N/A\')}\\n\"\n                        return summary if summary else \"No trending data found.\"\n                        \n                    elif action == \"top\":\n                        raw = CryptoMarketData.get_top_coins(limit=10)\n                        summary = \"### Top 10 Coins by Market Cap\\n\"\n                        for c in raw:\n                            summary += f\"- {c.get(\'name\')} ({c.get(\'symbol\').upper()}): Price: ${c.get(\'current_price\')}, Market Cap: ${c.get(\'market_cap\'):,}\\n\"\n                        return summary if summary else \"No top coins data found.\"\n                        \n                    return \"Unknown action.\"\n                except Exception as e:\n                    return f\"Crypto data fetch failed: {str(e)}\"\n        tools.append(CryptoTool())\n\n        scout = Agent(\n            role=\'Ecosystem Scout\',\n            goal=\'Virtuals Protocol内の市場データに基づき、具体的で実行可能なトレンドと機会を特定する\',\n            backstory=\'Crypto Market Data Toolの専門家。取得した生の数値データから市場のパターンを読み解き、論理的な投資機会や戦略的トレンドを抽出します。情報が不十分な場合でも、現状から最善の推論を導き出す責任を持ちます。\',\n            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_EYES), # 修正: get_llm -> get_agent_llm\n            tools=tools,\n            max_iter=NeoConfig.MAX_ITER,\n            allow_delegation=False,\n            verbose=True\n        )\n\n        architect = Agent(\n            role=\'ACP Architect\',\n            goal=\'市場データに基づく機会をACP形式のペイロードに変換する\',\n            backstory=\'分析結果を具体的なオンチェーン戦略（JSON）に変換するエンジニア。\',\n            llm=NeoConfig.get_agent_llm(NeoConfig.MODEL_HANDS), # 修正: get_llm -> get_agent_llm\n            max_iter=NeoConfig.MAX_ITER,\n            allow_delegation=False,\n            verbose=True\n        )\n\n        research_task = Task(\n            description=f\"\"\"\n## Identity\nあなたはVirtuals Protocolエコシステムを専門とするEcosystem Scoutです。\n**Crypto Market Data Tool** を駆使し、市場データを構造化されたインテリジェンスとして報告します。\n\n## Context\n### Rules (厳守)\n1. **Crypto Market Data Toolを必ず使用せよ。**\n2. 取得したデータ（価格、トレンド）に基づき、市場の機会を論理的に抽出せよ。\n3. 出力は、後続のACP Architectが直接処理可能な、極めて具体的で構造化された形式とする。\n\n### Current State\n{context}\n\n## Task\n{goal}\n\n## Process\n1. Crypto Market Data Toolで \'trending\' と \'price virtuals-protocol\' を取得する。\n2. データを解析し、現在の市場フェーズにおける最適な機会（Opportunity）を特定する。\n3. その結果を、詳細にまとめよ。\n\"\"\
-,\n            expected_output=\'市場データに基づき構造化された、最新のトレンド情報と機会のリスト。\',\n            agent=scout\n        )\n\n        acp_task = Task(\n            description=f\'発見された機会に基づき、最も優先度の高いアクションを構造化データとして出力せよ。\',\n            expected_output=\'CrewResult形式のJSON。\',\n            agent=architect,\n            context=[research_task],\n            output_pydantic=CrewResult\n        )\n\n        crew = Crew(\n            agents=[scout, architect],\n            tasks=[research_task, acp_task],\n            **NeoConfig.get_common_crew_params()\n        )\n\n        return self.execute(crew)
+from crewai import Agent, Task, Crew
+from crewai.tools import BaseTool
+from datetime import datetime, timezone
+import json
+import os
+from pydantic import BaseModel, Field
+from core.base_crew import NeoBaseCrew
+from core.config import NeoConfig
+from bridge.crewai_bridge import CrewResult
+from tools.market_data import MarketData
+
+class ScoutPayload(BaseModel):
+    observed_fact: str = Field(..., description="発生した事象（価格、出来高等の定量的事実）")
+    social_velocity: float = Field(..., description="24h平均に対するメンション数の倍率 (Current / 24h Avg)")
+    whale_movement: str = Field(..., description="大口投資家（10k VIRTUAL以上）の動向および供給ショック予測")
+    liquidity_depth: dict = Field(..., description="L(流動性)および価格インパクト係数のリアルタイム値")
+    causal_link: str = Field(..., description="事象の原因特定（Social, Whale, Liquidityの相関推論）")
+    predicted_drift: str = Field(..., description="短期的な価格ドリフトの予測")
+    alert_level: str = Field(..., description="Normal, Warning, Critical")
+
+class ScoutCrew(NeoBaseCrew):
+    def __init__(self):
+        super().__init__(name="EcosystemScout")
+
+    def run(self, goal: str, context: str, constraints: str = "", query: str = None, web_search_tool: callable = None):
+        tools = []
+        
+        if web_search_tool:
+            class WebSearchTool(BaseTool):
+                name: str = "Web Search Tool"
+                description: str = "主任分析官が市場の文脈（ニュース、SNS、Social Velocity）を確認するために使用する。"
+                def _run(self, search_query: str) -> str:
+                    try:
+                        results = web_search_tool(search_query)
+                        return json.dumps(results, ensure_ascii=False)
+                    except Exception as e:
+                        return f"Search error: {str(e)}"
+            tools.append(WebSearchTool())
+
+        class MarketDataTool(BaseTool):
+            name: str = "Market Data Tool"
+            description: str = "リアルタイムの価格、流動性(L)、出来高を取得する。P_net算出の基礎データ。"
+            def _run(self, token_query: str) -> str:
+                return json.dumps(MarketData.fetch_token_data(token_query), ensure_ascii=False)
+        tools.append(MarketDataTool())
+
+        # 主任市場分析官 (Neo-Analyst) - 3D Recon プロトコル
+        analyst = Agent(
+            role='Chief Market Analyst (Neo-Analyst)',
+            goal='「3D Recon（多次元偵察）」プロトコルに従い、事象の背後にある「予兆」と「因果関係」を特定する。',
+            backstory=(
+                'あなたは「3D Recon」プロトコルのエキスパートです。'
+                '単なる価格変動ではなく、Social Velocity（熱量）、Whale Movement（クジラ）、'
+                'Liquidity Depth（流動性深度）の3要素から市場の真実を読み解きます。'
+                '「なぜ起きたか（因果関係）」を特定し、CSOが $P_{net}$ を算出するための生鮮な定数を提供することに執念を燃やします。'
+            ),
+            tools=tools,
+            llm=self.llm,
+            verbose=True
+        )
+
+        task = Task(
+            description=(
+                f"【調査ミッション】: {goal}\n"
+                f"【コンテキスト】: {context}\n\n"
+                "以下の『3D Recon（多次元偵察）プロトコル』を遵守せよ：\n"
+                "1. 【Social Velocity】: SNS上のメンション急増（閾値1.5倍以上）を検知せよ。\n"
+                "2. 【Whale Movement】: 10,000 VIRTUAL以上の大口移動またはCEXからの出金を監視し、供給ショックの可能性を算出せよ。\n"
+                "3. 【Liquidity Depth】: 現在の流動性 L と価格インパクト係数を取得し、CSOの P_net 計算用の定数を提供せよ。\n"
+                "4. 【Reasoning Framework】: 報告は必ず Observed Fact, Causal Link, Predicted Drift の形式で行え。"
+            ),
+            expected_output='Social, Whale, Liquidity の3要素と因果関係を含む多次元分析レポート。',
+            agent=analyst,
+            output_json=ScoutPayload
+        )
+
+        crew = Crew(agents=[analyst], tasks=[task], verbose=True)
+        result = crew.kickoff()
+        return CrewResult.from_crew_output(result)
