@@ -1,0 +1,13 @@
+[
+  {
+    "proposal_id": "PROP-1773045494",
+    "timestamp": "2026-03-09T08:38:14.666535+00:00",
+    "parameter": "Gas Impact Coefficient",
+    "current_value": "1.0x",
+    "proposed_value": "1.1x",
+    "reasoning": "シミュレーションにより期待値と実測値に 5% の乖離（過小評価）を検知したため。",
+    "risk_benefit": "Benefit: P_net の精度向上により、より確実な利益機会を捕捉可能。 Risk: 係数が過大になると、本来利益が出る機会を見送る可能性がある。",
+    "status": "APPROVED",
+    "executed_at": "2026-03-09T08:40:20.426999+00:00"
+  }
+]

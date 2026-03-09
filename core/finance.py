@@ -17,12 +17,16 @@ class NeoFinance:
         amount_out_usd: float,
         gas_cost_usd: float,
         dex_fee_rate: float = 0.003,
-        pool_liquidity_usd: float = 0.0
+        pool_liquidity_usd: float = 0.0,
+        gas_impact_coefficient: float = 1.1  # Approved (2026-03-09)
     ) -> dict:
         """
         純利益 (P_net) の算出
-        P_net = Amount_out_usd - Amount_in_usd - Gas_cost - Fees_dex - Slippage_impact
+        P_net = Amount_out_usd - Amount_in_usd - (Gas_cost * Coefficient) - Fees_dex - Slippage_impact
         """
+        # 0. Gas Cost Adjustment (Strategic Bias)
+        adjusted_gas_cost = gas_cost_usd * gas_impact_coefficient
+
         # 1. DEX手数料 (通常 0.3%)
         dex_fees = amount_out_usd * dex_fee_rate
         
@@ -31,7 +35,7 @@ class NeoFinance:
         slippage_impact_usd = amount_out_usd * slippage_rate
         
         # 3. 純利益の算出
-        net_profit = amount_out_usd - amount_in_usd - gas_cost_usd - dex_fees - slippage_impact_usd
+        net_profit = amount_out_usd - amount_in_usd - adjusted_gas_cost - dex_fees - slippage_impact_usd
         
         return {
             "net_profit_usd": round(net_profit, 4),
@@ -41,6 +45,7 @@ class NeoFinance:
                 "amount_out_usd": round(amount_out_usd, 4),
                 "dex_fees_usd": round(dex_fees, 4),
                 "gas_cost_usd": round(gas_cost_usd, 4),
+                "adjusted_gas_cost_usd": round(adjusted_gas_cost, 4),
                 "slippage_impact_usd": round(slippage_impact_usd, 4),
                 "slippage_rate": round(slippage_rate, 6)
             }

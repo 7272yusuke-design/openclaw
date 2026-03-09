@@ -35,6 +35,17 @@ class NeoExecutor:
             }
 
         # 3. 物理実行 (Simulation or Actual)
+        import os
+        if os.environ.get("PAPER_TRADE_MODE") == "TRUE":
+            from core.simulation_executor import SimulationExecutor
+            sim = SimulationExecutor()
+            return sim.execute_virtual_trade(
+                symbol=path[-1],
+                side="BUY",
+                quantity=amount_in_usd,
+                price=current_market_state.get('amount_out_usd', 0) / amount_in_usd if amount_in_usd > 0 else 0
+            )
+
         if dry_run:
             return {
                 "status": "SIMULATED_SUCCESS",
