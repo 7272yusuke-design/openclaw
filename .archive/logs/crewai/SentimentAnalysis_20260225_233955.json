@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_233955",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='現在の市場感情スコアは0.65でややポジティブ。価格上昇、流動性、取引量が主要要因。6時間足での価格調整とSNS上の議論増加が今後の監視ポイント。' virtuals_payload={'market_sentiment_score': 0.65, 'price_increase': '16.76%', 'liquidity': 660000, 'trading_volume': 550000, 'price_adjustment': '-1.99%', 'social_media_discussion': 'increasing'} next_action_suggestion='SNS上の議論を監視し、価格調整の動向を注視する。'"
+}

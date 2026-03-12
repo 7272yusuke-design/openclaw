@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, List
 from pydantic import BaseModel, Field, ValidationError
+from core.memory_db import NeoMemoryDB
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +25,11 @@ class TargetAgentIntel(BaseModel):
     negotiation_hook: str
     synergy_potential: float = Field(..., ge=0.0, le=1.0)
     trust_score: float = Field(default=0.0, ge=-1.0, le=1.0)
-    intel_exchange_status: str = Field(default="L1", pattern="^L[1-3]$") # L1: Public, L2: Internal, L3: Critical
+    intel_exchange_status: str = Field(default="L1", pattern="^L[1-3]$")
     interaction_history: List[InteractionEvent] = Field(default_factory=list)
     status: str = "IDENTIFIED"
 
     def recalculate_trust(self, response_quality: float, alpha: float = 0.1, time_passed_hours: float = 0, beta: float = 0.01):
-        """
-        Trust_new = Trust_old + (Response_quality * alpha) - (Time_passed * beta)
-        """
         new_trust = self.trust_score + (response_quality * alpha) - (time_passed_hours * beta)
         self.trust_score = max(-1.0, min(1.0, new_trust))
         return self.trust_score
@@ -50,7 +48,7 @@ class StrategicIntel(BaseModel):
     risk_mitigation_plan: str
     success_probability: float = Field(..., ge=0.0, le=1.0)
     strategy_id: str
-    diplomatic_presets: Dict[str, str] = Field(default_factory=dict) # {"AIXBT": "High-IQ-Alpha"}
+    diplomatic_presets: Dict[str, str] = Field(default_factory=dict)
     last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ExecutionFeedback(BaseModel):
@@ -73,6 +71,8 @@ class BlackboardSchemaV5_1(BaseModel):
 
 class NeoBlackboard:
     FILE_PATH = "vault/blackboard/live_intel.json"
+    # 長期記憶エンジンをクラス変数として保持
+    _memory = NeoMemoryDB()
 
     @classmethod
     def load(cls) -> Dict[str, Any]:
@@ -91,6 +91,7 @@ class NeoBlackboard:
     def update(cls, section: str, data: Any):
         current_intel = cls.load()
         try:
+            # 既存のロジック (変更なし)
             if section == "market_intel":
                 for token, val in data.items():
                     current_intel["market_intel"][token] = MarketIntel(**val).model_dump()
@@ -106,9 +107,20 @@ class NeoBlackboard:
                     current_intel["execution_history"].pop(0)
             
             current_intel["version"] = "5.1"
+            
+            # 保存
             with open(cls.FILE_PATH, "w") as f:
                 json.dump(current_intel, f, indent=2, ensure_ascii=False)
-            logger.info(f"Blackboard section '{section}' updated to v5.1.")
+            
+            # --- ここから長期記憶への自動同期 ---
+            memory_content = f"Update to {section}: {json.dumps(data, ensure_ascii=False)}"
+            cls._memory.store(
+                content=memory_content,
+                metadata={"section": section, "timestamp": datetime.now(timezone.utc).isoformat()}
+            )
+            # ----------------------------------
+            
+            logger.info(f"Blackboard section '{section}' updated and synced to ChromaDB.")
         except ValidationError as e:
             logger.error(f"Update rejected (v5.1) in section '{section}': {e}")
             raise

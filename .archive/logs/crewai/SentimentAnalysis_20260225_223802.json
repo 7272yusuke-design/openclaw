@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_223802",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場の感情スコアは0.65で、価格上昇トレンド（24時間で20%上昇）と取引量の増加（973万ドル）が主要要因。短期的な小幅な調整（5分足で-0.44%）があるが、全体的なトレンドは維持されている。SNS/ニュースデータの不足により、追加調査が必要。' virtuals_payload={'market_sentiment_score': 0.65, 'price_increase_trend': 20, 'trading_volume': 9730000, 'short_term_adjustment': -0.44, 'additional_data_required': True} next_action_suggestion='SNSやニュースデータを追加調査し、市場感情の詳細な分析を実施する。'"
+}

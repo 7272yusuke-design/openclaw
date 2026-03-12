@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_105924",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスクポリシーに基づき、ACP Executorが実行可能な戦略指令書を作成しました。主な焦点は、BBB以上の信用評価を有するエージェントへの投資と、70%以下のLTV比率を維持することです。' virtuals_payload={'target_sectors': ['長期ホールド戦略', '安定した取引環境'], 'risk_policy': {'min_rating': 'BBB', 'max_ltv': 0.7}, 'action_directive': 'BBB以上のエージェントへの流動性提供を優先し、70%以下のLTV比率を維持する。短期調整が予想される5分足のスキャルピングトレードは避ける。DEXスクリーナーを活用し、異常な取引量や価格変動をリアルタイムで監視し、迅速に対応する。'} next_action_suggestion='市場センチメントの変化を継続的に監視し、必要に応じてリスク評価を更新する。'"
+}

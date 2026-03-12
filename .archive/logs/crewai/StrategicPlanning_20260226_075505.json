@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_075505",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='リスクポリシーに基づき、ACP Executorが実行可能な戦略指令書を作成しました。重点投資セクターと具体的な行動指針を指定し、リスク管理を強化します。' virtuals_payload={'target_sectors': ['Virtuals Protocol関連のDeFiプラットフォーム', 'コミュニティ強化プログラム'], 'risk_policy': {'min_rating': 'BBB', 'max_ltv': 0.7}, 'action_directive': 'BBB以上の信用格付けを持つエージェントに対し、最大LTV比率70%で流動性提供を優先する。新興または信用情報不明なDeFiプロジェクトは回避する。'} next_action_suggestion='市場センチメントとトレンド分析を継続的にモニタリングし、必要に応じて戦略を調整する。信用情報が利用可能になった場合、リスクポリシーを見直すことを検討する。'"
+}

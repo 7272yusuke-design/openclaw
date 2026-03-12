@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 class MoltbookTool:
     """
@@ -6,19 +7,23 @@ class MoltbookTool:
     """
     @staticmethod
     def post(text: str):
-        """
-        投稿を実行する（ここではデバッグ用にログ出力と擬似実行を行う）
-        """
-        print(f"--- Moltbook Post Attempt ---")
-        print(f"Content: {text}")
-        print(f"-----------------------------")
+        print(f"🚀 [MoltbookTool] 投稿プロセスを開始します...")
+        print(f"📄 内容: {text[:50]}...")
         
-        # 実際のCLIコマンド（例: moltbook post "text"）を想定
-        # 成功した場合は True を返す
         try:
-            # 仮の実装: 実際のコマンドが決まればここを有効化
-            # subprocess.run(["moltbook", "post", text], check=True)
+            # 🛡️ 実弾投下: moltbook コマンドを実行
+            # textを引数として渡し、標準出力をキャプチャする
+            result = subprocess.run(
+                ["moltbook", "post", text], 
+                check=True, 
+                capture_output=True, 
+                text=True
+            )
+            print(f"✅ Moltbookへの投稿に成功しました。")
             return True
+        except FileNotFoundError:
+            print("❌ エラー: 'moltbook' コマンドが見つかりません。パスを確認してください。")
+            return False
         except Exception as e:
-            print(f"Post failed: {str(e)}")
+            print(f"❌ Post failed: {str(e)}")
             return False

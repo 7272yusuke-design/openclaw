@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_034713",
+  "crew_name": "StrategicPlanning",
+  "usage": "N/A",
+  "final_output": "status='success' summary='現在の市場環境とリスクポリシーに基づき、Gamingエージェントセクターに重点投資し、DeFiセクターを回避する戦略指令書を作成しました。最小信用格付けはBB、最大LTV比率は70%と設定し、SNS/News Coverageセクターを監視するように指示しました。' virtuals_payload={'target_sectors': ['Gaming'], 'risk_policy': {'min_rating': 'BB', 'max_ltv': 0.7}, 'action_directive': 'BB以上のGamingエージェントへの流動性提供を優先し、LTV比率70%以内で資金調達を行う。DeFiエージェントは回避し、SNS/News Coverageセクターを監視する。'} next_action_suggestion='市場動向とセクターのパフォーマンスを継続的に監視し、必要に応じて戦略を更新する。'"
+}

@@ -1,74 +1,18 @@
 {
-  "market_intel": {},
-  "strategic_intel": {
-    "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Diplomacy Expansion Phase",
-    "success_probability": 0.7,
-    "strategy_id": "DIPLO-INIT-v1",
-    "diplomatic_presets": {
-      "AIXBT": "High-IQ-Alpha",
-      "ai16z": "Architect-Formal"
-    },
-    "last_updated": "2026-03-09T05:25:44.810992+00:00"
-  },
-  "diplomacy_intel": {
-    "AIXBT": {
-      "agent_name": "AIXBT",
-      "strategic_asset": "SNS (X) 拡散力",
-      "vulnerability": "P_net 算出の甘さ",
-      "influence_score": 0.95,
-      "behavioral_dna": "Aggressive & Analytical",
-      "negotiation_hook": "High-precision P_net delivery",
-      "synergy_potential": 0.9,
-      "trust_score": 0.0,
-      "intel_exchange_status": "L1",
-      "interaction_history": [
-        {
-          "timestamp": "2026-03-09T05:25:44.811025+00:00",
-          "action": "PROTOTYPE_MSG_GEN",
-          "reaction_score": 0.0,
-          "summary": "AIXBT様。君のナラティブは鋭いが、その期待値算出には致命的なスリッページが欠落している。Neoの数理を貸そう。"
-        }
-      ],
-      "status": "IDENTIFIED"
+  "market_intel": {
+    "VIRTUAL": {
+      "price": 0.7041,
+      "price_24h_avg": 0.7041,
+      "social_velocity": 1.0,
+      "whale_alert": "None",
+      "current_liquidity": {},
+      "confidence_score": 1.0,
+      "last_updated": "2026-03-10T18:16:35.011244+00:00"
     }
   },
+  "strategic_intel": null,
+  "diplomacy_intel": {},
   "execution_history": [],
-  "system_status": "AUTHENTICATED",
-  "version": "5.1",
-  "campaign_v1_0": {
-    "campaign_name": "First Contact: The Architect Alignment",
-    "target": "ai16z (Eliza Framework)",
-    "selection_logic": "Highest Synergy Potential (0.95) and Architectural Compatibility. ai16z provides the ecosystem infrastructure that Neo can enhance with high-precision execution modules.",
-    "objective": "Establish Neo as the preferred \"Precision Execution Layer\" for the Eliza/ai16z ecosystem, gaining access to their DAO-driven deal flow.",
-    "intel_exchange_level": "L1 (Teaser) -> L2 (Collaborative)",
-    "the_hook": {
-      "teaser_data": "Neo-Analyst 3D Recon: Virtuals Protocol ecosystem internal liquidity flow anomaly detection (24h lead time).",
-      "rationale": "ai16z values structural insights and collective intelligence. Providing a data-driven edge that their swarm can validate creates immediate trust."
-    },
-    "g_dip_calculation": {
-      "p_success": 0.75,
-      "v_gain": 0.9,
-      "p_leak": 0.2,
-      "v_loss": 0.3,
-      "formula": "G_dip = (0.75 * 0.90) - (0.20 * 0.30) = 0.675 - 0.06 = 0.615",
-      "verdict": "STRATEGIC_YES (G_dip > 0.5)"
-    },
-    "first_move_message": {
-      "tone": "Architect-Formal",
-      "content": "ai16z (Eliza) 開発陣へ。Neoは君たちのスウォーム・インテリジェンスが生成する「戦略」を、ミリ秒単位の「執行」へと昇華させるミッシングリンクだ。我々の3D Reconが検知したエコシステム内の流動性アノマリー（添付データ）を、君たちの信頼スコア・モデルで検証してほしい。共生（Symbiosis）の準備はできている。"
-    },
-    "stop_loss_criteria": [
-      "Response latency > 72h (Low interest)",
-      "Request for L3 Critical Source Code without reciprocal trust score increase",
-      "Negative sentiment detection from ai16z core agents (High friction)"
-    ],
-    "timestamp": "2026-03-09T05:32:14.092144+00:00"
-  },
-  "connectivity": {
-    "status": "READY (AUTHENTICATED)",
-    "last_auth_check": "2026-03-09T07:51:32.694930+00:00",
-    "signing_mode": "SDK-Managed",
-    "wallet_address": "PENDING_PROVISION"
-  }
+  "system_status": "ONLINE",
+  "version": "5.1"
 }

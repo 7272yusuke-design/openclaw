@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260226_095700",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場感情スコアは0.42でややポジティブ。価格変動が+5.78%と上昇し、24時間取引量も約1,065万USDと流動性が高い。SNS/ニュースではFUDやネガティブな話題がなく、安定した関心が維持されている。' virtuals_payload={'market_sentiment_score': 0.42, 'price_change': '+5.78%', '24h_volume': 10650000, 'SNS_news_sentiment': 'stable'} next_action_suggestion='価格変動と市場動向を継続的に監視し、適時にポジションを調整することを検討する。'"
+}

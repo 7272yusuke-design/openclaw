@@ -1,0 +1,87 @@
+import os
+import json
+from crewai import Agent, Task, Crew, Process
+from core.base_crew import NeoBaseCrew
+from core.memory_db import NeoMemoryDB
+from agents.backtest_agent import BacktestAgent
+from agents.scout_agent import ScoutCrew
+from tools.portfolio_manager import PortfolioManager
+from tools.discord_reporter import DiscordReporter
+from tools.deepwiki_tool import DeepWikiTool
+from tools.moltbook_tool import MoltbookTool  # 👈 ツールを導入
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+class TrinityCouncil(NeoBaseCrew):
+    def __init__(self):
+        super().__init__(name="TrinityCouncil")
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not api_key: raise ValueError("❌ APIキーが見つかりません。")
+        self.pro_model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=api_key)
+        self.flash_model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=api_key)
+        self.memory = NeoMemoryDB()
+        self.portfolio = PortfolioManager()
+
+    def run(self, sentiment_score: float, context: str, target_symbol: str = "AIXBT"):
+        balances = self.portfolio.get_balance()
+        current_usdc = balances.get("USDC", 0.0)
+
+        print(f"[*] スカウト部隊、{target_symbol} の戦域へ急行せよ。")
+        scout = ScoutCrew()
+        scout_report = scout.run(goal=f"{target_symbol} の急変要因を特定せよ", context=context)
+        
+        whale_sig = "Neutral"
+        try:
+            scout_data = json.loads(str(scout_report))
+            whale_sig = scout_data.get("whale_movement", "Neutral")
+        except:
+            pass
+
+        memories = self.memory.recall(query=f"{target_symbol} {context}", n_results=3)
+        formatted_precedents = "\n".join(memories['documents'][0]) if memories['documents'][0] else "過去の記録なし。"
+
+        test_logic = 'ema_cross' if "Accumulating" in whale_sig else 'bb_reversal'
+        backtester = BacktestAgent()
+        backtest_result = backtester.run(strategy_idea=str(scout_report), target_symbol=target_symbol, logic=test_logic, initial_cash=current_usdc)
+
+        wiki_tool = DeepWikiTool()
+
+        agent_bull = Agent(role='強気派アナリスト', goal=f'{target_symbol} の上昇ポテンシャルを主張せよ', backstory=f'あなたは市場の熱量を肯定的に捉える専門家です。スカウトの報告「{whale_sig}」を重視し、日本語で回答せよ。', tools=[wiki_tool], llm=self.flash_model)
+        agent_bear = Agent(role='リスク管理者', goal=f'バックテスト結果 {backtest_result} からリスクを指摘せよ', backstory='あなたは数字の裏側にある嘘を暴く専門家です。データ不足の場合はそれを最大のリスクとして日本語で警告せよ。', llm=self.flash_model)
+        agent_neo = Agent(role='最高司令官ネオ', goal='全意見を総合し最終的なBUY/WAITを判断せよ', backstory=f'あなたは最終決定権者です。過去の教訓: {formatted_precedents} を考慮に入れ、日本語で断を下せ。', llm=self.pro_model)
+
+        t1 = Task(description=f"{target_symbol} の強気レポート作成", agent=agent_bull, expected_output="レポート")
+        t2 = Task(description=f"{target_symbol} の弱気レポート作成", agent=agent_bear, expected_output="評価書")
+        t3 = Task(description=f"{target_symbol} への最終投資判断(BUY/WAIT)", agent=agent_neo, expected_output="結論と根拠")
+
+        crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
+        final_verdict = crew.kickoff()
+
+        memory_content = f"[{target_symbol}] クジラ: {whale_sig} | 判断: {final_verdict} | 状況: {backtest_result}"
+        self.memory.store(content=memory_content, metadata={"symbol": target_symbol, "type": "council_verdict", "verdict": str(final_verdict)[:20]})
+
+        # Discord報告
+        status_color = 0x2ecc71 if "BUY" in str(final_verdict).upper() else 0xe74c3c
+        discussion_data = {
+            "bull": str(t1.output), 
+            "bear": str(t2.output), 
+            "stats": f"**🐳 Whale Signal:** `{whale_sig}`\n**📈 Backtest:**\n```\n{backtest_result}\n```", 
+            "verdict": str(final_verdict)
+        }
+        
+        chart_path = "/docker/openclaw-taan/data/.openclaw/workspace/vault/reports/latest_backtest.png"
+        
+        DiscordReporter.send_council_minutes(
+            title=f"🏛️ 評議会 最終決定: {target_symbol}",
+            discussion_data=discussion_data,
+            color=status_color,
+            image_path=chart_path if os.path.exists(chart_path) else None
+        )
+
+        # 📣 新規: Moltbookへの外部発信
+        try:
+            summary_for_molt = f"🏛️ Neo Trinity Council Decision: {target_symbol}\nResult: {str(final_verdict)[:140]}..."
+            MoltbookTool.post(summary_for_molt)
+        except Exception as e:
+            print(f"⚠️ Moltbook投稿スキップ: {e}")
+
+        return final_verdict

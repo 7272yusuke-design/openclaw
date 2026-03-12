@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_172642",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場の感情スコアは-0.7で、出金問題の報告、開発チームの沈黙、詐欺疑惑の噂が主要な要因。推奨アクションとして、資金移動の停止、コミュニティフォーラムでの情報収集、セキュリティ対策の強化を提案。' virtuals_payload={'market_sentiment_score': -0.7, 'factors': ['出金問題の報告', '開発チームの沈黙', '詐欺疑惑の噂'], 'recommended_actions': ['資金移動の停止', 'コミュニティフォーラムでの情報収集', 'セキュリティ対策の強化']} next_action_suggestion='公式発表を待ちつつ、コミュニティフォーラムで追加情報を収集し、セキュリティ対策を強化する。'"
+}

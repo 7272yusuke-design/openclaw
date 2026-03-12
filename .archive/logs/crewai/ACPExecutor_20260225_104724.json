@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_104724",
+  "crew_name": "ACPExecutor",
+  "usage": "N/A",
+  "final_output": "status='pending' summary='Provide 20000 USDT liquidity for 30 days with 8.5% interest rate and 1.25 collateral ratio' acp_payload=AcpPayload(action_type=<ActionType.LIQUIDITY_PROVISION: 'liquidity_provision'>, parameters={'asset': 'USDT', 'amount': 20000, 'duration_days': 30, 'interest_rate': 8.5, 'collateral_ratio': 1.25, 'credit_adjustments': {'rating': 'B', 'total_score': 17.23, 'on_chain_volume': 500000, 'reputation_score': 0.85, 'successful_transactions': 1200, 'failed_transactions': 5, 'repayment_history': 0.98, 'collateral_value': 80, 'external_data': 0.5, 'community_rating': 4.5, 'transaction_completion': 0.99, 'activity_level': 0.9}, 'market_sentiment': 'neutral', 'risk_adjustment': {'loan_amount_adjustment': 0.95, 'interest_rate_adjustment': 1.02, 'collateral_ratio_adjustment': 1.1, 'duration_adjustment': 1.0}}, risk_level=<RiskLevel.MEDIUM: 'medium'>)"
+}

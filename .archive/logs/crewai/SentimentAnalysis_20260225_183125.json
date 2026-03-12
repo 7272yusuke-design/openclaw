@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260225_183125",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='市場データと検索結果を統合分析し、感情スコアと主要要因を算出。客観的事実として市場動向を把握し、主観的感情としてユーザー反応を抽出。ACPアクションに直結するインサイトを特定。' virtuals_payload={'market_sentiment_score': 75, 'key_factors': ['価格変動', '新製品リリース', '競合動向'], 'user_emotion_tags': ['期待', '不安', '興味']} next_action_suggestion='感情スコアが高い要因に焦点を当てたプロモーションキャンペーンを設計し、ACPでテスト実施'"
+}

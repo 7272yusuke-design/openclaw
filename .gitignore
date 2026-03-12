@@ -1,6 +1,14 @@
-# Git ignore for OpenClaw workspace
+neo-env/
+venv/
 .venv/
-nohup.out
-get-pip.py
-logs/
 __pycache__/
+*.py[cod]
+.env
+.env.tmp
+credentials.json
+*.so
+*.dylib
+*.dll
+*.exe
+*.bin
+*.log

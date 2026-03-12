@@ -1,0 +1,6 @@
+{
+  "timestamp": "20260308_101226",
+  "crew_name": "SentimentAnalysis",
+  "usage": "N/A",
+  "final_output": "status='success' summary='AIXBTの強気センチメント（0.8）を背景に、コミュニティの熱量を直接的な成長サイクルへ転換するACP戦略を立案。AIエージェントへの期待を報酬化し、フォロワーの拡散行動を最大化する施策を策定しました。' virtuals_payload={'strategy_id': 'COMMUNITY_GROWTH_AIXBT_V1', 'action_plan': {'focus': 'Community Expansion & Engagement Incentivization', 'steps': [{'step': 1, 'action': 'Viral Awareness Campaign', 'details': 'AIXBTの投資判断精度を証明する成功事例をInfographic化し、コミュニティ主導の引用RTキャンペーンを実施。寄与度の高いユーザーにVirtualsトークン報酬を割り当て。'}, {'step': 2, 'action': 'Community Co-Creation Loop', 'details': '次の解析対象銘柄や機能アップデートに関するガバナンス投票をACP上で開催。参加者のロイヤリティを高め、定着率（Retention）を向上させる。'}, {'step': 3, 'action': 'Ambassador Program Activation', 'details': 'SNS上で高い影響力を持つ上位1%の保有者をアンバサダーに任命。独自の招待リンクやボーナス報酬体系を定義し、新規流入ルートを構築。'}], 'allocation_recommendation': {'incentive_budget': '40%', 'marketing_outreach': '35%', 'product_feedback_rewards': '25%'}}, 'metadata': {'target_token': 'AIXBT', 'sentiment_score': 0.8, 'priority': 'High'}} next_action_suggestion='策定したキャンペーンの具体的な報酬ロジック（スマートコントラクト条件）の定義と、告知用クリエイティブの制作プロセスを開始してください。'"
+}

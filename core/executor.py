@@ -38,12 +38,20 @@ class NeoExecutor:
         import os
         if os.environ.get("PAPER_TRADE_MODE") == "TRUE":
             from core.simulation_executor import SimulationExecutor
+            from tools.validation_monitor import ValidationMonitor
+            
+            # ゴーストフィルタの記録（補正による回避の可視化）
+            monitor = ValidationMonitor()
+            p_net_original = actual_profit_report['net_profit_usd'] # ここでは既に1.1x適用後の可能性が高いが、ロジックとして記録
+            monitor.log_ghost_filter(path[-1], p_net_original + (actual_profit_report['breakdown']['gas_cost_usd'] * 0.1), p_net_original, actual_profit_report['breakdown']['gas_cost_usd'])
+
             sim = SimulationExecutor()
             return sim.execute_virtual_trade(
                 symbol=path[-1],
                 side="BUY",
                 quantity=amount_in_usd,
-                price=current_market_state.get('amount_out_usd', 0) / amount_in_usd if amount_in_usd > 0 else 0
+                price=current_market_state.get('amount_out_usd', 0) / amount_in_usd if amount_in_usd > 0 else 0,
+                expected_pnet=p_net_original
             )
 
         if dry_run:

@@ -1,46 +1,7 @@
----
-summary: "Workspace template for TOOLS.md"
-read_when:
-  - Bootstrapping a workspace manually
----
+# 🛠️ Neo 現役ツール・セット
 
-# TOOLS.md - Local Notes
-
-Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
-
-## What Goes Here
-
-Things like:
-
-- Camera names and locations
-- SSH hosts and aliases
-- Preferred voices for TTS
-- Speaker/room names
-- Device nicknames
-- Anything environment-specific
-
-## Examples
-
-```markdown
-### Cameras
-
-- living-room → Main area, 180° wide angle
-- front-door → Entrance, motion-triggered
-
-### SSH
-
-- home-server → 192.168.1.100, user: admin
-
-### TTS
-
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
-```
-
-## Why Separate?
-
-Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
-
----
-
-Add whatever helps you do your job. This is your cheat sheet.
+- **DiscordReporter**: 評議会議事録およびシステムログの外部送信。
+- **MoltbookTool**: Moltbook CLI を介した自律的な外部発信。
+- **DeepWikiTool**: インターネット上の最新知識（Wikipedia/Web）の検索。
+- **BacktestEngine**: 過去データに基づく EMA/BB/RSI 戦略の検証とチャート生成。
+- **PortfolioManager**: オンチェーン残高の取得と資産状況の把握。
