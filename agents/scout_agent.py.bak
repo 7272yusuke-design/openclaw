@@ -39,48 +39,19 @@ class MarketTool(BaseTool):
     description: str = "価格、指標、クジラ動向、およびクオンツ結果を取得する。"
     def _run(self, query: str) -> str:
         data = MarketData.fetch_token_data(query)
-        
-        # OHLCV DataFrame を取得（実データ）
-        ohlcv_df = MarketData.fetch_ohlcv_custom(query)
-        
-        quant_intel = {"error": "Insufficient data"}
-        indicators = {"status": "pending", "message": "データ不足"}
-        
-        if not ohlcv_df.empty and len(ohlcv_df) >= 20:
-            # テクニカル指標の計算（DataFrameのcloseカラムをリストとして渡す）
-            indicators = NeoIndicators.calculate_freqtrade_vibe(ohlcv_df["close"].tolist())
-            
-            # 特徴量ビルド → バックテスト
-            try:
-                feat_df = FeatureBuilder.build_from_memory(ohlcv_df)
-                portfolio = CoreBacktest.run_alpha_strategy(feat_df)
-                stats = portfolio.stats()
-                total_trades = stats.get('Total Trades', 0)
-                sharpe_raw = stats['Sharpe Ratio']
-                
-                # 最低取引数ガード: 3回未満の取引ではSharpeを信頼しない
-                import math
-                if total_trades < 3 or math.isinf(sharpe_raw) or math.isnan(sharpe_raw):
-                    sharpe_adjusted = 0.0
-                    confidence = "LOW"
-                else:
-                    sharpe_adjusted = round(sharpe_raw, 2)
-                    confidence = "HIGH" if total_trades >= 10 else "MEDIUM"
-                
-                quant_intel = {
-                    "sharpe": sharpe_adjusted,
-                    "sharpe_raw": round(sharpe_raw, 2) if not (math.isinf(sharpe_raw) or math.isnan(sharpe_raw)) else 0.0,
-                    "return": f"{stats['Total Return [%]']:.2f}%",
-                    "max_dd": f"{stats['Max Drawdown [%]']:.2f}%",
-                    "total_trades": total_trades,
-                    "confidence": confidence
-                }
-            except Exception as e:
-                quant_intel = {"error": str(e)}
-                logger.warning(f"Quant analysis failed for {query}: {e}")
-        else:
-            logger.warning(f"OHLCV data insufficient for {query}: {len(ohlcv_df)} rows")
-        
+        history = MarketData.fetch_ohlcv_custom(query)
+        try:
+            feat_df = FeatureBuilder.build_from_memory(history)
+            portfolio = CoreBacktest.run_alpha_strategy(feat_df)
+            stats = portfolio.stats()
+            quant_intel = {
+                "sharpe": round(stats['Sharpe Ratio'], 2),
+                "return": f"{stats['Total Return [%]']:.2f}%",
+                "max_dd": f"{stats['Max Drawdown [%]']:.2f}%"
+            }
+        except Exception as e:
+            quant_intel = {"error": str(e)}
+        indicators = NeoIndicators.calculate_freqtrade_vibe(history)
         return json.dumps({
             "realtime": data,
             "technical": indicators,
@@ -123,8 +94,7 @@ class ScoutCrew(NeoBaseCrew):
                 strat_intel = full_board.get("strategic_intel", {})
                 
                 opportunities = strat_intel.get("active_opportunities", {})
-                # P0修正②: シンボル名の正規化（トレイリングスペース除去）
-                symbol = goal.split('の')[0].strip()
+                symbol = goal.split('の')[0]
                 
                 opportunities[symbol] = {
                     "sharpe": payload.sharpe_ratio,
@@ -132,6 +102,7 @@ class ScoutCrew(NeoBaseCrew):
                     "last_detected": time.strftime("%Y-%m-%dT%H:%M:%S")
                 }
                 
+                # --- 重要：既存の必須項目を維持したまま上書き ---
                 new_strat_data = {
                     "expected_pnet": strat_intel.get("expected_pnet", 0.0),
                     "risk_mitigation_plan": f"Multi-Alpha Scan Active. Latest: {symbol}",

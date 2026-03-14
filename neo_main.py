@@ -29,13 +29,14 @@ class NeoSystem:
             DiscordReporter.send_log("🚀 Neo Cycle Start", f"Topic: {topic}\n分析を開始します...", 0x3498db)
 
             # 1. 市場データ取得
-            market_price_data = MarketData.fetch_token_data("VIRTUAL")
+            market_price_data = MarketData.fetch_token_data(topic.split(' ')[0] if 'ALPHA' in topic else "VIRTUAL")
             price = float(market_price_data.get("priceUsd", 0.0))
             
             # 2-5. 偵察・立案・執行 (既存ロジック)
             scout_context = f"Topic: {topic}, VIRTUAL Price: ${price}"
             scout_result = self.scout_crew.run(goal=f"{topic}の市場分析", context=scout_context)
-            self.blackboard.update("market_intel", market_price_data)
+            intel_data = {"VIRTUAL": {"price": price, "price_24h_avg": price, "social_velocity": 1.0, "whale_alert": "None"}}
+            self.blackboard.update("market_intel", intel_data)
             
             plan_result = self.planning_crew.run(goal="取引戦略立案", context=str(scout_result))
             exec_result = self.acp_executor_crew.run(strategy=str(plan_result), context="Simulation")

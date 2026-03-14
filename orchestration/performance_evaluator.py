@@ -1,0 +1,75 @@
+import json
+import re
+import sys
+import os
+from pathlib import Path
+from datetime import datetime
+
+# パス設定の追加
+BASE_DIR = Path("/docker/openclaw-taan/data/.openclaw/workspace")
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
+
+from tools.market_data import MarketData
+from core.blackboard import NeoBlackboard
+
+def evaluate_performance():
+    print("📊 [Evaluator] Neo's Verdict Review starting...")
+    log_path = BASE_DIR / "paper_trade.log"
+    
+    if not log_path.exists():
+        print("⚠️ Log file not found.")
+        return
+
+    try:
+        with open(log_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception as e:
+        print(f"⚠️ Error reading log: {e}")
+        return
+
+    performance_results = []
+    win_count = 0
+    total_trades = 0
+
+    for line in lines:
+        match = re.search(r"\[(.*?)\] (.*?): \$(.*?) \| Action: (.*?) \|", line)
+        if match:
+            timestamp, symbol, entry_price, action = match.groups()
+            entry_price = float(entry_price)
+
+            if "BUY" in action.upper():
+                total_trades += 1
+                # スラッシュ以降（/USDTなど）を除去して価格取得
+                clean_symbol = symbol.split('/')[0].strip()
+                current_data = MarketData.fetch_token_data(clean_symbol)
+                
+                if current_data and current_data.get("status") == "success":
+                    current_price = float(current_data.get("priceUsd", 0.0))
+                    pnl_pct = ((current_price - entry_price) / entry_price) * 100
+                    
+                    if pnl_pct > 0:
+                        win_count += 1
+                    
+                    performance_results.append({
+                        "symbol": symbol,
+                        "entry": entry_price,
+                        "current": current_price,
+                        "pnl_pct": round(pnl_pct, 2)
+                    })
+
+    accuracy = (win_count / total_trades * 100) if total_trades > 0 else 0
+    
+    # P1修正: performance_summary セクションに書き込み
+    board_data = {
+        "accuracy_score": round(accuracy, 2),
+        "total_evaluated_trades": total_trades,
+        "recent_performance": performance_results[-5:],
+        "last_evaluated": datetime.now().isoformat()
+    }
+    
+    NeoBlackboard.update("performance_summary", board_data)
+    print(f"✅ Performance Sync Complete: Accuracy {accuracy:.2f}% ({total_trades} trades)")
+
+if __name__ == "__main__":
+    evaluate_performance()

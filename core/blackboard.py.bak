@@ -42,6 +42,7 @@ class StrategicIntel(BaseModel):
     success_probability: float = Field(default=0.0, ge=0.0, le=1.0)
     strategy_id: str = ""
     diplomatic_presets: Dict[str, str] = Field(default_factory=dict)
+    # 🆕 追加：マルチ銘柄保持用のフィールド（デフォルト値を設定してエラーを回避）
     active_opportunities: Dict[str, Any] = Field(default_factory=dict)
     opportunity_count: int = 0
     last_updated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -54,21 +55,13 @@ class ExecutionFeedback(BaseModel):
     tx_hash: Optional[str] = None
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-class PerformanceSummary(BaseModel):
-    """P1修正: 勝率・パフォーマンス情報を保持する専用モデル"""
-    accuracy_score: float = 0.0
-    total_evaluated_trades: int = 0
-    recent_performance: List[Dict[str, Any]] = Field(default_factory=list)
-    last_evaluated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-class BlackboardSchemaV5_2(BaseModel):
+class BlackboardSchemaV5_1(BaseModel):
     market_intel: Dict[str, MarketIntel] = Field(default_factory=dict)
     strategic_intel: Optional[StrategicIntel] = None
     diplomacy_intel: Dict[str, TargetAgentIntel] = Field(default_factory=dict)
     execution_history: List[ExecutionFeedback] = Field(default_factory=list)
-    performance_summary: Optional[PerformanceSummary] = Field(default_factory=PerformanceSummary)
     system_status: str = "ONLINE"
-    version: str = "5.2"
+    version: str = "5.1"
 
 class NeoBlackboard:
     FILE_PATH = "vault/blackboard/live_intel.json"
@@ -87,17 +80,12 @@ class NeoBlackboard:
     @classmethod
     def load(cls) -> Dict[str, Any]:
         if not os.path.exists(cls.FILE_PATH):
-            return BlackboardSchemaV5_2().model_dump()
+            return BlackboardSchemaV5_1().model_dump()
         try:
             with open(cls.FILE_PATH, "r") as f:
-                data = json.load(f)
-            # v5.1 → v5.2 マイグレーション: performance_summary が無ければ追加
-            if "performance_summary" not in data:
-                data["performance_summary"] = PerformanceSummary().model_dump()
-                data["version"] = "5.2"
-            return data
+                return json.load(f)
         except Exception:
-            return BlackboardSchemaV5_2().model_dump()
+            return BlackboardSchemaV5_1().model_dump()
 
     @classmethod
     def update(cls, section: str, data: Any):
@@ -110,26 +98,21 @@ class NeoBlackboard:
                     if val_dict:
                         current_intel["market_intel"][token] = MarketIntel(**val_dict).model_dump()
             elif section == "strategic_intel":
+                # ここで StrategicIntel モデルが active_opportunities を許容するようになります
                 current_intel["strategic_intel"] = StrategicIntel(**data).model_dump()
             elif section == "diplomacy_intel":
                 for agent, val in data.items():
                     val_dict = cls._ensure_dict(val)
                     if val_dict:
                         current_intel["diplomacy_intel"][agent] = TargetAgentIntel(**val_dict).model_dump()
-            elif section == "performance_summary":
-                current_intel["performance_summary"] = PerformanceSummary(**data).model_dump()
             
             with open(cls.FILE_PATH, "w") as f:
                 json.dump(current_intel, f, indent=2, ensure_ascii=False)
             
-            # ChromaDB書き込み: council_verdict と permanent_record のみ
-            # Alpha Sweep (strategic_intel) は Blackboard のみで DB には書かない（ノイズ防止）
-            _db_allowed_sections = {"execution_history", "performance_summary"}
-            if section in _db_allowed_sections:
-                cls._memory.store(
-                    content=f"Update to {section}: {json.dumps(data)}",
-                    metadata={"section": section, "timestamp": datetime.now(timezone.utc).isoformat()}
-                )
+            cls._memory.store(
+                content=f"Update to {section}: {json.dumps(data)}",
+                metadata={"section": section, "timestamp": datetime.now(timezone.utc).isoformat()}
+            )
             logger.info(f"Blackboard updated and synced: {section}")
         except Exception as e:
             logger.error(f"Update Failed: {e}")

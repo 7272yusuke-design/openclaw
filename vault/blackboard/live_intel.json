@@ -10,9 +10,24 @@
       "last_updated": "2026-03-10T18:16:35.011244+00:00"
     }
   },
-  "strategic_intel": null,
+  "strategic_intel": {
+    "expected_pnet": 0.0,
+    "risk_mitigation_plan": "TEST: This should NOT appear in ChromaDB",
+    "success_probability": 0.5,
+    "strategy_id": "TEST_ANTI_NOISE",
+    "diplomatic_presets": {},
+    "active_opportunities": {},
+    "opportunity_count": 0,
+    "last_updated": "2026-03-14T04:03:13.120014+00:00"
+  },
   "diplomacy_intel": {},
   "execution_history": [],
   "system_status": "ONLINE",
-  "version": "5.1"
+  "version": "5.2",
+  "performance_summary": {
+    "accuracy_score": 0.0,
+    "total_evaluated_trades": 0,
+    "recent_performance": [],
+    "last_evaluated": "2026-03-14T03:17:33.309397"
+  }
 }

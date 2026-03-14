@@ -55,25 +55,10 @@ class MarketTool(BaseTool):
                 feat_df = FeatureBuilder.build_from_memory(ohlcv_df)
                 portfolio = CoreBacktest.run_alpha_strategy(feat_df)
                 stats = portfolio.stats()
-                total_trades = stats.get('Total Trades', 0)
-                sharpe_raw = stats['Sharpe Ratio']
-                
-                # 最低取引数ガード: 3回未満の取引ではSharpeを信頼しない
-                import math
-                if total_trades < 3 or math.isinf(sharpe_raw) or math.isnan(sharpe_raw):
-                    sharpe_adjusted = 0.0
-                    confidence = "LOW"
-                else:
-                    sharpe_adjusted = round(sharpe_raw, 2)
-                    confidence = "HIGH" if total_trades >= 10 else "MEDIUM"
-                
                 quant_intel = {
-                    "sharpe": sharpe_adjusted,
-                    "sharpe_raw": round(sharpe_raw, 2) if not (math.isinf(sharpe_raw) or math.isnan(sharpe_raw)) else 0.0,
+                    "sharpe": round(stats['Sharpe Ratio'], 2),
                     "return": f"{stats['Total Return [%]']:.2f}%",
-                    "max_dd": f"{stats['Max Drawdown [%]']:.2f}%",
-                    "total_trades": total_trades,
-                    "confidence": confidence
+                    "max_dd": f"{stats['Max Drawdown [%]']:.2f}%"
                 }
             except Exception as e:
                 quant_intel = {"error": str(e)}

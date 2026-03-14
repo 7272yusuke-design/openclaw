@@ -1,33 +1,105 @@
+"""
+DiscordReporter v2 — 取引結果フィールド追加、フィールド長制御
+"""
 import requests
 import json
 import os
+import logging
+
+logger = logging.getLogger("neo.discord")
 
 class DiscordReporter:
-    # 既存のWebhook
     REPORT_WEBHOOK = "https://discord.com/api/webhooks/1479009905280028724/cX7C6pOTilIA4HeBzMwWOG_AhKMOcDH9KKU9_r955U0yr5z4hTsPRB0ISFfxjp3Otj64"
     LOG_WEBHOOK = "https://discord.com/api/webhooks/1478693375090622559/f0AwGgXAWkyGWOZVk5LLI9A1MKYQBvzmdSGoc3crPNMZ2mCaJEe-JIbF9ATuAsQp8Ioe"
 
     @classmethod
     def send_council_minutes(cls, title, discussion_data, color=0x3498db, image_path=None):
+        """協議会レポート — 強気/弱気/統計/判定/取引結果の5フィールド"""
+        
+        fields = [
+            {"name": "🐂 Bullish Opinion", "value": cls._truncate(discussion_data.get('bull', 'N/A'), 1024), "inline": False},
+            {"name": "🐻 Bearish Opinion", "value": cls._truncate(discussion_data.get('bear', 'N/A'), 1024), "inline": False},
+            {"name": "📊 Analysis & Backtest", "value": cls._truncate(discussion_data.get('stats', 'N/A'), 1024), "inline": False},
+            {"name": "🤖 Neo's Verdict", "value": cls._truncate(discussion_data.get('verdict', 'Pending'), 1024), "inline": False},
+        ]
+        
+        # 取引結果フィールド（存在する場合のみ追加）
+        trade_info = discussion_data.get('trade')
+        if trade_info:
+            fields.append({
+                "name": "💰 Trade Execution",
+                "value": cls._truncate(trade_info, 1024),
+                "inline": False
+            })
+        
         embed = {
-            "title": title,
+            "title": title[:256],
             "color": color,
-            "fields": [
-                {"name": "🐂 Bullish Opinion", "value": discussion_data.get('bull', 'N/A')[:1024], "inline": False},
-                {"name": "🐻 Bearish Opinion", "value": discussion_data.get('bear', 'N/A')[:1024], "inline": False},
-                {"name": "📊 Simulation Stats", "value": discussion_data.get('stats', 'N/A')[:1024], "inline": False},
-                {"name": "🤖 Neo's Verdict", "value": discussion_data.get('verdict', 'Final Decision Pending')[:1024], "inline": False},
-            ],
-            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')}"}
+            "fields": fields,
+            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v2"},
+            "timestamp": None  # Discordが自動でタイムスタンプを付与
         }
         
-        # 🛠️ 画像がある場合、Embedの中で展開させるための記述を追加
         if image_path and os.path.exists(image_path):
             filename = os.path.basename(image_path)
             embed["image"] = {"url": f"attachment://{filename}"}
         
         payload = {"embeds": [embed]}
-        return cls._post(cls.REPORT_WEBHOOK, payload, image_path)
+        
+        # Embed合計長チェック (Discord制限: 6000文字)
+        total_len = sum(len(f.get("value", "")) + len(f.get("name", "")) for f in fields) + len(title)
+        if total_len > 5800:
+            logger.warning(f"Embed total length {total_len} near limit. Truncating fields.")
+            for field in fields:
+                if len(field["value"]) > 600:
+                    field["value"] = field["value"][:597] + "..."
+        
+        success = cls._post(cls.REPORT_WEBHOOK, payload, image_path)
+        if success:
+            logger.info(f"✅ Council minutes sent: {title}")
+        return success
+
+    @classmethod
+    def send_trade_alert(cls, symbol, action, amount_usd, price, status, balance_after):
+        """取引実行の即時アラート（ログチャンネル）"""
+        color_map = {"BUY": 0x2ecc71, "SELL": 0xe74c3c, "WAIT": 0x95a5a6}
+        emoji_map = {"BUY": "🟢", "SELL": "🔴", "WAIT": "⏸️"}
+        
+        embed = {
+            "title": f"{emoji_map.get(action, '❓')} Trade Alert: {action} {symbol}",
+            "color": color_map.get(action, 0x3498db),
+            "fields": [
+                {"name": "Action", "value": action, "inline": True},
+                {"name": "Amount", "value": f"${amount_usd:.2f}", "inline": True},
+                {"name": "Price", "value": f"${price:.6f}", "inline": True},
+                {"name": "Status", "value": status, "inline": True},
+                {"name": "Balance After", "value": f"${balance_after:.2f} USDC", "inline": True},
+            ],
+            "footer": {"text": "Neo Paper Trading v2"}
+        }
+        
+        payload = {"embeds": [embed]}
+        return cls._post(cls.LOG_WEBHOOK, payload)
+
+    @classmethod
+    def send_log(cls, title, message, color=0x3498db):
+        """汎用ログメッセージ"""
+        payload = {
+            "embeds": [{
+                "title": title[:256],
+                "description": cls._truncate(message, 4096),
+                "color": color
+            }]
+        }
+        return cls._post(cls.LOG_WEBHOOK, payload)
+
+    @classmethod
+    def _truncate(cls, text, max_len):
+        """安全なテキスト切り詰め"""
+        text = str(text) if text else "N/A"
+        if len(text) > max_len:
+            return text[:max_len - 3] + "..."
+        return text
 
     @classmethod
     def _post(cls, url, payload, image_path=None):
@@ -35,24 +107,16 @@ class DiscordReporter:
             if image_path and os.path.exists(image_path):
                 with open(image_path, 'rb') as f:
                     filename = os.path.basename(image_path)
-                    files = {f'file': (filename, f, 'image/png')}
+                    files = {'file': (filename, f, 'image/png')}
                     response = requests.post(url, data={'payload_json': json.dumps(payload)}, files=files, timeout=15)
             else:
                 response = requests.post(url, json=payload, timeout=10)
             
-            response.raise_for_status()
-            return True
+            if response.status_code in (200, 204):
+                return True
+            else:
+                logger.error(f"Discord HTTP {response.status_code}: {response.text[:200]}")
+                return False
         except Exception as e:
-            print(f"❌ Discord送信失敗: {e}")
+            logger.error(f"❌ Discord送信失敗: {e}")
             return False
-
-    @classmethod
-    def send_log(cls, title, message, color=0x3498db):
-        payload = {
-            "embeds": [{
-                "title": title,
-                "description": message,
-                "color": color
-            }]
-        }
-        return cls._post(cls.LOG_WEBHOOK, payload)

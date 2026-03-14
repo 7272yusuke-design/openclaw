@@ -27,9 +27,11 @@ class TrinityCouncil(NeoBaseCrew):
         balances = self.portfolio.get_balance()
         current_usdc = balances.get("USDC", 0.0)
         
+        # P1修正: performance_summary から accuracy を読み取る
         board = NeoBlackboard.load()
-        exec_history = board.get("execution_history", {})
-        accuracy = exec_history.get("accuracy_score", 0.0)
+        perf_summary = board.get("performance_summary", {})
+        accuracy = perf_summary.get("accuracy_score", 0.0)
+        total_trades = perf_summary.get("total_evaluated_trades", 0)
 
         print(f"[*] スカウト部隊、{target_symbol} の戦域へ急行せよ。")
         scout = ScoutCrew()
@@ -51,10 +53,16 @@ class TrinityCouncil(NeoBaseCrew):
 
         wiki_tool = DeepWikiTool()
 
-        # エージェントへの指示に「勝率(Accuracy)」を組み込む
+        # エージェントへの指示に「勝率(Accuracy)」と「取引数」を組み込む
+        caution_note = ""
+        if total_trades < 5:
+            caution_note = "⚠️ 評価可能な取引数が少ないため、予測精度は未確定。特に慎重に判断せよ。"
+        elif accuracy < 50:
+            caution_note = f"⚠️ 現在の勝率は{accuracy}%と低迷中。リスク回避を最優先とせよ。"
+
         agent_bull = Agent(role='強気派アナリスト', goal=f'{target_symbol} の上昇ポテンシャルを主張せよ', backstory=f'市場の熱量を肯定的に捉える専門家。スカウト報告「{whale_sig}」を重視せよ。', tools=[wiki_tool], llm=self.flash_model)
         agent_bear = Agent(role='リスク管理者', goal=f'バックテスト結果 {backtest_result} からリスクを指摘せよ', backstory='データ不足やドローダウンを厳しく評価せよ。', llm=self.flash_model)
-        agent_neo = Agent(role='最高司令官ネオ', goal='全意見を総合し最終的なBUY/WAITを判断せよ', backstory=f'最終決定権者。現在の自軍の予測精度は {accuracy}% であることを念頭に置き、過去の教訓: {formatted_precedents} を考慮して日本語で断を下せ。', llm=self.pro_model)
+        agent_neo = Agent(role='最高司令官ネオ', goal='全意見を総合し最終的なBUY/WAITを判断せよ', backstory=f'最終決定権者。現在の自軍の予測精度は {accuracy}%（{total_trades}件の取引実績）。{caution_note} 過去の教訓: {formatted_precedents} を考慮して日本語で断を下せ。', llm=self.pro_model)
 
         t1 = Task(description=f"{target_symbol} の強気レポート作成", agent=agent_bull, expected_output="レポート")
         t2 = Task(description=f"{target_symbol} の弱気レポート作成", agent=agent_bear, expected_output="評価書")
@@ -63,7 +71,7 @@ class TrinityCouncil(NeoBaseCrew):
         crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
         final_verdict = crew.kickoff()
 
-        # 資金管理ロジック (案2)
+        # 資金管理ロジック
         recommendation = ""
         if "BUY" in str(final_verdict).upper():
             suggested_amount = current_usdc * 0.1
@@ -74,7 +82,7 @@ class TrinityCouncil(NeoBaseCrew):
         discussion_data = {
             "bull": str(t1.output),
             "bear": str(t2.output),
-            "stats": f"**🐳 Whale Signal:** `{whale_sig}`\n**🎯 Current Accuracy:** `{accuracy}%`\n**📈 Backtest:**\n```\n{backtest_result}\n```",
+            "stats": f"**🐳 Whale Signal:** `{whale_sig}`\n**🎯 Current Accuracy:** `{accuracy}% ({total_trades} trades)`\n**📈 Backtest:**\n```\n{backtest_result}\n```",
             "verdict": str(final_verdict) + recommendation
         }
         

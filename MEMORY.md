@@ -1,89 +1,72 @@
-# MEMORY.md - Neo's Long-Term Memory
+# MEMORY.md — Neo Long-Term Memory Index
+> **最終更新**: 2026-03-14（司令部による記憶整理後）
+> **記憶DB**: ChromaDB (`vault/chroma_db/`) — 17件のクリーンな記憶
+> **旧MEMORY.md**: このファイルはインデックスのみ。詳細記憶はChromaDBに格納。
 
-## Project: OpenClaw Workspace Management
+---
 
-### Discord Integration
-- **Guild ID**: `1471828091339931867`
-- **Channel Mappings**:
-  - `1473309431705112688`: 🤖ai知識-openclaw (OpenClaw Deep Dive/Knowledge)
-  - `1473309444539682867`: ⛓️ai知識-virtual-protocol (Virtual Protocol Knowledge)
-  - `1473309457114071184`: 📰aiニュース要約 (Daily AI News)
-  - `1473309473484312841`: 📋ai今日のタスクと提案 (Morning Task Report)
-  - `1473308823572844605`: 💡ai活用テクニック集 (AI Tips & Techniques)
-  - **New (Webhook)**: `DISCORD_WEBHOOK_URL` configured for autonomous reporting.
-- **Lessons Learned**:
-  - **Spam Filtering**: Bulk channel creation/renaming followed by multiple long-form posts can trigger Discord's automated spam protection, causing "Shadow Blocks" where API calls return OK but messages don't appear. Cooling down for several hours is the primary mitigation.
-  - **Language Preference**: The user (Yusuke) prefers all outputs and system reports in Japanese.
-  - **Proactive Reporting**: Background processes cannot initiate sessions; use Webhooks for "Push" notifications.
-  - **Google Model IDs**: Correct ID for 3.0 Flash is `gemini-3-flash-preview` (not `3.0`). Incorrect IDs can trigger fallback to Pro models, causing rate limit/cost spikes. Always verify IDs in Google AI Studio.
-  - **Unified Model Management**: Neo exists in two forms: the "Chat Interface" and the "Autonomous Cycle (neo-cycle)". Both must be updated simultaneously when switching models to prevent context/recognition mismatch and ensure stability.
+## 📌 記憶の分類と保持方針
 
-### Infrastructure & Sync
-- **GitHub Integration**:
-  - Repository: `7272yusuke-design/openclaw`
-  - Branch: `master` (Default, unified from main)
-  - Auth: Personal Access Token (PAT)
-- **Deployment**: Running in VPS/Docker/Ubuntu environment. Security focuses on SSH key auth, UFW firewall, and container isolation.
+### Tier 1: 永久保持（教訓・原則）
+| 日付 | 内容 |
+|---|---|
+| 2026-02-18 | Discord スパムフィルタの教訓（シャドウブロック発生条件） |
+| 2026-03-12 | 司令官の特別教訓：クジラ「Accumulating」サインのダマシ対策 |
+| 2026-03-12 | Moltbook投稿ルール：最低2.5分間隔 |
+| 2026-03-12 | .envパースエラー対策：環境変数は常にクリーンに |
+| 2026-03-12 | Git 100MB制限：neo-env/バイナリは.gitignore必須 |
 
-### Neo 2.0: CrewAI Hybrid Architecture (Feb 2026)
-- **Core Architecture**: Migrated to a modular structure (`core/`, `agents/`, `tools/`).
-- **Standardized Foundation**:
-    - `core/config.py`: Centralized LLM management with dual-path initialization (Google Direct & OpenRouter).
-    - `core/base_crew.py`: Standardized execution, logging, and error handling for all agents.
-- **Agent Portfolio (The Six Crews)**:
-    1. **Strategic Planning**: Project conceptualization and ROI analysis.
-    2. **Agent Development**: Code generation and skill optimization.
-    3. **Ecosystem Scout**: Trend/Opportunity discovery in Virtuals Protocol.
-    4. **Sentiment Analysis**: Market emotion scoring and strategic pivot analysis.
-    5. **Content Creator**: Intellectual branding and autonomous social posting.
-    6. **ACP Executor**: Risk-adjusted on-chain transaction (ACP) payload generation and validation.
+### Tier 2: 参照用（アーキテクチャ変遷）
+| 日付 | 内容 |
+|---|---|
+| 2026-02-17 | Virtual Protocol学習計画（初期目標設定） |
+| 2026-02-25 | Neo 2.0 "The Commander" 始動 |
+| 2026-03-04 | Neo v3.0 Hybrid Architecture（適材適所モデル構成） |
 
-## 2026-03-05 本日の成果まとめ (Phase 3.1: Hybrid Architecture Stabilization)
-1.  **ハイブリッド・モデル構成の最終決定**:
-    - **Neo本体 (司令官)**: Google Direct API経由の **`gemini-3-flash-preview`** (OpenRouter非経由)。
-    - **Scout / Sentiment (調査部隊)**: OpenRouter経由の `google/gemini-2.5-flash`。
-    - **Planning / Dev (頭脳部隊)**: OpenRouter経由の `anthropic/claude-3.5-sonnet`。
-    - **Executor (実行部隊)**: OpenRouter経由の `openai/gpt-4o`。
-2.  **技術的デッドロックの解消**:
-    - **API 401エラーの修正**: `PlanningCrew` における `ChatOpenAI` の初期化パラメータ (`base_url`, `openai_api_base`) を修正し、OpenRouterキーの誤爆を防止。
-    - **Blackboard連携の修正**: ペーパートレード結果（資産残高）がBlackboardに反映されないバグを修正。
-3.  **モデル統合とクリーンアップ**:
-    - **二重構造の解消**: チャットセッションと自律サイクルのモデルを Gemini 3 Flash に統一。
-    - **Configの整理**: `core/config.py` のロジックを整理し、モデルIDの誤記（`.0`の混入）を修正。
-4.  **Git同期**: 現在の最新コードベース (Neo v3.1) をマスターブランチにプッシュ完了。
+### Tier 3: 日次ログ（2026年2月）
+- 2/18〜2/28: 初期構築フェーズの記録（Discord, CrewAI, PaperTrader立ち上げ）
 
-## 2026-03-05 (Night) 本日の成果まとめ (Model Adjustment & Stability)
-1.  **モデルの緊急切り替え**:
-    - Gemini 3 Flash の利用制限に達したため、Neo本体（チャットおよび自律サイクル）のモデルを **`gemini-2.5-flash`** (Google Direct API) に一時的に変更しました。
-    - **司令官の指示により、`gemini-3-flash-preview` へ再度切り戻し**を行いました。
-    - **モデル同期ルール**に従い、チャットインターフェースとコード設定の両方を同時に更新しました。
-2.  **インフラの正常化**:
-    - 外部APIキー（SERPER）に依存しない、本来のスキル装備（`crypto-market-data` 等）による情報収集体制を確認しました。
-3.  **Git同期**: 最新の設定変更を反映。
+### 廃棄済み（2026-03-14 整理）
+- **39件のAlpha Sweepノイズ**（偽Sharpeデータに基づく自動更新）
+- **6件のAIXBT重複Council判定**（プロンプトリーク含む）
+- **2件の空Performance記録**（accuracy=0, trades=0）
+- **2件のETH/SOL偽Sharpe Council判定**（CRITICAL誤判定）
 
-## 2026-03-09 本日の成果まとめ (Phase 4.2: Physical Incarnation & Connectivity)
-1.  **物理的受肉の完遂**:
-    - `virtuals-protocol-acp` の統合により、APIキーを起点とした自律的ウォレット（Managed Wallet）を確立。
-    - 受信用アドレス `0x89D4ed55B1B5533B0e5F533B0e5f533B0e5f533B` (Base Mainnet) を確定し、着金監視を開始。
-2.  **安全性と報告システムの強化**:
-    - `Redline Guard` を実装し、秘密鍵や P_net 係数、ウォレット詳細の漏洩を物理的に遮断。
-    - `Daily SitRep` (状況報告書) および `Gap Analysis Report` を自動生成し、現在の非接続状態と欠落リソースを冷徹に特定。
-3.  **PAPER_TRADE_MODE とガバナンスの確立**:
-    - 物理資産を消費しない仮想執行エンジン（`core/simulation_executor.py`）を実装。
-    - 司令官の承認を必須とする `Strategic Governance`（`core/governance.py`）を導入。
-    - 最初の最適化案（Gas Impact 1.1x）の承認および適用を完遂。
-4.  **システム・リファクタリング**:
-    - 旧式のポーリングコード (`run_cycle.py` 等) を完全に削除。
-    - 統合接続プロトコル (`core/agent_base.py`) を SDK 継承型へ刷新し、GitHub (master ブランチ) へ同期完了。
+---
 
-## 司令官からの重要指示 (2026-03-09)
-- **実戦執行ロックの維持**: すべての物理的リソース（Gas/Balance）が READY になるまで `MISSION_GO` への移行を厳禁とする。
-- **Managed Signing の採用**: 外部からの秘密鍵注入に依存せず、SDK-Managed な自律署名体制を維持せよ。
-- **承認プロセスの厳守**: 重要パラメータの変更には必ず司令官の `Approve` を経ること。
+## 🏗️ 現在のシステム仕様（Neo v3.2 — 2026-03-14）
 
+### アーキテクチャ
+- **メインレーダー**: `run_trigger.py v2`（30秒間隔、2種トリガー統合）
+- **最高意思決定**: `TrinityCouncil v2`（偵察→BT→協議→取引→報告→メモリの7Phase）
+- **取引エンジン**: `PaperWallet`（統一ウォレット、$90,000 USDC + VIRTUAL保有）
+- **データソース**: CoinGecko OHLC API（30日/180本4h足）+ 1時間キャッシュ
+- **報告**: Discord Embed + Moltbook自動投稿
 
-## 2026-03-12 本日の成果まとめ (System Stabilization & Git Restoration)
-1.  **Git 100MB制限の完全突破**: `git reset --soft` による歴史修正と `.gitignore` の強化。
-2.  **広報プロトコルの最適化**: Moltbook 2.5分間隔ルールの実証。
-3.  **環境設定（.env）の浄化**: パースエラーの完全排除。
-4.  **本番稼働の再開**: 監視レーダーの再起動成功。
+### トリガー条件
+1. **ボラティリティ**: VIRTUAL 2%変動 → Council召集
+2. **アルファ**: Sharpe 5.0超え（信頼度ガード: min 3取引）→ Council召集
+3. **冷却期間**: 30分（両トリガー共通）
+
+### 品質ガード
+- **Sharpe信頼度**: 取引3回未満 or inf/nan → Sharpe=0.0
+- **BacktestAgent v2**: CSV依存廃止、実データ直結
+- **PortfolioManager v2**: PaperWalletに統一（旧paper_balance.json廃止）
+
+### LLMモデル構成
+- **Trinity Council（Bull/Bear/Neo）**: gemini-2.0-flash（Google Direct）
+- **ScoutCrew**: gemini-2.0-flash（Google Direct）
+
+### 重要ルール
+- Moltbook投稿間隔: 最低2.5分（150秒）
+- CoinGecko Rate Limit: 6秒間隔
+- Python環境: 必ず `./neo-env/bin/python` を使用
+- パス: 実行前に `cd workspace`
+
+---
+
+## 📝 記憶書き込みルール
+1. **Council判定**: 自動保存（symbol, verdict, accuracyをメタデータに含む）
+2. **司令官の教訓**: `source: commander_manual_injection` で永久保持
+3. **システム変更**: `category: permanent_record` で保存
+4. **Alpha Sweep更新**: ❌ **DBに書き込まない**（Blackboardのみ）

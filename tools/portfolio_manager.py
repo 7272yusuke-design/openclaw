@@ -1,48 +1,59 @@
+"""
+PortfolioManager v2 — PaperWalletを正としたシングルウォレットシステム
+旧: 2つの独立したウォレット（paper_balance.json + paper_wallet.json）
+新: PaperWalletに統一し、PortfolioManagerはそのインターフェースとして機能
+"""
 import os
 import json
 import logging
+from tools.paper_wallet import PaperWallet
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("neo.portfolio")
+
+# 統一ウォレットパス
+WALLET_PATH = "/docker/openclaw-taan/data/.openclaw/workspace/data/paper_wallet.json"
 
 class PortfolioManager:
-    """ネオの軍資金とリスク許容度を管理するツール（ペーパーテスト対応版）"""
+    """PaperWalletへの統一インターフェース"""
     
     def __init__(self, mode=None):
-        # 環境変数 NEO_MODE が 'PAPER' なら仮想残高を使用
         self.mode = mode or os.getenv("NEO_MODE", "PAPER")
-        self.wallet_address = os.getenv("SOLANA_WALLET_ADDRESS")
-        self.paper_balance_file = "/docker/openclaw-taan/data/.openclaw/workspace/vault/portfolio/paper_balance.json"
+        self.wallet = PaperWallet(data_path=WALLET_PATH, initial_balance=10000.0)
+    
+    def get_balance(self) -> dict:
+        """統一フォーマットで残高を返す（旧互換: USDC, SOL等のキー）"""
+        usd = self.wallet.get_balance()
+        holdings = self.wallet.state.get("holdings", {})
         
-        # フォルダがない場合は作成
-        os.makedirs(os.path.dirname(self.paper_balance_file), exist_ok=True)
+        result = {"USDC": round(usd, 2)}
+        for symbol, data in holdings.items():
+            result[symbol] = round(data.get("amount", 0.0), 6)
         
-        # ペーパー残高の初期化（1,000 USDC）
-        if self.mode == "PAPER" and not os.path.exists(self.paper_balance_file):
-            self.update_paper_balance({"USDC": 1000.0, "SOL": 10.0, "VIRTUAL": 0.0})
-
-    def get_balance(self):
-        """現在のモードに応じた残高を取得"""
-        if self.mode == "PAPER":
-            with open(self.paper_balance_file, "r") as f:
-                return json.load(f)
-        else:
-            # TODO: ここに実弾用のRPC通信（solana-py等）を記述
-            # 現状は安全のためダミーの実残高を返すようにしておきます
-            return {"USDC": 0.0, "SOL": 0.0, "VIRTUAL": 0.0, "note": "Mainnet RPC not connected"}
-
-    def update_paper_balance(self, new_balance):
-        """ペーパーテスト用の残高を更新（トレード後のシミュレーション用）"""
-        with open(self.paper_balance_file, "w") as f:
-            json.dump(new_balance, f, indent=4)
-        logger.info(f"[*] Paper balance updated: {new_balance}")
-
-    def calculate_position_size(self, confidence_score: float):
-        """自信度に基づき、投入額を決定（リスク管理）"""
-        balances = self.get_balance()
-        available_usdc = balances.get("USDC", 0.0)
-        
-        # 1トレードあたりの最大許容損失（例：残高の10%）
-        max_risk_ratio = 0.1 
-        suggested_amount = available_usdc * max_risk_ratio * confidence_score
-        
-        return round(suggested_amount, 2)
+        return result
+    
+    def get_full_state(self) -> dict:
+        """ウォレットの完全な状態を返す"""
+        return self.wallet.state
+    
+    def get_portfolio_value(self, prices: dict) -> float:
+        """全資産のUSD評価額"""
+        return self.wallet.get_portfolio_value(prices)
+    
+    def execute_trade(self, symbol: str, action: str, amount_usd: float, price: float, reason: str = "") -> dict:
+        """取引実行のパススルー"""
+        return self.wallet.execute_trade(symbol, action, amount_usd, price, reason)
+    
+    def calculate_position_size(self, confidence_score: float) -> float:
+        """信頼度に基づく投入額の計算"""
+        available = self.wallet.get_balance()
+        max_risk_ratio = 0.10  # 残高の最大10%
+        return round(available * max_risk_ratio * confidence_score, 2)
+    
+    def get_recent_trades(self, n: int = 5) -> list:
+        """直近n件の取引履歴"""
+        history = self.wallet.state.get("history", [])
+        return history[-n:] if history else []
+    
+    def get_trade_count(self) -> int:
+        """総取引回数"""
+        return len(self.wallet.state.get("history", []))

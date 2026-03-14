@@ -12,3 +12,4 @@ credentials.json
 *.exe
 *.bin
 *.log
+vault/chroma_db.bak*
