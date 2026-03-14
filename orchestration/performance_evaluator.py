@@ -70,6 +70,17 @@ def evaluate_performance():
     
     NeoBlackboard.update("performance_summary", board_data)
     print(f"✅ Performance Sync Complete: Accuracy {accuracy:.2f}% ({total_trades} trades)")
+    # Task 2.4: Discordダッシュボード送信
+    try:
+        from tools.discord_reporter import DiscordReporter
+        DiscordReporter.send_performance_dashboard(
+            accuracy=round(accuracy, 2),
+            total_trades=total_trades,
+            recent_performance=performance_results,
+            win_count=win_count
+        )
+    except Exception as e:
+        print(f"⚠️ Dashboard送信失敗: {e}")
 
 if __name__ == "__main__":
     evaluate_performance()

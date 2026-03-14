@@ -120,3 +120,61 @@ class DiscordReporter:
         except Exception as e:
             logger.error(f"❌ Discord送信失敗: {e}")
             return False
+
+    @classmethod
+    def send_performance_dashboard(cls, accuracy, total_trades, recent_performance, win_count=None):
+        """精度追跡ダッシュボード — 日次/評価後に自動送信"""
+        from datetime import datetime
+
+        # 勝率バー生成（10マス）
+        filled = int(accuracy / 10) if accuracy > 0 else 0
+        bar = "🟩" * filled + "⬜" * (10 - filled)
+
+        # ステータス色
+        if accuracy >= 60:
+            color = 0x2ecc71   # 緑
+        elif accuracy >= 40:
+            color = 0xf39c12   # 橙
+        else:
+            color = 0xe74c3c   # 赤
+
+        # 直近取引サマリー
+        if recent_performance:
+            lines = []
+            for p in recent_performance[-5:]:
+                pnl = p.get("pnl_pct", 0)
+                emoji = "✅" if pnl > 0 else "❌"
+                lines.append(f"{emoji} {p.get('symbol','?')} | 入: ${p.get('entry',0):.4f} 現: ${p.get('current',0):.4f} | {pnl:+.2f}%")
+            recent_str = "\n".join(lines)
+        else:
+            recent_str = "取引履歴なし"
+
+        # 累積P&L計算
+        if recent_performance:
+            avg_pnl = sum(p.get("pnl_pct", 0) for p in recent_performance) / len(recent_performance)
+            pnl_str = f"{avg_pnl:+.2f}%"
+        else:
+            avg_pnl = 0.0
+            pnl_str = "N/A"
+
+        fields = [
+            {"name": "🎯 勝率", "value": f"`{bar}` **{accuracy:.1f}%**", "inline": False},
+            {"name": "📈 評価済み取引数", "value": str(total_trades), "inline": True},
+            {"name": "📊 平均P&L", "value": pnl_str, "inline": True},
+            {"name": "🕐 更新時刻", "value": datetime.now().strftime("%Y-%m-%d %H:%M JST"), "inline": True},
+            {"name": "📋 直近5件", "value": recent_str or "なし", "inline": False},
+        ]
+
+        embed = {
+            "title": "📊 Neo Performance Dashboard",
+            "color": color,
+            "fields": fields,
+            "footer": {"text": "Neo Trinity Council v2 | Paper Trading"}
+        }
+
+        payload = {"embeds": [embed]}
+        success = cls._post(cls.REPORT_WEBHOOK, payload)
+        if success:
+            logger.info("✅ Performance dashboard sent to Discord")
+            print("✅ [Dashboard] Discord送信完了")
+        return success
