@@ -17,6 +17,7 @@ from orchestration.alpha_sweep_operation import run_sweep
 from core.config import VOLATILITY_WATCH_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 from orchestration.nightly_research import run_nightly_research
+from orchestration.vp_discovery import run_vp_discovery
 
 # --- 設定 ---
 CHECK_INTERVAL = 30           # 監視間隔（秒）
@@ -65,6 +66,22 @@ def _run_nightly_batch():
         logger.info("[Nightly] Evaluator完了（Discordダッシュボード送信済み）")
     except Exception as e:
         logger.error(f"[Nightly] Evaluator失敗: {e}")
+
+    # 3. VP Discovery（週次・月曜のみ）
+    from datetime import datetime as _dt2
+    if _dt2.utcnow().weekday() == 0:  # 0=月曜
+        logger.info("[Nightly] Step 3b: VP新興銘柄スキャン（週次）")
+        try:
+            result = run_vp_discovery()
+            added = result.get("added", [])
+            if added:
+                DiscordReporter.send_log(
+                    "🔍 VP Discovery: 新興銘柄発見",
+                    f"**新規追加**: {', '.join(added)}\n**監視リスト**: {', '.join(result.get('current', []))}",
+                    0x2ecc71
+                )
+        except Exception as e:
+            logger.error(f"[Nightly] VP Discovery失敗: {e}")
 
     # 3. Nightly Research（洞察投稿・学習報告）
     logger.info("[Nightly] Step 3/4: Nightly Research")
