@@ -13,7 +13,7 @@ if str(BASE_DIR) not in sys.path:
 from tools.market_data import MarketData
 from core.blackboard import NeoBlackboard
 
-def evaluate_performance():
+def evaluate_performance(send_dashboard: bool = False):
     print("📊 [Evaluator] Neo's Verdict Review starting...")
     log_path = BASE_DIR / "paper_trade.log"
     
@@ -70,8 +70,9 @@ def evaluate_performance():
     
     NeoBlackboard.update("performance_summary", board_data)
     print(f"✅ Performance Sync Complete: Accuracy {accuracy:.2f}% ({total_trades} trades)")
-    # Task 2.4: Discordダッシュボード送信
-    try:
+    # Task 2.4: Discordダッシュボード送信（Nightly Batch時のみ）
+    if send_dashboard:
+      try:
         from tools.discord_reporter import DiscordReporter
         DiscordReporter.send_performance_dashboard(
             accuracy=round(accuracy, 2),
@@ -79,7 +80,7 @@ def evaluate_performance():
             recent_performance=performance_results,
             win_count=win_count
         )
-    except Exception as e:
+      except Exception as e:
         print(f"⚠️ Dashboard送信失敗: {e}")
 
 if __name__ == "__main__":

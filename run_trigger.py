@@ -134,7 +134,7 @@ def start_hybrid_radar():
             if cycle_count % EVAL_INTERVAL == 0:
                 logger.info(f"[Evaluator] 定期評価開始 (cycle={cycle_count})")
                 try:
-                    evaluate_performance()
+                    evaluate_performance(send_dashboard=True)
                 except Exception as e:
                     logger.error(f"[Evaluator] エラー: {e}")
 
@@ -250,7 +250,7 @@ def start_hybrid_radar():
                     logger.info(f"✅ Council完了: {verdict} | 冷却開始（{COUNCIL_COOLDOWN//60}分）")
                     # 取引後に勝率を即時更新
                     try:
-                        evaluate_performance()
+                        evaluate_performance(send_dashboard=False)
                     except Exception as _e:
                         logger.error(f"[Evaluator] Post-council error: {_e}")
                     
