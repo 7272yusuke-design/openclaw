@@ -12,7 +12,7 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: AVAX/USDT",
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: LUNA/USDT",
     "success_probability": 0.85,
     "strategy_id": "TEST_ANTI_NOISE",
     "diplomatic_presets": {
@@ -32,11 +32,11 @@
       "LUNA/USDT": {
         "sharpe": 6.2,
         "alert_level": "Critical",
-        "last_detected": "2026-03-14T08:00:21"
+        "last_detected": "2026-03-14T08:12:36"
       }
     },
-    "opportunity_count": 8,
-    "last_updated": "2026-03-14T08:02:19.254657+00:00"
+    "opportunity_count": 3,
+    "last_updated": "2026-03-14T08:12:36.550183+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -46,6 +46,6 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-03-14T08:02:42.559243"
+    "last_evaluated": "2026-03-14T08:12:57.828389"
   }
 }

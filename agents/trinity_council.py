@@ -17,6 +17,7 @@ from core.base_crew import NeoBaseCrew
 from core.memory_db import NeoMemoryDB
 from agents.backtest_agent import BacktestAgent
 from agents.scout_agent import ScoutCrew
+from tools.vp_onchain_data import build_onchain_context
 from tools.portfolio_manager import PortfolioManager
 from tools.market_data import MarketData
 from tools.discord_reporter import DiscordReporter
@@ -79,6 +80,15 @@ class TrinityCouncil(NeoBaseCrew):
             whale_sig = scout_data.get("whale_movement", "Neutral")
         except:
             pass
+
+        # 1c-1b. オンチェーンデータ取得
+        onchain_context = ""
+        try:
+            print(f"\n[Phase 1-O] オンチェーンデータ取得中...")
+            onchain_context = build_onchain_context(clean_symbol)
+            print(f"  {onchain_context.splitlines()[1] if len(onchain_context.splitlines()) > 1 else '取得完了'}")
+        except Exception as _oe:
+            print(f"  ⚠️ オンチェーンデータ取得失敗: {_oe}")
 
         # 1c-2. センチメント分析
         sentiment_label = "neutral"
@@ -153,7 +163,8 @@ class TrinityCouncil(NeoBaseCrew):
         portfolio_context = (
             f"現在のポートフォリオ: USDC=${current_usdc:.2f}, "
             f"現在価格: ${current_price:.6f}, "
-            f"バックテスト結果: {backtest_report}"
+            f"バックテスト結果: {backtest_report}\n"
+            f"{onchain_context}"
         )
 
         agent_bull = Agent(
