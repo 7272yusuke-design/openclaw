@@ -191,7 +191,7 @@ class TrinityCouncil(NeoBaseCrew):
             verdict_container[0] = crew.kickoff()
         t = threading.Thread(target=_kickoff, daemon=True)
         t.start()
-        t.join(timeout=90)  # 90秒でタイムアウト
+        t.join(timeout=180)  # 90秒でタイムアウト
         if verdict_container[0] is None:
             logger.warning("[Council] crew.kickoff() timed out (90s). Defaulting to WAIT.")
             final_verdict = "WAIT: タイムアウトのため判断を保留"
