@@ -23,6 +23,7 @@ ALPHA_THRESHOLD = 5.0         # Sharpe閾値
 COUNCIL_COOLDOWN = 1800       # 冷却期間（30分）— Moltbook Rate Limit保護
 SWEEP_INTERVAL   = 120        # Sweepサイクル間隔（30秒×120=60分）
 EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間）
+NIGHTLY_HOUR     = 1           # Nightly Batch実行時刻（UTC=JST-9、1=JST10時→夜間は17UTC=JST02:00）
 
 from logging.handlers import RotatingFileHandler as _RFH
 logging.basicConfig(
@@ -34,6 +35,59 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("neo.radar")
+
+def _run_nightly_batch():
+    """
+    Nightly Batch — JST 02:00に1日1回実行
+    1. Alpha Sweep フルスキャン（全銘柄）
+    2. Performance Evaluator（勝率更新 + Discordダッシュボード）
+    3. Discord日次サマリー送信
+    """
+    from datetime import datetime as _dt
+    batch_start = time.time()
+    today = _dt.now().strftime("%Y-%m-%d")
+    logger.info(f"[Nightly] === {today} バッチ開始 ===")
+
+    # 1. Alpha Sweep フルスキャン
+    logger.info("[Nightly] Step 1/3: Alpha Sweep フルスキャン")
+    try:
+        run_sweep()
+        logger.info("[Nightly] Sweep完了")
+    except Exception as e:
+        logger.error(f"[Nightly] Sweep失敗: {e}")
+
+    # 2. Performance Evaluator
+    logger.info("[Nightly] Step 2/3: Performance Evaluator")
+    try:
+        evaluate_performance()
+        logger.info("[Nightly] Evaluator完了（Discordダッシュボード送信済み）")
+    except Exception as e:
+        logger.error(f"[Nightly] Evaluator失敗: {e}")
+
+    # 3. Discord日次サマリー
+    logger.info("[Nightly] Step 3/3: Discord日次サマリー送信")
+    try:
+        from core.blackboard import NeoBlackboard
+        board = NeoBlackboard.load()
+        perf = board.get("performance_summary", {})
+        opps = board.get("active_opportunities", {})
+        accuracy = perf.get("accuracy_score", 0.0)
+        total_trades = perf.get("total_evaluated_trades", 0)
+        opp_count = len(opps)
+        elapsed = round(time.time() - batch_start, 1)
+
+        summary = (
+            f"📅 **日次バッチ完了** — {today}\n"
+            f"⏱️ 実行時間: {elapsed}秒\n"
+            f"🎯 現在の勝率: {accuracy}% ({total_trades}件)\n"
+            f"🔍 Alpha機会: {opp_count}件\n"
+            f"✅ Sweep / Evaluator / Dashboard 完了"
+        )
+        DiscordReporter.send_log("🌙 Nightly Batch Report", summary, color=0x9b59b6)
+        logger.info(f"[Nightly] === バッチ完了 ({elapsed}秒) ===")
+    except Exception as e:
+        logger.error(f"[Nightly] サマリー送信失敗: {e}")
+
 
 def start_hybrid_radar():
     print("=" * 60)
@@ -58,6 +112,7 @@ def start_hybrid_radar():
     logger.info(f"🎯 Anchor price: ${anchor_price:.6f}")
     
     processed_alphas = {}     # 処理済みアルファのタイムスタンプ
+    last_nightly_date = None  # 最後にNightly Batchを実行した日付
     last_council_time = 0     # 最後に評議会を開いた時刻
     cycle_count = 0
 
@@ -90,6 +145,21 @@ def start_hybrid_radar():
                     logger.info("[Sweep] 完了 — Blackboard更新済み")
                 except Exception as e:
                     logger.error(f"[Sweep] エラー: {e}")
+
+            # ============================================================
+            # 0b. Nightly Batch（JST 02:00 = UTC 17:00 に1日1回）
+            # ============================================================
+            now_utc = datetime.utcnow()
+            now_jst_hour = (now_utc.hour + 9) % 24
+            today_str = now_utc.strftime('%Y-%m-%d')
+            if now_jst_hour == 2 and last_nightly_date != today_str:
+                last_nightly_date = today_str
+                logger.info(f'[Nightly] 深夜バッチ開始 JST02:00 ({today_str})')
+                try:
+                    _run_nightly_batch()
+                except Exception as e:
+                    logger.error(f'[Nightly] エラー: {e}')
+
 
                         # ============================================================
             # 1. ボラティリティ監視 (VIRTUAL)
