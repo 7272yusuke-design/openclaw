@@ -18,6 +18,7 @@ from core.memory_db import NeoMemoryDB
 from agents.backtest_agent import BacktestAgent
 from agents.scout_agent import ScoutCrew
 from tools.vp_onchain_data import build_onchain_context
+from bridge.acp_client import get_market_intel
 from tools.portfolio_manager import PortfolioManager
 from tools.market_data import MarketData
 from tools.discord_reporter import DiscordReporter
@@ -89,6 +90,18 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"  {onchain_context.splitlines()[1] if len(onchain_context.splitlines()) > 1 else '取得完了'}")
         except Exception as _oe:
             print(f"  ⚠️ オンチェーンデータ取得失敗: {_oe}")
+
+        # 1c-1c. ACP外部エージェント情報取得
+        acp_intel = ""
+        try:
+            print(f"\n[Phase 1-A] ACP外部エージェント情報取得中...")
+            acp_intel = get_market_intel(target_symbol)
+            if acp_intel:
+                print(f"  ✅ 外部エージェント情報取得完了")
+            else:
+                print(f"  ⚠️ 外部エージェント情報なし")
+        except Exception as _ae:
+            print(f"  ⚠️ ACP取得失敗: {_ae}")
 
         # 1c-2. センチメント分析
         sentiment_label = "neutral"
@@ -164,7 +177,8 @@ class TrinityCouncil(NeoBaseCrew):
             f"現在のポートフォリオ: USDC=${current_usdc:.2f}, "
             f"現在価格: ${current_price:.6f}, "
             f"バックテスト結果: {backtest_report}\n"
-            f"{onchain_context}"
+            f"{onchain_context}\n"
+            f"{acp_intel}"
         )
 
         agent_bull = Agent(

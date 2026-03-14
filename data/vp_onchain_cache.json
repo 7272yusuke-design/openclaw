@@ -1,1 +1,1 @@
-{"dex_LUNA": {"symbol": "LUNA", "price_usd": 0.1545, "volume_24h": 3.99, "liquidity_usd": 108723076.66, "price_change_24h": -0.02, "dex_name": "meteora", "chain": "solana", "fetched_at": "2026-03-14T08:23:17.437979"}, "_ts": 1773476597.438053}
+{"dex_VIRTUAL": {"symbol": "VIRTUAL", "price_usd": 0.7137, "volume_24h": 385014.81, "liquidity_usd": 5944908.61, "price_change_24h": -4.08, "dex_name": "aerodrome", "chain": "base", "fetched_at": "2026-03-14T08:51:14.578829"}, "_ts": 1773478274.578912}

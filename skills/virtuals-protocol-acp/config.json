@@ -1,5 +1,15 @@
 {
   "SESSION_TOKEN": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIxNzg2OSwiaWF0IjoxNzczMjg5ODU1LCJleHAiOjE3NzMyOTE2NTV9.KgX3D6xQyMadpANIPNwk4gzT_sRrgPasCcat-MytXQ4"
-  }
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIxNzg2OSwiaWF0IjoxNzczNDc3NTg0LCJleHAiOjE3NzM0NzkzODR9.mBE1cHhHLHUr0YjzgHrofzd-Kw6mVPqfOI_0e_B3Nfw"
+  },
+  "agents": [
+    {
+      "id": 19768,
+      "name": "Neo",
+      "walletAddress": "0x54b70c4BB03D01FC5f2D7b3790642f1eBEe5118d",
+      "apiKey": "acp-4a719d91027378b56175",
+      "active": true
+    }
+  ],
+  "LITE_AGENT_API_KEY": "acp-4a719d91027378b56175"
 }

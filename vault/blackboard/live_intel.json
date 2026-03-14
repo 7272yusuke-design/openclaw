@@ -32,11 +32,11 @@
       "LUNA/USDT": {
         "sharpe": 6.2,
         "alert_level": "Critical",
-        "last_detected": "2026-03-14T08:23:17"
+        "last_detected": "2026-03-14T08:34:42"
       }
     },
     "opportunity_count": 3,
-    "last_updated": "2026-03-14T08:23:17.336550+00:00"
+    "last_updated": "2026-03-14T08:34:42.796890+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -46,6 +46,6 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-03-14T08:23:37.688826"
+    "last_evaluated": "2026-03-14T08:37:48.115266"
   }
 }
