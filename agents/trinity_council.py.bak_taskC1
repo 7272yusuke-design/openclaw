@@ -321,14 +321,14 @@ class TrinityCouncil(NeoBaseCrew):
         # Phase 6: Moltbook投稿
         # ============================================================
         try:
-            MoltbookTool.post_council_decision(
-                symbol=target_symbol,
-                verdict=trade_action,
-                accuracy=accuracy,
-                bt_confidence=bt_confidence,
-                verdict_text=verdict_text,
-                trade_amount_usd=trade_amount_usd
+            pnl_text = f"${trade_amount_usd:.0f}" if trade_amount_usd > 0 else ""
+            molt_text = (
+                f"🏛️ Trinity Council: {target_symbol}\n"
+                f"📊 Decision: {trade_action} {pnl_text}\n"
+                f"🎯 Accuracy: {accuracy}% | BT: {bt_confidence}\n"
+                f"💡 {verdict_text[:80]}"
             )
+            MoltbookTool.post(molt_text)
         except Exception as e:
             print(f"⚠️ Moltbook投稿スキップ: {e}")
 

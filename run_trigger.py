@@ -16,6 +16,7 @@ from tools.discord_reporter import DiscordReporter
 from orchestration.alpha_sweep_operation import run_sweep
 from core.config import VOLATILITY_WATCH_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
+from orchestration.nightly_research import run_nightly_research
 
 # --- 設定 ---
 CHECK_INTERVAL = 30           # 監視間隔（秒）
@@ -65,8 +66,15 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] Evaluator失敗: {e}")
 
-    # 3. Discord日次サマリー
-    logger.info("[Nightly] Step 3/3: Discord日次サマリー送信")
+    # 3. Nightly Research（洞察投稿・学習報告）
+    logger.info("[Nightly] Step 3/4: Nightly Research")
+    try:
+        run_nightly_research()
+    except Exception as e:
+        logger.error(f"[Nightly] Nightly Research失敗: {e}")
+
+    # 4. Discord日次サマリー
+    logger.info("[Nightly] Step 4/4: Discord日次サマリー送信")
     try:
         from core.blackboard import NeoBlackboard
         board = NeoBlackboard.load()
