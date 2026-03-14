@@ -14,7 +14,6 @@ from core.blackboard import NeoBlackboard
 from agents.trinity_council import TrinityCouncil
 from tools.discord_reporter import DiscordReporter
 from orchestration.alpha_sweep_operation import run_sweep
-from core.config import VOLATILITY_WATCH_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 
 # --- 設定 ---
@@ -52,8 +51,8 @@ def _run_nightly_batch():
     # 1. Alpha Sweep フルスキャン
     logger.info("[Nightly] Step 1/3: Alpha Sweep フルスキャン")
     try:
-        run_sweep(nightly=True)
-        logger.info("[Nightly] Sweep完了（全Tier）")
+        run_sweep()
+        logger.info("[Nightly] Sweep完了")
     except Exception as e:
         logger.error(f"[Nightly] Sweep失敗: {e}")
 
@@ -97,19 +96,20 @@ def start_hybrid_radar():
     print(f" 🧊 Cooldown: {COUNCIL_COOLDOWN // 60}min")
     print("=" * 60)
     
-    # 初期価格の取得（Tier1全銘柄）
-    anchor_prices = {}
-    for _sym in VOLATILITY_WATCH_SYMBOLS:
-        _data = MarketData.fetch_token_data(_sym)
-        _price = float(_data.get("priceUsd", 0.0)) if _data else 0.0
-        if _price <= 0:
-            logger.error(f"❌ {_sym} 初期価格取得失敗。5秒後リトライ...")
-            time.sleep(5)
-            _data = MarketData.fetch_token_data(_sym)
-            _price = float(_data.get("priceUsd", 0.0)) if _data else 0.0
-        anchor_prices[_sym] = _price
-        logger.info(f"🎯 Anchor price [{_sym}]: ${_price:.6f}")
-    anchor_price = anchor_prices.get("VIRTUAL", 0.0)  # ステータス表示用
+    # 初期価格の取得
+    initial_data = MarketData.fetch_token_data("VIRTUAL")
+    anchor_price = float(initial_data.get("priceUsd", 0.0)) if initial_data else 0.0
+    
+    if anchor_price <= 0:
+        logger.error("❌ 初期価格の取得に失敗。5秒後にリトライ...")
+        time.sleep(5)
+        initial_data = MarketData.fetch_token_data("VIRTUAL")
+        anchor_price = float(initial_data.get("priceUsd", 0.0)) if initial_data else 0.0
+        if anchor_price <= 0:
+            logger.error("❌ リトライ失敗。レーダーを停止します。")
+            return
+    
+    logger.info(f"🎯 Anchor price: ${anchor_price:.6f}")
     
     processed_alphas = {}     # 処理済みアルファのタイムスタンプ
     last_nightly_date = None  # 最後にNightly Batchを実行した日付
@@ -162,35 +162,32 @@ def start_hybrid_radar():
 
 
                         # ============================================================
-            # 1. ボラティリティ監視 (Tier1: VIRTUAL / AIXBT)
+            # 1. ボラティリティ監視 (VIRTUAL)
             # ============================================================
-            current_price = anchor_prices.get("VIRTUAL", 0.0)  # ステータス表示用
-            for _vsym in VOLATILITY_WATCH_SYMBOLS:
-                try:
-                    _vdata = MarketData.fetch_token_data(_vsym)
-                    if _vdata and _vdata.get("status") == "success":
-                        _vprice = float(_vdata.get("priceUsd", 0.0))
-                        _anchor = anchor_prices.get(_vsym, 0.0)
-                        _change = abs((_vprice - _anchor) / _anchor) * 100 if _anchor > 0 else 0
-
-                        if _vsym == "VIRTUAL":
-                            current_price = _vprice  # ステータス表示用更新
-
-                        if _change >= VOLATILITY_THRESHOLD:
-                            _dir = "上昇" if _vprice > _anchor else "下落"
-                            logger.warning(f"🚨 [VOLATILITY] {_vsym} {_dir} {_change:.2f}% (${_anchor:.6f} → ${_vprice:.6f})")
-
-                            if is_cooled_down and trigger_type is None:
-                                trigger_type = "VOLATILITY"
-                                trigger_symbol = _vsym
-                                trigger_context = f"{_vsym}価格が{_change:.2f}%{_dir}（${_anchor:.6f}→${_vprice:.6f}）"
-                            else:
-                                logger.info(f"  ⏳ 冷却中（残り{int(cooldown_remaining/60)}分）— {_vsym}ボラトリガーを保留")
-
-                        # アンカー価格を更新
-                        anchor_prices[_vsym] = _vprice
-                except Exception as e:
-                    logger.error(f"ボラティリティ監視エラー [{_vsym}]: {e}")
+            try:
+                current_data = MarketData.fetch_token_data("VIRTUAL")
+                if current_data and current_data.get("status") == "success":
+                    current_price = float(current_data.get("priceUsd", 0.0))
+                    change_percent = abs((current_price - anchor_price) / anchor_price) * 100 if anchor_price > 0 else 0
+                    
+                    if change_percent >= VOLATILITY_THRESHOLD:
+                        direction = "上昇" if current_price > anchor_price else "下落"
+                        logger.warning(f"🚨 [VOLATILITY] VIRTUAL {direction} {change_percent:.2f}% (${anchor_price:.6f} → ${current_price:.6f})")
+                        
+                        if is_cooled_down:
+                            trigger_type = "VOLATILITY"
+                            trigger_symbol = "VIRTUAL"
+                            trigger_context = f"VIRTUAL価格が{change_percent:.2f}%{direction}（${anchor_price:.6f}→${current_price:.6f}）"
+                        else:
+                            logger.info(f"  ⏳ 冷却中（残り{int(cooldown_remaining/60)}分）— ボラトリガーを保留")
+                        
+                        # アンカー価格を更新（トリガーの有無に関わらず）
+                        anchor_price = current_price
+                else:
+                    current_price = anchor_price  # フォールバック
+            except Exception as e:
+                logger.error(f"ボラティリティ監視エラー: {e}")
+                current_price = anchor_price
 
             # ============================================================
             # 2. アルファ監視 (Blackboard経由)

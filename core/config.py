@@ -21,3 +21,14 @@ def get_agent_llm(name=None):
 
 def get_neo_llm():
     return get_agent_llm()
+
+# ============================================================
+# VP銘柄監視 3層設定（Task A.1）
+# ============================================================
+VP_TIER1_SYMBOLS = ["VIRTUAL", "AIXBT"]       # 常時監視 + Sweep最優先
+VP_TIER2_SYMBOLS = ["LUNA"]                    # Sweep対象
+VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
+
+SWEEP_SYMBOLS         = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS   # 通常Sweep
+SWEEP_SYMBOLS_NIGHTLY = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS + VP_TIER3_SYMBOLS  # Nightly
+VOLATILITY_WATCH_SYMBOLS = VP_TIER1_SYMBOLS   # ボラティリティ監視
