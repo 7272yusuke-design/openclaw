@@ -13,3 +13,8 @@ credentials.json
 *.bin
 *.log
 vault/chroma_db.bak*
+
+# Backup files
+*.bak
+*.bak2
+.env.bak
