@@ -18,8 +18,16 @@ class FeatureBuilder:
         df['ma50'] = df['close'].rolling(window=50, min_periods=1).mean()
 
         # アルファ計算
-        df = FundingRateAlpha.build_all_features(df)
-        df = LiquidationAlpha.build_all_features(df)
+        has_funding = "funding_rate" in df.columns
+        has_liquidation = all(c in df.columns for c in ["liq_long", "liq_short"])
+        if has_funding:
+            df = FundingRateAlpha.build_all_features(df)
+        else:
+            logger.info("funding_rate unavailable — skipping FundingRateAlpha (CoinGecko mode)")
+        if has_liquidation:
+            df = LiquidationAlpha.build_all_features(df)
+        else:
+            logger.info("liquidation data unavailable — skipping LiquidationAlpha (CoinGecko mode)")
         df = VolatilityAlpha.calculate_bollinger_squeeze(df)
         df = CrossAssetAlpha.calculate_momentum_acceleration(df)
         df = RegimeAlpha.detect_trend_regime(df)
