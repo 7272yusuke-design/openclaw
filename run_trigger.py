@@ -13,18 +13,23 @@ from tools.market_data import MarketData
 from core.blackboard import NeoBlackboard
 from agents.trinity_council import TrinityCouncil
 from tools.discord_reporter import DiscordReporter
+from orchestration.alpha_sweep_operation import run_sweep
+from orchestration.performance_evaluator import evaluate_performance
 
 # --- 設定 ---
 CHECK_INTERVAL = 30           # 監視間隔（秒）
 VOLATILITY_THRESHOLD = 2.0    # ボラティリティ閾値（%）
 ALPHA_THRESHOLD = 5.0         # Sharpe閾値
 COUNCIL_COOLDOWN = 1800       # 冷却期間（30分）— Moltbook Rate Limit保護
+SWEEP_INTERVAL   = 120        # Sweepサイクル間隔（30秒×120=60分）
+EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間）
 
+from logging.handlers import RotatingFileHandler as _RFH
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(name)s] %(levelname)s: %(message)s',
     handlers=[
-        logging.FileHandler("radar.log"),
+        _RFH("radar.log", maxBytes=1_000_000, backupCount=3),
         logging.StreamHandler()
     ]
 )
@@ -69,6 +74,24 @@ def start_hybrid_radar():
             trigger_context = None
 
             # ============================================================
+            # 0. Alpha Sweep 自動実行（60分ごと）
+            # ============================================================
+            if cycle_count % EVAL_INTERVAL == 0:
+                logger.info(f"[Evaluator] 定期評価開始 (cycle={cycle_count})")
+                try:
+                    evaluate_performance()
+                except Exception as e:
+                    logger.error(f"[Evaluator] エラー: {e}")
+
+            if cycle_count % SWEEP_INTERVAL == 0:
+                logger.info(f"[Sweep] 定期スキャン開始 (cycle={cycle_count})")
+                try:
+                    run_sweep()
+                    logger.info("[Sweep] 完了 — Blackboard更新済み")
+                except Exception as e:
+                    logger.error(f"[Sweep] エラー: {e}")
+
+                        # ============================================================
             # 1. ボラティリティ監視 (VIRTUAL)
             # ============================================================
             try:
@@ -155,6 +178,11 @@ def start_hybrid_radar():
                     
                     verdict = result.get("verdict", "UNKNOWN")
                     logger.info(f"✅ Council完了: {verdict} | 冷却開始（{COUNCIL_COOLDOWN//60}分）")
+                    # 取引後に勝率を即時更新
+                    try:
+                        evaluate_performance()
+                    except Exception as _e:
+                        logger.error(f"[Evaluator] Post-council error: {_e}")
                     
                 except Exception as e:
                     logger.error(f"⚠️ Council Error: {e}", exc_info=True)

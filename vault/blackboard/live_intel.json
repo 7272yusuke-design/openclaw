@@ -12,13 +12,51 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "TEST: This should NOT appear in ChromaDB",
-    "success_probability": 0.5,
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: AVAX/USDT",
+    "success_probability": 0.85,
     "strategy_id": "TEST_ANTI_NOISE",
-    "diplomatic_presets": {},
-    "active_opportunities": {},
-    "opportunity_count": 0,
-    "last_updated": "2026-03-14T04:03:13.120014+00:00"
+    "diplomatic_presets": {
+      "execution_priority": "CRITICAL"
+    },
+    "active_opportunities": {
+      "ETH/USDT": {
+        "sharpe": 5.2,
+        "alert_level": "Critical",
+        "last_detected": "2026-03-14T05:00:20"
+      },
+      "SOL/USDT": {
+        "sharpe": 5.2,
+        "alert_level": "Critical",
+        "last_detected": "2026-03-14T05:00:28"
+      },
+      "ADA/USDT": {
+        "sharpe": 5.2,
+        "alert_level": "Normal",
+        "last_detected": "2026-03-14T04:38:03"
+      },
+      "AVAX/USDT": {
+        "sharpe": 6.2,
+        "alert_level": "Warning",
+        "last_detected": "2026-03-14T05:02:12"
+      },
+      "VIRTUAL/USDT": {
+        "sharpe": 5.2,
+        "alert_level": "Critical",
+        "last_detected": "2026-03-14T04:59:52"
+      },
+      "AIXBT/USDT": {
+        "sharpe": 5.1,
+        "alert_level": "Critical",
+        "last_detected": "2026-03-14T04:59:58"
+      },
+      "GAME/USDT": {
+        "sharpe": 6.2,
+        "alert_level": "Normal",
+        "last_detected": "2026-03-14T05:00:06"
+      }
+    },
+    "opportunity_count": 7,
+    "last_updated": "2026-03-14T05:02:12.547591+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -28,6 +66,6 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-03-14T03:17:33.309397"
+    "last_evaluated": "2026-03-14T05:02:34.543318"
   }
 }

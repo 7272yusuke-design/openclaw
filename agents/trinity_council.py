@@ -162,7 +162,18 @@ class TrinityCouncil(NeoBaseCrew):
         t3 = Task(description=f"{target_symbol} への最終投資判断。必ずBUY/SELL/WAITで始めよ。", agent=agent_neo, expected_output="最終判断と根拠")
 
         crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
-        final_verdict = crew.kickoff()
+        import threading
+        verdict_container = [None]
+        def _kickoff():
+            verdict_container[0] = crew.kickoff()
+        t = threading.Thread(target=_kickoff, daemon=True)
+        t.start()
+        t.join(timeout=90)  # 90秒でタイムアウト
+        if verdict_container[0] is None:
+            logger.warning("[Council] crew.kickoff() timed out (90s). Defaulting to WAIT.")
+            final_verdict = "WAIT: タイムアウトのため判断を保留"
+        else:
+            final_verdict = verdict_container[0]
         verdict_text = str(final_verdict)
         
         print(f"\n[Phase 4] 判定: {verdict_text[:100]}...")

@@ -16,7 +16,7 @@ logger = logging.getLogger("neo.sweep_op")
 
 def run_sweep():
     # 掃討対象：ボラティリティと歪みが期待できる主要アルト
-    targets = ["ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "ADA/USDT", "DOGE/USDT", "AVAX/USDT"]
+    targets = ["VIRTUAL/USDT", "AIXBT/USDT", "GAME/USDT", "LUNA/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT"]
     
     logger.info(f"=== 🌊 Starting High-Alpha Sweep Operation: {len(targets)} targets ===")
     
