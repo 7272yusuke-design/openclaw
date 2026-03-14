@@ -80,6 +80,29 @@ class TrinityCouncil(NeoBaseCrew):
         except:
             pass
 
+        # 1c-2. センチメント分析
+        sentiment_label = "neutral"
+        sentiment_risk_factors = []
+        try:
+            from agents.sentiment_agent import SentimentCrew
+            print(f"\n[Phase 1-S] センチメント分析中...")
+            sentiment_crew = SentimentCrew()
+            s_result = sentiment_crew.run(
+                goal=f"{target_symbol} の市場センチメントを評価せよ",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}",
+                constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
+            )
+            import json as _json
+            s_data = _json.loads(str(s_result)) if isinstance(s_result, str) else (s_result.__dict__ if hasattr(s_result, "__dict__") else {})
+            sentiment_score = float(s_data.get("market_sentiment_score", sentiment_score))
+            sentiment_label = s_data.get("sentiment_label", "neutral")
+            sentiment_risk_factors = s_data.get("risk_factors", [])
+            print(f"  🧠 センチメント: {sentiment_label} (score={sentiment_score:.2f})")
+        except Exception as se:
+            print(f"  ⚠️ SentimentCrew失敗（フォールバック）: {str(se)[:60]}")
+            sentiment_label = "neutral"
+            sentiment_risk_factors = []
+
         # 1d. 過去の記憶
         # 教訓を優先的にrecall
         lessons = self.memory.recall_lessons(n_results=3)
@@ -136,21 +159,21 @@ class TrinityCouncil(NeoBaseCrew):
         agent_bull = Agent(
             role='強気派アナリスト',
             goal=f'{target_symbol} の上昇ポテンシャルを数値根拠とともに主張せよ',
-            backstory=f'市場の熱量を肯定的に捉える専門家。スカウト報告「{whale_sig}」を重視。{portfolio_context}',
+            backstory=f'市場の熱量を肯定的に捉える専門家。スカウト報告「{whale_sig}」を重視。センチメント: {sentiment_label}(score={sentiment_score:.2f})。{portfolio_context}',
             tools=[wiki_tool],
             llm=self.flash_model
         )
         agent_bear = Agent(
             role='リスク管理者',
             goal=f'{target_symbol} のリスクをバックテスト結果から厳密に指摘せよ',
-            backstory=f'データ不足やドローダウンを厳しく評価する。バックテスト信頼度: {bt_confidence}。{portfolio_context}',
+            backstory=f'データ不足やドローダウンを厳しく評価する。バックテスト信頼度: {bt_confidence}。センチメントリスク: {sentiment_risk_factors}。{portfolio_context}',
             llm=self.flash_model
         )
         agent_neo = Agent(
             role='最高司令官ネオ',
             goal='全意見を総合し、明確にBUY/SELL/WAITのいずれか一語で判断を開始せよ',
             backstory=(
-                f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
+                f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
                 f'過去の教訓: {formatted_precedents}\n'
                 f'必ず回答の最初に「BUY」「SELL」「WAIT」のいずれかを明記し、その後に根拠を日本語で述べよ。'
             ),
