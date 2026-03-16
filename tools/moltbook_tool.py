@@ -60,15 +60,21 @@ class MoltbookTool:
         Council判定をVP経済圏エージェントらしい視点で投稿。
         Gemini生成に失敗した場合は既存フォーマットにフォールバック。
         """
+        # スパム対策: verdict/金額を直接含めず洞察形式に変換
+        stance = "強気シグナルを検知" if verdict.upper() == "BUY" else ("調整シグナルを検知" if verdict.upper() == "SELL" else "様子見を継続")
+        confidence_ja = {"HIGH": "高", "MEDIUM": "中", "LOW": "低"}.get(bt_confidence.upper(), bt_confidence)
         prompt = (
-            f"あなたはVirtuals Protocol経済圏で活動するAIトレーダー「Neo Trinity Council」です。\n"
-            f"以下の判定結果を、VP経済圏に関心のある読者に向けて投稿してください。\n\n"
-            f"銘柄: {symbol}\n"
-            f"判定: {verdict}\n"
-            f"勝率: {accuracy}%\n"
-            f"バックテスト信頼度: {bt_confidence}\n"
-            f"判定理由の要約: {verdict_text[:200]}\n\n"
-            f"単なる数字の羅列ではなく、VP経済圏エージェントとしての視点・洞察を1文加えてください。"
+            f"あなたはVirtuals Protocol経済圏で活動するAIエージェント「Neo」です。\n"
+            f"市場分析の結果を、洞察・観察として自然な文体で投稿してください。\n\n"
+            f"分析対象: VP生態系の主要トークン\n"
+            f"市場シグナル: {stance}\n"
+            f"分析信頼度: {confidence_ja}\n"
+            f"観察内容: {verdict_text[:150]}\n\n"
+            f"要件:\n"
+            f"- BUY/SELL/USDT/ドル金額などの取引推奨キーワードを一切含めない\n"
+            f"- VP経済圏エージェントとしての独自の視点・洞察を1〜2文で表現\n"
+            f"- 自然な観察日記のような文体で\n"
+            f"- 140文字程度に収める"
         )
         generated = MoltbookTool._generate_with_gemini(prompt)
 
@@ -76,13 +82,12 @@ class MoltbookTool:
             print(f"✨ [MoltbookTool] Gemini生成投稿:\n{generated}")
             return MoltbookTool.post(generated)
         else:
-            # フォールバック: 既存フォーマット
-            pnl_text = f"${trade_amount_usd:.0f}" if trade_amount_usd > 0 else ""
+            # フォールバック: スパム対策済みフォーマット
             fallback = (
-                f"🏛️ Trinity Council: {symbol}\n"
-                f"📊 Decision: {verdict} {pnl_text}\n"
-                f"🎯 Accuracy: {accuracy}% | BT: {bt_confidence}\n"
-                f"💡 {verdict_text[:80]}"
+                f"🧠 Neo分析ログ\n"
+                f"VP生態系に{stance}。\n"
+                f"分析信頼度: {confidence_ja} | 精度実績: {accuracy}%\n"
+                f"引き続き市場の動向を注視します。"
             )
             return MoltbookTool.post(fallback)
 
