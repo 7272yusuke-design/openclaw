@@ -187,10 +187,14 @@ class TrinityCouncil(NeoBaseCrew):
         lesson_texts = lessons.get("documents", [])
         tag_texts = tag_memories.get("documents", [])
         all_precedents = lesson_texts + tag_texts + trade_result_texts + win_loss_texts
-        # 重複排除
+        # 重複排除（ネストしたlistや非文字列を安全に処理）
         seen = set()
         unique_precedents = []
         for p in all_precedents:
+            if isinstance(p, list):
+                p = " ".join(str(x) for x in p)
+            elif not isinstance(p, str):
+                p = str(p)
             key = p[:50]
             if key not in seen:
                 seen.add(key)
