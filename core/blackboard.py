@@ -122,14 +122,9 @@ class NeoBlackboard:
             with open(cls.FILE_PATH, "w") as f:
                 json.dump(current_intel, f, indent=2, ensure_ascii=False)
             
-            # ChromaDB書き込み: council_verdict と permanent_record のみ
-            # Alpha Sweep (strategic_intel) は Blackboard のみで DB には書かない（ノイズ防止）
-            _db_allowed_sections = {"execution_history", "performance_summary"}
-            if section in _db_allowed_sections:
-                cls._memory.store(
-                    content=f"Update to {section}: {json.dumps(data)}",
-                    metadata={"section": section, "timestamp": datetime.now(timezone.utc).isoformat()}
-                )
+            # ChromaDB書き込み: Blackboardからは一切書き込まない（ノイズ防止）
+            # Council判定・利確・損切の結果のみ trinity_council.py から直接書き込む
+            # （performance_summary / execution_history の自動更新はBlackboardのみ）
             logger.info(f"Blackboard updated and synced: {section}")
         except Exception as e:
             logger.error(f"Update Failed: {e}")
