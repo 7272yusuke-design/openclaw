@@ -249,10 +249,23 @@ class TrinityCouncil(NeoBaseCrew):
             tools=[wiki_tool],
             llm=self.flash_model
         )
+        # 学習モード中はBearの信頼度批判を緩和する
+        if LEARNING_MODE:
+            bear_backstory = (
+                f'学習フェーズのリスク管理者。データ蓄積が最優先のため、'
+                f'バックテスト信頼度({bt_confidence})は参考程度に留め、'
+                f'Sharpe値と価格トレンドを主な根拠とせよ。'
+                f'センチメントリスク: {sentiment_risk_factors}。{portfolio_context}'
+            )
+            bear_goal = f'{target_symbol} の重大リスクのみ指摘せよ。信頼度の低さだけを理由にWAITを主張してはならない'
+        else:
+            bear_backstory = f'データ不足やドローダウンを厳しく評価する。バックテスト信頼度: {bt_confidence}。センチメントリスク: {sentiment_risk_factors}。{portfolio_context}'
+            bear_goal = f'{target_symbol} のリスクをバックテスト結果から厳密に指摘せよ'
+
         agent_bear = Agent(
             role='リスク管理者',
-            goal=f'{target_symbol} のリスクをバックテスト結果から厳密に指摘せよ',
-            backstory=f'データ不足やドローダウンを厳しく評価する。バックテスト信頼度: {bt_confidence}。センチメントリスク: {sentiment_risk_factors}。{portfolio_context}',
+            goal=bear_goal,
+            backstory=bear_backstory,
             llm=self.flash_model
         )
         agent_neo = Agent(
