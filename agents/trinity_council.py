@@ -157,9 +157,17 @@ class TrinityCouncil(NeoBaseCrew):
             from agents.sentiment_agent import SentimentCrew
             print(f"\n[Phase 1-S] センチメント分析中...")
             sentiment_crew = SentimentCrew()
+            # C.3: 実市場データ取得
+            try:
+                from tools.market_sentiment import get_market_context_text
+                market_context = get_market_context_text(target_symbol)
+                print(f"  📊 {market_context.splitlines()[1]}")
+            except Exception as _mce:
+                market_context = ""
+                print(f"  ⚠️ 市場センチメントデータ取得失敗: {_mce}")
             s_result = sentiment_crew.run(
                 goal=f"{target_symbol} の市場センチメントを評価せよ",
-                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}",
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
