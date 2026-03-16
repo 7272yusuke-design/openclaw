@@ -57,3 +57,23 @@ class PortfolioManager:
     def get_trade_count(self) -> int:
         """総取引回数"""
         return len(self.wallet.state.get("history", []))
+
+    def get_holding(self, symbol: str) -> float:
+        """指定銘柄の保有量を返す"""
+        return self.wallet.get_holding(symbol)
+
+    def get_unrealized_pnl(self, symbol: str, current_price: float) -> dict:
+        """含み損益を返す"""
+        return self.wallet.get_unrealized_pnl(symbol, current_price)
+
+    def should_take_profit(self, symbol: str, current_price: float, target_pct: float = 20.0) -> bool:
+        """利確判定"""
+        return self.wallet.should_take_profit(symbol, current_price, target_pct)
+
+    def should_stop_loss(self, symbol: str, current_price: float, stop_pct: float = 10.0) -> bool:
+        """損切判定"""
+        return self.wallet.should_stop_loss(symbol, current_price, stop_pct)
+
+    def get_portfolio_summary(self, prices: dict) -> dict:
+        """ポートフォリオサマリーを返す"""
+        return self.wallet.get_portfolio_summary(prices)
