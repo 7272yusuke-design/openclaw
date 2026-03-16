@@ -18,12 +18,19 @@ def _extract_stats(portfolio, strategy_name: str) -> dict:
         win_rate     = float(stats.get('Win Rate [%]', 0.0) or 0.0)
 
         # Sharpeガード: 取引3回未満 or inf/nan → 0.0
-        if total_trades < 3 or math.isinf(sharpe_raw) or math.isnan(sharpe_raw):
+        # 学習モード対応: 取引数ガードをconfig参照で切替
+        try:
+            from core.config import LEARNING_MODE
+            min_trades = 1 if LEARNING_MODE else 3
+        except Exception:
+            min_trades = 3
+
+        if total_trades < min_trades or math.isinf(sharpe_raw) or math.isnan(sharpe_raw):
             sharpe_adj = 0.0
             confidence = "LOW"
         else:
             sharpe_adj = max(0.0, round(sharpe_raw, 3))
-            confidence = "HIGH" if total_trades >= 10 else "MED"
+            confidence = "HIGH" if total_trades >= 10 else "MED" if total_trades >= 3 else "LOW"
 
         return {
             "strategy":     strategy_name,
