@@ -161,13 +161,39 @@ class CoreBacktest:
     # ── 全戦略一括実行（Task 2.2 メインAPI）─────────────────────────
     @staticmethod
     def run_all_strategies(df: pd.DataFrame) -> dict:
-        """4戦略を実行し、最良Sharpeの戦略を返す"""
-        results = {
-            "alpha_strategy":    CoreBacktest.run_alpha_strategy(df),
-            "bb_reversal":       CoreBacktest.run_bb_reversal(df),
-            "momentum_breakout": CoreBacktest.run_momentum_breakout(df),
-            "mean_reversion":    CoreBacktest.run_mean_reversion(df),
+        """4戦略をconcurrent.futuresで並列実行し、最良Sharpeの戦略を返す"""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        strategy_map = {
+            "alpha_strategy":    CoreBacktest.run_alpha_strategy,
+            "bb_reversal":       CoreBacktest.run_bb_reversal,
+            "momentum_breakout": CoreBacktest.run_momentum_breakout,
+            "mean_reversion":    CoreBacktest.run_mean_reversion,
         }
+
+        results = {}
+
+        # ThreadPoolExecutor: pickle不要・GIL解放で数値計算は並列動作
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_to_name = {
+                    executor.submit(func, df): name
+                    for name, func in strategy_map.items()
+                }
+                for future in as_completed(future_to_name, timeout=60):
+                    name = future_to_name[future]
+                    try:
+                        results[name] = future.result()
+                    except Exception as e:
+                        results[name] = {"strategy": name, "sharpe": 0.0,
+                                         "confidence": "LOW", "trades": 0,
+                                         "win_rate": 0.0, "error": str(e)}
+        except Exception as e:
+            import logging
+            logging.getLogger("neo.backtest").warning(
+                f"Parallel backtest failed, falling back to sequential: {e}")
+            results = {name: func(df) for name, func in strategy_map.items()}
+
         best = max(results.values(), key=lambda r: r.get("sharpe", 0.0))
         summary = (
             f"最良戦略: {best['strategy']} | "
