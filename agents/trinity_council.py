@@ -470,11 +470,29 @@ class TrinityCouncil(NeoBaseCrew):
         # ============================================================
         # Phase 7: メモリ保存（詳細フィードバック付き）
         # ============================================================
+        # J.2: 判断文脈の記録強化
+        # オンチェーン流動性・ニュース件数・各エージェント主張要約を保存
+        try:
+            # onchain_contextはテキスト形式なので1行目を要約として使用
+            onchain_summary = onchain_context.splitlines()[1].strip() if onchain_context and len(onchain_context.splitlines()) > 1 else "オンチェーンデータなし"
+        except Exception:
+            onchain_summary = "オンチェーンデータなし"
+        try:
+            news_count = len([l for l in news_context.splitlines() if l.strip().startswith("- ")]) if news_context else 0
+        except Exception:
+            news_count = 0
+        try:
+            fng_value = market_context.split("Fear & Greed Index:")[1].split("/")[0].strip() if market_context and "Fear & Greed" in market_context else "N/A"
+        except Exception:
+            fng_value = "N/A"
+
         memory_entry = (
             f"{target_symbol} @ ${current_price:.6f}: {trade_action} "
             f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f}, "
-            f"sentiment={sentiment_label}, score={sentiment_score:.2f}, "
-            f"reason={verdict_text[:100]})"
+            f"sentiment={sentiment_label}({sentiment_score:.2f}), "
+            f"FearGreed={fng_value}, news={news_count}件, "
+            f"onchain={onchain_summary}, "
+            f"reason={verdict_text[:150]})"
         )
         memory_metadata = {
             "symbol": clean_symbol,
@@ -483,6 +501,10 @@ class TrinityCouncil(NeoBaseCrew):
             "accuracy": str(accuracy),
             "bt_confidence": bt_confidence,
             "sentiment": sentiment_label,
+            "sentiment_score": str(round(sentiment_score, 2)),
+            "fear_greed": fng_value,
+            "news_count": str(news_count),
+            "onchain_liquidity": onchain_summary[:80],
             "amount_usd": str(trade_amount_usd),
             "category": "trade_record",
             "tier": "3"
