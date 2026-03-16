@@ -18,11 +18,12 @@ from core.config import VOLATILITY_WATCH_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 from orchestration.nightly_research import run_nightly_research
 from orchestration.vp_discovery import run_vp_discovery
+from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_THRESHOLD
 
 # --- 設定 ---
 CHECK_INTERVAL = 30           # 監視間隔（秒）
 VOLATILITY_THRESHOLD = 2.0    # ボラティリティ閾値（%）
-ALPHA_THRESHOLD = 5.0         # Sharpe閾値
+ALPHA_THRESHOLD = LEARNING_SHARPE_THRESHOLD if LEARNING_MODE else 5.0  # 学習モード中は緩和
 COUNCIL_COOLDOWN = 1800       # 冷却期間（30分）— Moltbook Rate Limit保護
 SWEEP_INTERVAL   = 120        # Sweepサイクル間隔（30秒×120=60分）
 EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間）

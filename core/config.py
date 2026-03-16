@@ -32,3 +32,10 @@ VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
 SWEEP_SYMBOLS         = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS   # 通常Sweep
 SWEEP_SYMBOLS_NIGHTLY = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS + VP_TIER3_SYMBOLS  # Nightly
 VOLATILITY_WATCH_SYMBOLS = VP_TIER1_SYMBOLS   # ボラティリティ監視
+
+# ============================================================
+# 学習モード設定（Task F.1）
+# ============================================================
+LEARNING_MODE = True           # 100回取引達成まで有効
+LEARNING_TARGET_TRADES = 100   # 目標取引数
+LEARNING_SHARPE_THRESHOLD = 0.5  # 学習モード中の緩和Sharpeしきい値（通常5.0）

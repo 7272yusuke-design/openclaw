@@ -199,8 +199,12 @@ class TrinityCouncil(NeoBaseCrew):
         
         wiki_tool = DeepWikiTool()
 
+        from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES
         caution_note = ""
-        if total_past_trades < 5:
+        if LEARNING_MODE:
+            remaining = max(0, LEARNING_TARGET_TRADES - total_past_trades)
+            caution_note = f"📚 学習モード中（目標{LEARNING_TARGET_TRADES}回中{total_past_trades}回完了、残り{remaining}回）。データ蓄積を最優先とし、積極的にBUY/SELL判断を下せ。WAITは最終手段とせよ。"
+        elif total_past_trades < 5:
             caution_note = "⚠️ 評価可能な取引数が少ないため、予測精度は未確定。特に慎重に判断せよ。"
         elif accuracy < 50:
             caution_note = f"⚠️ 現在の勝率は{accuracy}%と低迷中。リスク回避を最優先とせよ。"
