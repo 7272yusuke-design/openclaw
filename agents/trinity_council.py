@@ -165,9 +165,18 @@ class TrinityCouncil(NeoBaseCrew):
             except Exception as _mce:
                 market_context = ""
                 print(f"  ⚠️ 市場センチメントデータ取得失敗: {_mce}")
+            # J.1: クリプトニュースRSS取得
+            try:
+                from tools.crypto_news import get_news_context_text
+                news_context = get_news_context_text(target_symbol)
+                vp_count = news_context.count("  - ") if news_context else 0
+                print(f"  📰 ニュース取得: {vp_count}件")
+            except Exception as _nce:
+                news_context = ""
+                print(f"  ⚠️ ニュース取得失敗: {_nce}")
             s_result = sentiment_crew.run(
                 goal=f"{target_symbol} の市場センチメントを評価せよ",
-                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}",
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
