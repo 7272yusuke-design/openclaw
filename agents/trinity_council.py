@@ -76,26 +76,49 @@ class TrinityCouncil(NeoBaseCrew):
             if holding > 0:
                 pnl = self.portfolio.get_unrealized_pnl(clean_symbol, current_price)
                 print(f"  📈 含み損益: ${pnl['pnl_usd']:+.2f} ({pnl['pnl_pct']:+.2f}%)")
-                if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=20.0):
-                    print(f"\n[Phase 1-TP] 🎯 利確トリガー発動: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+                # J.3: 段階的利確（学習モード中は+10%で半量・+20%で全量）
+                from core.config import LEARNING_MODE
+                partial_tp_pct = 10.0 if LEARNING_MODE else 20.0
+                full_tp_pct = 20.0
+
+                if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
+                    # +20%到達: 全量売却
+                    print(f"\n[Phase 1-TP] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
                     sell_amount_usd = holding * current_price
+                    tp_label = "Full TP"
+                    tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
+                elif LEARNING_MODE and self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
+                    # +10%到達（学習モードのみ）: 半量売却
+                    print(f"\n[Phase 1-TP] 🎯 半量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}% (学習モード)")
+                    sell_amount_usd = (holding * current_price) * 0.5
+                    tp_label = "Partial TP (50%)"
+                    tp_reason = f"Partial Take Profit at +{pnl['pnl_pct']:.1f}% (learning mode, target: +{partial_tp_pct}%)"
+                else:
+                    sell_amount_usd = 0
+                    tp_label = ""
+                    tp_reason = ""
+
+                if sell_amount_usd > 0:
                     tp_result = self.portfolio.execute_trade(
                         symbol=clean_symbol,
                         action="SELL",
                         amount_usd=sell_amount_usd,
                         price=current_price,
-                        reason=f"Take Profit triggered at +{pnl['pnl_pct']:.1f}% (target: +20%)"
+                        reason=tp_reason
                     )
                     if tp_result.get("status") == "success":
-                        print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収")
-                        # 利確成功をtier=2記憶として保存（自己改善用）
+                        print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収 ({tp_label})")
                         tp_memory = (
-                            f"【利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} "
+                            f"【{tp_label}利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} "
                             f"+{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f}) "
-                            f"教訓: +20%到達で確実に利確すること"
+                            f"教訓: {tp_label}で利確実行"
                         )
-                        self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
-                        return {"verdict": "SELL", "verdict_text": f"Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
+                        self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
+                        if tp_label.startswith("Full"):
+                            return {"verdict": "SELL", "verdict_text": f"Full Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
+                        else:
+                            # 半量利確後はCouncilを継続（残りポジションの判断へ）
+                            print(f"  📊 半量利確完了 → 残りポジションはCouncilで判断継続")
                 elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=10.0):
                     print(f"\n[Phase 1-SL] 🛑 損切トリガー発動: {clean_symbol} {pnl['pnl_pct']:.1f}%")
                     sell_amount_usd = holding * current_price
