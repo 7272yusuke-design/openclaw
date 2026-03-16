@@ -111,7 +111,9 @@ class MarketData:
     @staticmethod
     def fetch_ohlcv_custom(query: str, days: int = 30) -> pd.DataFrame:
         """
-        CoinGecko OHLC APIから実際の価格履歴を取得。
+        OHLCVデータ取得。優先順位:
+          1. ローカルSQLite（data_collector蓄積済みデータ）
+          2. CoinGecko API（フォールバック）
         
         Returns:
             pd.DataFrame with columns: [datetime, open, high, low, close]
@@ -119,7 +121,24 @@ class MarketData:
         """
         symbol = MarketData._normalize_symbol(query)
         cg_id = MarketData._get_coingecko_id(symbol)
-        
+
+        # --- Step 1: ローカルSQLite参照（I.1 data_collector蓄積データ） ---
+        try:
+            from orchestration.data_collector import get_ohlcv_from_db
+            limit = days * 24 * 12  # 5分足換算（最大）
+            db_rows = get_ohlcv_from_db(symbol, limit=min(limit, 5000))
+            if len(db_rows) >= 10:  # 最低10件あれば使用
+                df = pd.DataFrame(db_rows, columns=["timestamp", "open", "high", "low", "close"])
+                df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms")
+                df = df.drop(columns=["timestamp"])
+                logger.info(f"OHLCV from local DB for {symbol}: {len(df)} rows")
+                return df
+            else:
+                logger.info(f"Local DB insufficient for {symbol} ({len(db_rows)} rows), falling back to CoinGecko")
+        except Exception as e:
+            logger.warning(f"Local DB read failed for {symbol}: {e}, falling back to CoinGecko")
+
+        # --- Step 2: CoinGecko API（フォールバック） ---
         # キャッシュ確認（1時間以内のキャッシュがあれば再利用）
         cache_file = f"data/ohlcv_cache_{symbol}.json"
         cache_path = os.path.join("/docker/openclaw-taan/data/.openclaw/workspace", cache_file)
