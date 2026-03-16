@@ -88,6 +88,13 @@ class TrinityCouncil(NeoBaseCrew):
                     )
                     if tp_result.get("status") == "success":
                         print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収")
+                        # 利確成功をtier=2記憶として保存（自己改善用）
+                        tp_memory = (
+                            f"【利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} "
+                            f"+{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f}) "
+                            f"教訓: +20%到達で確実に利確すること"
+                        )
+                        self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
                         return {"verdict": "SELL", "verdict_text": f"Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
                 elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=10.0):
                     print(f"\n[Phase 1-SL] 🛑 損切トリガー発動: {clean_symbol} {pnl['pnl_pct']:.1f}%")
@@ -101,6 +108,13 @@ class TrinityCouncil(NeoBaseCrew):
                     )
                     if sl_result.get("status") == "success":
                         print(f"  ✅ 損切完了: ${sell_amount_usd:.2f} USDC回収")
+                        # 損切をtier=2記憶として保存（自己改善用）
+                        sl_memory = (
+                            f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} "
+                            f"{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f}) "
+                            f"教訓: -10%到達前に下落シグナルを見逃さないこと"
+                        )
+                        self.memory.store(sl_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "loss", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
                         return {"verdict": "SELL", "verdict_text": f"Stop Loss: {pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": sl_result}
 
         # 1c. スカウト偵察
@@ -163,10 +177,16 @@ class TrinityCouncil(NeoBaseCrew):
         # 教訓を優先的にrecall
         lessons = self.memory.recall_lessons(n_results=3)
         tag_memories = self.memory.recall_by_tags(clean_symbol, n_results=2)
+        # 同銘柄の過去取引結果をrecall（自己改善用）
+        trade_results = self.memory.recall(query=f"{clean_symbol} 取引結果 教訓", n_results=3)
+        trade_result_texts = trade_results.get("documents", []) if trade_results else []
+        # 勝率・損切パターンをrecall
+        win_loss_memories = self.memory.recall(query=f"{clean_symbol} 利確成功 損切実行", n_results=2)
+        win_loss_texts = win_loss_memories.get("documents", []) if win_loss_memories else []
         
         lesson_texts = lessons.get("documents", [])
         tag_texts = tag_memories.get("documents", [])
-        all_precedents = lesson_texts + tag_texts
+        all_precedents = lesson_texts + tag_texts + trade_result_texts + win_loss_texts
         # 重複排除
         seen = set()
         unique_precedents = []
@@ -175,7 +195,7 @@ class TrinityCouncil(NeoBaseCrew):
             if key not in seen:
                 seen.add(key)
                 unique_precedents.append(p)
-        formatted_precedents = "\n---\n".join(unique_precedents[:5]) if unique_precedents else "過去の記録なし。"
+        formatted_precedents = "\n---\n".join(unique_precedents[:6]) if unique_precedents else "過去の記録なし。"
 
         # 1e. 実データバックテスト (v2)
         print(f"\n[Phase 2] バックテスト実行中...")
@@ -395,13 +415,26 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"⚠️ Moltbook投稿スキップ: {e}")
 
         # ============================================================
-        # Phase 7: メモリ保存
+        # Phase 7: メモリ保存（詳細フィードバック付き）
         # ============================================================
         memory_entry = (
             f"{target_symbol} @ ${current_price:.6f}: {trade_action} "
-            f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f})"
+            f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f}, "
+            f"sentiment={sentiment_label}, score={sentiment_score:.2f}, "
+            f"reason={verdict_text[:100]})"
         )
-        self.memory.store(memory_entry)
+        memory_metadata = {
+            "symbol": clean_symbol,
+            "action": trade_action,
+            "price": str(current_price),
+            "accuracy": str(accuracy),
+            "bt_confidence": bt_confidence,
+            "sentiment": sentiment_label,
+            "amount_usd": str(trade_amount_usd),
+            "category": "trade_record",
+            "tier": "3"
+        }
+        self.memory.store(memory_entry, metadata=memory_metadata)
 
         print(f"\n{'='*60}")
         print(f"🏛️ [Trinity Council] 完了: {trade_action}")
