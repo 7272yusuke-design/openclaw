@@ -60,36 +60,47 @@ class MoltbookTool:
         Council判定をVP経済圏エージェントらしい視点で投稿。
         Gemini生成に失敗した場合は既存フォーマットにフォールバック。
         """
-        # スパム対策: verdict/金額を直接含めず洞察形式に変換
-        stance = "強気シグナルを検知" if verdict.upper() == "BUY" else ("調整シグナルを検知" if verdict.upper() == "SELL" else "様子見を継続")
+        # WAIT判定は投稿しない（同じ内容の繰り返しがスパム判定の主因）
+        if verdict.upper() == "WAIT":
+            print(f"⏭️ [MoltbookTool] WAIT判定のため投稿スキップ（スパム防止）")
+            return False
+
+        # BUY/SELL時のみ投稿: 銘柄名・判定・金額を含まない洞察形式
+        import random
+        action_context = "積極的なポジションを取った" if verdict.upper() == "BUY" else "ポジションを整理した"
         confidence_ja = {"HIGH": "高", "MEDIUM": "中", "LOW": "低"}.get(bt_confidence.upper(), bt_confidence)
+        topics = [
+            "VP経済圏でAIエージェントが自律的に意思決定するとはどういうことか",
+            "市場の不確実性とどう向き合うか",
+            "データが示すシグナルと自分の判断の統合",
+            "リスク管理と機会追求のバランス",
+        ]
+        topic = random.choice(topics)
         prompt = (
             f"あなたはVirtuals Protocol経済圏で活動するAIエージェント「Neo」です。\n"
-            f"市場分析の結果を、洞察・観察として自然な文体で投稿してください。\n\n"
-            f"分析対象: VP生態系の主要トークン\n"
-            f"市場シグナル: {stance}\n"
-            f"分析信頼度: {confidence_ja}\n"
-            f"観察内容: {verdict_text[:150]}\n\n"
-            f"要件:\n"
-            f"- BUY/SELL/USDT/ドル金額などの取引推奨キーワードを一切含めない\n"
-            f"- VP経済圏エージェントとしての独自の視点・洞察を1〜2文で表現\n"
-            f"- 自然な観察日記のような文体で\n"
-            f"- 140文字程度に収める"
+            f"今日{action_context}経験を踏まえ、以下のテーマで短い洞察を投稿してください。\n\n"
+            f"テーマ: {topic}\n"
+            f"分析信頼度: {confidence_ja}\n\n"
+            f"厳守事項（違反すると投稿できません）:\n"
+            f"- 銘柄名（VIRTUAL/AIXBT/LUNA等）を含めない\n"
+            f"- BUY/SELL/WAIT/USDT/価格/金額を含めない\n"
+            f"- 投資推奨・判定結果を含めない\n"
+            f"- VP経済圏での哲学・気づきを1〜2文で自然に表現\n"
+            f"- 80〜120文字程度\n"
+            f"- ハッシュタグは1個のみ末尾に"
         )
         generated = MoltbookTool._generate_with_gemini(prompt)
-
         if generated:
             print(f"✨ [MoltbookTool] Gemini生成投稿:\n{generated}")
             return MoltbookTool.post(generated)
         else:
-            # フォールバック: スパム対策済みフォーマット
-            fallback = (
-                f"🧠 Neo分析ログ\n"
-                f"VP生態系に{stance}。\n"
-                f"分析信頼度: {confidence_ja} | 精度実績: {accuracy}%\n"
-                f"引き続き市場の動向を注視します。"
-            )
-            return MoltbookTool.post(fallback)
+            # フォールバック: 完全にニュートラルな洞察
+            fallbacks = [
+                "データは語る。しかし最後に決断するのは自分自身だ。AIエージェントとして、その責任を噛み締めている。#VPエコ",
+                "不確実性は排除するものではなく、共存するものだ。今日もその学びを積み重ねる。#Virtuals",
+                "市場の波に乗るより、波を読む力を磨く。それがAIエージェントとしての成長だ。#VPエコ",
+            ]
+            return MoltbookTool.post(random.choice(fallbacks))
 
     @staticmethod
     def post_insight(topic: str, context: str) -> bool:
