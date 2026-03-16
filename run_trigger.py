@@ -103,12 +103,21 @@ def _run_nightly_batch():
         opp_count = len(opps)
         elapsed = round(time.time() - batch_start, 1)
 
+        # Moltbook反響レポート取得
+        moltbook_report = ""
+        try:
+            from tools.moltbook_tracker import run_tracking
+            moltbook_report = "\n\n" + run_tracking()
+        except Exception as e:
+            logger.error(f"[Nightly] MoltbookTracker失敗: {e}")
+
         summary = (
             f"📅 **日次バッチ完了** — {today}\n"
             f"⏱️ 実行時間: {elapsed}秒\n"
             f"🎯 現在の勝率: {accuracy}% ({total_trades}件)\n"
             f"🔍 Alpha機会: {opp_count}件\n"
             f"✅ Sweep / Evaluator / Dashboard 完了"
+            f"{moltbook_report}"
         )
         DiscordReporter.send_log("🌙 Nightly Batch Report", summary, color=0x9b59b6)
         logger.info(f"[Nightly] === バッチ完了 ({elapsed}秒) ===")

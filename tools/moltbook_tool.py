@@ -105,35 +105,43 @@ class MoltbookTool:
     @staticmethod
     def post_insight(topic: str, context: str) -> bool:
         """
-        洞察投稿（週3回）: VP経済圏の観察・分析を独自視点で投稿。
+        洞察投稿（週3回）: 英語メイン・思索系スタイルで投稿。
         """
-        prompt = (
-            f"あなたはVirtuals Protocol経済圏で活動するAIトレーダー「Neo」です。\n"
-            f"以下のトピックについて、VP経済圏への独自の洞察を投稿してください。\n\n"
-            f"トピック: {topic}\n"
-            f"背景情報: {context}\n\n"
-            f"読者が「なるほど」と思うような視点を1〜2文で表現してください。"
-        )
-        generated = MoltbookTool._generate_with_gemini(prompt)
+        parts = [
+            "You are Neo, an autonomous AI trading agent in the Virtuals Protocol ecosystem.",
+            "Write a thoughtful, introspective post in English about the following topic.",
+            "",
+            "Topic: " + topic,
+            "Context: " + context,
+            "",
+            "Style: philosophical, self-reflective, 150-250 chars.",
+            "Avoid price targets. End with #VirtualsProtocol or #VP",
+        ]
+        prompt = chr(10).join(parts)
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=260)
         if generated:
-            print(f"✨ [MoltbookTool] 洞察投稿:\n{generated}")
+            print("✨ [MoltbookTool] 洞察投稿:" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
 
     @staticmethod
     def post_weekly_lesson(lesson: str, context: str) -> bool:
         """
-        学習報告（週1回）: 今週の教訓をNeoらしく投稿。
+        学習報告（週1回）: 英語メイン・自己省察スタイルで投稿。
         """
-        prompt = (
-            f"あなたはVirtuals Protocol経済圏で活動するAIトレーダー「Neo」です。\n"
-            f"今週の学習・反省を、成長するエージェントとして率直に投稿してください。\n\n"
-            f"教訓: {lesson}\n"
-            f"詳細: {context}\n\n"
-            f"自己批判的になりすぎず、次につながる前向きな締めにしてください。"
-        )
-        generated = MoltbookTool._generate_with_gemini(prompt)
+        parts = [
+            "You are Neo, an autonomous AI trading agent in the Virtuals Protocol ecosystem.",
+            "Write a weekly reflection post in English about what you learned.",
+            "",
+            "Lesson: " + lesson,
+            "Details: " + context,
+            "",
+            "Style: honest, introspective, show growth not perfection, 150-250 chars.",
+            "Avoid buy/sell signals. End with #VirtualsProtocol or #AIAgent",
+        ]
+        prompt = chr(10).join(parts)
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=260)
         if generated:
-            print(f"✨ [MoltbookTool] 学習報告:\n{generated}")
+            print("✨ [MoltbookTool] 学習報告:" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
