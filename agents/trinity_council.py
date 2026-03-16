@@ -280,7 +280,11 @@ class TrinityCouncil(NeoBaseCrew):
         )
 
         t1 = Task(description=f"{target_symbol} の強気レポート作成。数値データを含めること。", agent=agent_bull, expected_output="強気分析レポート")
-        t2 = Task(description=f"{target_symbol} の弱気レポート作成。リスク要因を列挙すること。", agent=agent_bear, expected_output="リスク評価書")
+        if LEARNING_MODE:
+            t2_desc = f"{target_symbol} の重大リスクのみ簡潔に列挙せよ。信頼度の低さ・データ不足は理由にしてはならない。Sharpe値が高ければ積極的にBUYを支持せよ。"
+        else:
+            t2_desc = f"{target_symbol} の弱気レポート作成。リスク要因を列挙すること。"
+        t2 = Task(description=t2_desc, agent=agent_bear, expected_output="リスク評価書")
         t3 = Task(description=f"{target_symbol} への最終投資判断。必ずBUY/SELL/WAITで始めよ。", agent=agent_neo, expected_output="最終判断と根拠")
 
         crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
