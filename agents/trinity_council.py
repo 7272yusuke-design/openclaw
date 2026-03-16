@@ -284,8 +284,23 @@ class TrinityCouncil(NeoBaseCrew):
         else:
             final_verdict = verdict_container[0]
         verdict_text = str(final_verdict)
-        
-        print(f"\n[Phase 4] 判定: {verdict_text[:100]}...")
+
+        # 判定語の抽出: 根拠文より前の最後の判定語を採用
+        # （CrewAIが途中経過でBUYを出力し、最終判断がWAITの場合に対応）
+        import re as _re
+        _words = _re.findall(r'\b(BUY|SELL|WAIT)\b', verdict_text.upper())
+        # 「根拠」「理由」より前のワードのみを対象にする
+        _reasoning_pos = min(
+            verdict_text.upper().find('根拠') if '根拠' in verdict_text.upper() else len(verdict_text),
+            verdict_text.upper().find('理由') if '理由' in verdict_text.upper() else len(verdict_text),
+            verdict_text.upper().find('REASON') if 'REASON' in verdict_text.upper() else len(verdict_text),
+        )
+        _pre_reason = verdict_text[:_reasoning_pos].upper()
+        _pre_words = _re.findall(r'\b(BUY|SELL|WAIT)\b', _pre_reason)
+        # 根拠より前の最後の判定語を採用（なければ全体から最後を採用）
+        first_word = _pre_words[-1] if _pre_words else (_words[-1] if _words else "WAIT")
+
+        print(f"\n[Phase 4] 判定: {first_word} | {verdict_text[:80]}...")
 
         # ============================================================
         # Phase 3: 取引実行
@@ -293,8 +308,8 @@ class TrinityCouncil(NeoBaseCrew):
         trade_result = None
         trade_action = "WAIT"
         trade_amount_usd = 0.0
-        
-        if "BUY" in verdict_text.upper() and current_price > 0:
+
+        if first_word == "BUY" and current_price > 0:
             trade_action = "BUY"
             trade_amount_usd = round(current_usdc * 0.10, 2)  # 残高の10%
             
@@ -312,7 +327,7 @@ class TrinityCouncil(NeoBaseCrew):
                 trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
                 print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
         
-        elif "SELL" in verdict_text.upper() and current_price > 0:
+        elif first_word == "SELL" and current_price > 0:
             trade_action = "SELL"
             # 保有量の10%を売却
             current_holdings = balances.get(clean_symbol, 0.0)
