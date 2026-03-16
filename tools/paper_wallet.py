@@ -75,7 +75,7 @@ class PaperWallet:
             
             # Update Holdings
             if symbol not in self.state["holdings"]:
-                self.state["holdings"][symbol] = {"amount": 0.0, "avg_price": 0.0}
+                self.state["holdings"][symbol] = {"amount": 0.0, "avg_price": 0.0, "entry_time": timestamp}
             
             current_holding = self.state["holdings"][symbol]
             # Update Average Price (Weighted Average)
@@ -83,6 +83,7 @@ class PaperWallet:
             new_amount = current_holding["amount"] + token_amount
             current_holding["avg_price"] = total_cost / new_amount
             current_holding["amount"] = new_amount
+            current_holding["entry_time"] = current_holding.get("entry_time", timestamp)
 
         elif action.upper() == "SELL":
             current_holding = self.state["holdings"].get(symbol, {"amount": 0.0})
@@ -116,6 +117,54 @@ class PaperWallet:
         self._save_wallet()
         
         return {"status": "success", "tx": tx}
+
+    def get_unrealized_pnl(self, symbol: str, current_price: float) -> Dict:
+        """Returns unrealized P&L for a position."""
+        holding = self.state["holdings"].get(symbol)
+        if not holding or holding["amount"] <= 0:
+            return {"symbol": symbol, "amount": 0.0, "avg_price": 0.0, "current_price": current_price, "pnl_usd": 0.0, "pnl_pct": 0.0}
+        amount = holding["amount"]
+        avg_price = holding["avg_price"]
+        pnl_usd = (current_price - avg_price) * amount
+        pnl_pct = ((current_price - avg_price) / avg_price) * 100 if avg_price > 0 else 0.0
+        return {
+            "symbol": symbol,
+            "amount": amount,
+            "avg_price": avg_price,
+            "current_price": current_price,
+            "pnl_usd": round(pnl_usd, 2),
+            "pnl_pct": round(pnl_pct, 2),
+            "entry_time": holding.get("entry_time", "")
+        }
+
+    def get_portfolio_summary(self, prices: Dict[str, float]) -> Dict:
+        """Returns full portfolio P&L summary across all positions."""
+        positions = []
+        total_pnl_usd = 0.0
+        total_value = self.state["usd_balance"]
+        for symbol, holding in self.state["holdings"].items():
+            price = prices.get(symbol, 0.0)
+            pnl = self.get_unrealized_pnl(symbol, price)
+            position_value = holding["amount"] * price
+            total_value += position_value
+            total_pnl_usd += pnl["pnl_usd"]
+            positions.append({**pnl, "position_value_usd": round(position_value, 2)})
+        return {
+            "usd_balance": self.state["usd_balance"],
+            "total_value_usd": round(total_value, 2),
+            "total_pnl_usd": round(total_pnl_usd, 2),
+            "positions": positions
+        }
+
+    def should_take_profit(self, symbol: str, current_price: float, target_pct: float = 20.0) -> bool:
+        """Returns True if position has reached take-profit threshold."""
+        pnl = self.get_unrealized_pnl(symbol, current_price)
+        return pnl["pnl_pct"] >= target_pct
+
+    def should_stop_loss(self, symbol: str, current_price: float, stop_pct: float = 10.0) -> bool:
+        """Returns True if position has hit stop-loss threshold."""
+        pnl = self.get_unrealized_pnl(symbol, current_price)
+        return pnl["pnl_pct"] <= -stop_pct
 
     def reset(self):
         """Resets the wallet to initial state."""

@@ -69,7 +69,40 @@ class TrinityCouncil(NeoBaseCrew):
         print(f"  💰 USDC残高: ${current_usdc:.2f}")
         print(f"  📊 精度: {accuracy}% ({total_past_trades}件)")
         print(f"  💲 現在価格: ${current_price:.6f}")
-        
+
+        # 1b-2. 既存ポジションの利確/損切チェック
+        if current_price > 0:
+            holding = self.portfolio.get_holding(clean_symbol)
+            if holding > 0:
+                pnl = self.portfolio.get_unrealized_pnl(clean_symbol, current_price)
+                print(f"  📈 含み損益: ${pnl['pnl_usd']:+.2f} ({pnl['pnl_pct']:+.2f}%)")
+                if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=20.0):
+                    print(f"\n[Phase 1-TP] 🎯 利確トリガー発動: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+                    sell_amount_usd = holding * current_price
+                    tp_result = self.portfolio.execute_trade(
+                        symbol=clean_symbol,
+                        action="SELL",
+                        amount_usd=sell_amount_usd,
+                        price=current_price,
+                        reason=f"Take Profit triggered at +{pnl['pnl_pct']:.1f}% (target: +20%)"
+                    )
+                    if tp_result.get("status") == "success":
+                        print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収")
+                        return {"verdict": "SELL", "verdict_text": f"Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
+                elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=10.0):
+                    print(f"\n[Phase 1-SL] 🛑 損切トリガー発動: {clean_symbol} {pnl['pnl_pct']:.1f}%")
+                    sell_amount_usd = holding * current_price
+                    sl_result = self.portfolio.execute_trade(
+                        symbol=clean_symbol,
+                        action="SELL",
+                        amount_usd=sell_amount_usd,
+                        price=current_price,
+                        reason=f"Stop Loss triggered at {pnl['pnl_pct']:.1f}% (limit: -10%)"
+                    )
+                    if sl_result.get("status") == "success":
+                        print(f"  ✅ 損切完了: ${sell_amount_usd:.2f} USDC回収")
+                        return {"verdict": "SELL", "verdict_text": f"Stop Loss: {pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": sl_result}
+
         # 1c. スカウト偵察
         print(f"\n[Phase 1] スカウト部隊、{target_symbol} の戦域へ急行せよ。")
         scout = ScoutCrew()
