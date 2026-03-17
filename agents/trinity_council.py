@@ -195,19 +195,26 @@ class TrinityCouncil(NeoBaseCrew):
                 vp_count = news_context.count("  - ") if news_context else 0
                 # K.1: FinBERTによる定量センチメントスコア
                 try:
-                    from tools.finbert_sentiment import get_finbert_context_text
+                    from tools.finbert_sentiment import get_finbert_context_text, get_finbert_score
                     _news_data = get_news(target_symbol)
                     _titles = _news_data.get("vp_news", []) + _news_data.get("market_news", [])
                     finbert_context = get_finbert_context_text(_titles, "VP/Market News") if _titles else ""
+                    _fb_result = get_finbert_score(_titles) if _titles else {}
+                    finbert_score = _fb_result.get("score", 0.0)  # -1.0〜+1.0
+                    finbert_label = _fb_result.get("label", "neutral")
                     if finbert_context:
-                        print(f"  🤖 {finbert_context.splitlines()[1].strip()}")
+                        print(f"  🤖 {finbert_context.splitlines()[1].strip()} (finbert_score={finbert_score:+.3f})")
                 except Exception as _fe:
                     finbert_context = ""
+                    finbert_score = 0.0
+                    finbert_label = "neutral"
                     print(f"  ⚠️ FinBERT skipped: {str(_fe)[:50]}")
                 print(f"  📰 ニュース取得: {vp_count}件")
             except Exception as _nce:
                 news_context = ""
                 vp_count = 0
+                finbert_score = 0.0
+                finbert_label = "neutral"
                 print(f"  ⚠️ ニュース取得失敗: {_nce}")
             # H.2: ニュース過多警戒（6件以上はノイズが多く誤判断リスクが高い）
             news_noise_warning = ""
@@ -243,6 +250,9 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"  ⚠️ SentimentCrew失敗（フォールバック）: {str(se)[:60]}")
             sentiment_label = "neutral"
             sentiment_risk_factors = []
+            if "finbert_score" not in locals():
+                finbert_score = 0.0
+                finbert_label = "neutral"
 
         # 1d. 過去の記憶
         # 教訓を優先的にrecall
@@ -356,7 +366,24 @@ class TrinityCouncil(NeoBaseCrew):
         else:
             t2_desc = f"{target_symbol} の弱気レポート作成。リスク要因を列挙すること。"
         t2 = Task(description=t2_desc, agent=agent_bear, expected_output="リスク評価書")
-        t3 = Task(description=f"{target_symbol} への最終投資判断。必ずBUY/SELL/WAITで始めよ。", agent=agent_neo, expected_output="最終判断と根拠")
+        # finbert_scoreが未定義の場合のフォールバック
+        _fb_score = finbert_score if "finbert_score" in locals() else 0.0
+        _fb_label = finbert_label if "finbert_label" in locals() else "neutral"
+        if _fb_score >= 0.4:
+            _fb_instr = "[FinBERT強気] score={:+.3f} ({}) — 定量分析が強い上昇センチメント。BUYを積極検討せよ。".format(_fb_score, _fb_label.upper())
+        elif _fb_score <= -0.4:
+            _fb_instr = "[FinBERT弱気] score={:+.3f} ({}) — 定量分析が強い下落センチメント。WAIT/SELLを強く検討せよ。".format(_fb_score, _fb_label.upper())
+        elif _fb_score >= 0.2:
+            _fb_instr = "[FinBERT軽微な強気] score={:+.3f} — やや上昇センチメント。他の指標と総合判断せよ。".format(_fb_score)
+        elif _fb_score <= -0.2:
+            _fb_instr = "[FinBERT軽微な弱気] score={:+.3f} — やや下落センチメント。リスクに注意せよ。".format(_fb_score)
+        else:
+            _fb_instr = "[FinBERT中立] score={:+.3f} — センチメントは中立。他の指標を優先せよ。".format(_fb_score)
+        t3 = Task(
+            description=target_symbol + " への最終投資判断。必ずBUY/SELL/WAITで始めよ。\n" + _fb_instr,
+            agent=agent_neo,
+            expected_output="最終判断と根拠"
+        )
 
         crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
         import threading
@@ -543,10 +570,13 @@ class TrinityCouncil(NeoBaseCrew):
         except Exception:
             fng_value = "N/A"
 
+        _fb_score_mem = finbert_score if "finbert_score" in locals() else 0.0
+        _fb_label_mem = finbert_label if "finbert_label" in locals() else "neutral"
         memory_entry = (
             f"{target_symbol} @ ${current_price:.6f}: {trade_action} "
             f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f}, "
             f"sentiment={sentiment_label}({sentiment_score:.2f}), "
+            f"finbert={_fb_label_mem}({_fb_score_mem:+.3f}), "
             f"FearGreed={fng_value}, news={news_count}件, "
             f"onchain={onchain_summary}, "
             f"reason={verdict_text[:150]})"
@@ -559,6 +589,8 @@ class TrinityCouncil(NeoBaseCrew):
             "bt_confidence": bt_confidence,
             "sentiment": sentiment_label,
             "sentiment_score": str(round(sentiment_score, 2)),
+            "finbert_score": str(round(_fb_score_mem, 3)),
+            "finbert_label": _fb_label_mem,
             "fear_greed": fng_value,
             "news_count": str(news_count),
             "onchain_liquidity": onchain_summary[:80],

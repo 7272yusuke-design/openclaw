@@ -11,6 +11,29 @@ import logging
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 logger = logging.getLogger("neo.param_optimizer")
 
+def _manual_sharpe(close, entries, exits, fees=0.001):
+    """vectorbt不使用の手動バックテスト + Sharpe計算"""
+    import numpy as np
+    import pandas as pd
+    close   = pd.Series(close).reset_index(drop=True)
+    entries = pd.Series(entries).reset_index(drop=True).fillna(False).astype(bool)
+    exits   = pd.Series(exits).reset_index(drop=True).fillna(False).astype(bool)
+    in_pos, entry_price, returns = False, 0.0, []
+    for i in range(len(close)):
+        if not in_pos and entries.iloc[i]:
+            entry_price = close.iloc[i] * (1 + fees)
+            in_pos = True
+        elif in_pos and exits.iloc[i]:
+            ret = (close.iloc[i] * (1 - fees) - entry_price) / entry_price
+            returns.append(ret)
+            in_pos = False
+    if len(returns) < 2:
+        return 0.0, len(returns)
+    r = np.array(returns)
+    sharpe = (r.mean() / (r.std() + 1e-9)) * np.sqrt(252)
+    return round(float(sharpe) if np.isfinite(sharpe) else 0.0, 3), len(returns)
+
+
 
 def optimize_macd_params(df: pd.DataFrame, symbol: str = "UNKNOWN", n_trials: int = 30) -> dict:
     """
@@ -48,8 +71,7 @@ def optimize_macd_params(df: pd.DataFrame, symbol: str = "UNKNOWN", n_trials: in
                 exits   = exits.fillna(False)
                 if entries.sum() < 2:
                     return -999.0
-                pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
-                sharpe = float(pf.sharpe_ratio() or 0.0)
+                sharpe, n_trades = _manual_sharpe(close, entries, exits)
                 return sharpe if np.isfinite(sharpe) else -999.0
             except Exception:
                 return -999.0
@@ -103,8 +125,7 @@ def optimize_rsi_params(df: pd.DataFrame, symbol: str = "UNKNOWN", n_trials: int
                 exits   = exits.fillna(False)
                 if entries.sum() < 2:
                     return -999.0
-                pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
-                sharpe = float(pf.sharpe_ratio() or 0.0)
+                sharpe, n_trades = _manual_sharpe(close, entries, exits)
                 return sharpe if np.isfinite(sharpe) else -999.0
             except Exception:
                 return -999.0

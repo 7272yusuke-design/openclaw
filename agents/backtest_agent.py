@@ -44,8 +44,18 @@ class BacktestAgent:
 
             clean_symbol = target_symbol.split('/')[0].strip()
 
-            # 1. 実データ取得（CoinGecko 30日/180本4h足）
-            df = MarketData.fetch_ohlcv_custom(clean_symbol)
+            # 1. GeckoTerminal4時間足優先（high/low/closeが独立した実データ）
+            df_4h = None
+            try:
+                df_4h = MarketData.fetch_ohlcv_geckoterminal(clean_symbol, days=30)
+            except Exception:
+                pass
+            if df_4h is not None and len(df_4h) >= 50:
+                df = df_4h
+                print(f'  📊 GeckoTerminal 4h足: {len(df)}本')
+            else:
+                df = MarketData.fetch_ohlcv_custom(clean_symbol)
+                print(f'  📊 フォールバック: {len(df) if df is not None else 0}本')
             if df is None or df.empty or len(df) < 20:
                 result["status"]     = "insufficient_data"
                 result["raw_report"] = f"⚠️ {target_symbol}: データ不足（{len(df) if df is not None else 0}本）"
@@ -58,8 +68,8 @@ class BacktestAgent:
                 result["raw_report"] = f"⚠️ {target_symbol}: 特徴量ビルド失敗（{len(feat) if feat is not None else 0}行）"
                 return result
 
-            # 3. 4戦略一括実行
-            all_result = CoreBacktest.run_all_strategies(feat)
+            # 3. 6戦略一括実行（optuna最適化パラメータ使用）
+            all_result = CoreBacktest.run_all_strategies(feat, symbol=target_symbol, use_optuna=True, optuna_df=df)
             best       = all_result["best"]
             all_r      = all_result["all_results"]
 

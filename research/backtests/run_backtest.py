@@ -1,4 +1,3 @@
-import vectorbt as vbt
 import pandas as pd
 import numpy as np
 import math
@@ -7,50 +6,59 @@ import logging
 logger = logging.getLogger("neo.quant.backtest")
 
 
-def _extract_stats(portfolio, strategy_name: str) -> dict:
-    """vectorbt portfolio から統一フォーマットのdictを生成"""
+def _manual_backtest(close, entries, exits, strategy_name, fees=0.001):
+    """vectorbt不使用の手動バックテスト + Sharpe計算"""
+    empty = {"strategy": strategy_name, "sharpe": 0.0, "sharpe_raw": 0.0,
+             "total_return": "0.00%", "max_dd": "0.00%",
+             "win_rate": 0.0, "trades": 0, "confidence": "LOW"}
     try:
-        stats = portfolio.stats()
-        total_trades = int(stats.get('Total Trades', 0))
-        sharpe_raw   = float(stats.get('Sharpe Ratio', 0.0) or 0.0)
-        total_return = float(stats.get('Total Return [%]', 0.0) or 0.0)
-        max_dd       = float(stats.get('Max Drawdown [%]', 0.0) or 0.0)
-        win_rate     = float(stats.get('Win Rate [%]', 0.0) or 0.0)
-
-        # Sharpeガード: 取引3回未満 or inf/nan → 0.0
-        # 学習モード対応: 取引数ガードをconfig参照で切替
+        cs = pd.Series(close.values if hasattr(close,"values") else close).reset_index(drop=True)
+        en = pd.Series(entries).reset_index(drop=True).fillna(False).astype(bool)
+        ex = pd.Series(exits).reset_index(drop=True).fillna(False).astype(bool)
+        in_pos, ep, rets, wins = False, 0.0, [], 0
+        equity, peak, mdd = 1.0, 1.0, 0.0
+        for i in range(len(cs)):
+            if not in_pos and en.iloc[i]:
+                ep = cs.iloc[i] * (1 + fees); in_pos = True
+            elif in_pos and ex.iloc[i]:
+                r = (cs.iloc[i] * (1 - fees) - ep) / ep
+                rets.append(r)
+                if r > 0: wins += 1
+                equity *= (1 + r)
+                if equity > peak: peak = equity
+                dd = (peak - equity) / peak * 100
+                if dd > mdd: mdd = dd
+                in_pos = False
+        n = len(rets)
+        total_ret = (equity - 1.0) * 100
+        wr = (wins / n * 100) if n > 0 else 0.0
         try:
             from core.config import LEARNING_MODE
-            min_trades = 1 if LEARNING_MODE else 3
+            min_t = 1 if LEARNING_MODE else 3
         except Exception:
-            min_trades = 3
-
-        if total_trades < min_trades or math.isinf(sharpe_raw) or math.isnan(sharpe_raw):
-            sharpe_adj = 0.0
-            confidence = "LOW"
-        else:
-            sharpe_adj = max(0.0, round(sharpe_raw, 3))
-            confidence = "HIGH" if total_trades >= 10 else "MED" if total_trades >= 3 else "LOW"
-
-        return {
-            "strategy":     strategy_name,
-            "sharpe":       sharpe_adj,
-            "sharpe_raw":   round(sharpe_raw, 3) if math.isfinite(sharpe_raw) else 0.0,
-            "total_return": f"{total_return:.2f}%",
-            "max_dd":       f"{max_dd:.2f}%",
-            "win_rate":     round(win_rate, 1),
-            "trades":       total_trades,
-            "confidence":   confidence,
-        }
+            min_t = 3
+        if n < max(min_t, 2):  # 最低2取引必須（1取引はSharpe爆発防止）
+            return {**empty, "trades": n}
+        ra = np.array(rets)
+        if ra.std() < 1e-6:  # 全勝or全敗でstd≈0 → Sharpe爆発防止
+            return {**empty, "trades": n}
+        sr = float((ra.mean() / ra.std()) * np.sqrt(252))
+        if not math.isfinite(sr) or abs(sr) > 100:
+            return {**empty, "trades": n}
+        conf = "HIGH" if n >= 10 else "MED" if n >= 3 else "LOW"
+        return {"strategy": strategy_name, "sharpe": max(0.0, round(sr,3)),
+                "sharpe_raw": round(sr,3), "total_return": f"{total_ret:.2f}%",
+                "max_dd": f"{mdd:.2f}%", "win_rate": round(wr,1),
+                "trades": n, "confidence": conf}
     except Exception as e:
-        logger.error(f"[_extract_stats] {strategy_name}: {e}")
-        return {
-            "strategy": strategy_name, "sharpe": 0.0, "sharpe_raw": 0.0,
-            "total_return": "0.00%", "max_dd": "0.00%",
-            "win_rate": 0.0, "trades": 0, "confidence": "LOW",
-            "note": str(e)[:60]
-        }
+        logger.error(f"[_manual_backtest] {strategy_name}: {e}")
+        return empty
 
+def _extract_stats(portfolio, strategy_name):
+    """後方互換スタブ"""
+    return {"strategy": strategy_name, "sharpe": 0.0, "sharpe_raw": 0.0,
+            "total_return": "0.00%", "max_dd": "0.00%",
+            "win_rate": 0.0, "trades": 0, "confidence": "LOW"}
 
 class CoreBacktest:
     """High-performance backtesting using vectorbt — 4戦略対応版"""
@@ -63,8 +71,7 @@ class CoreBacktest:
             close   = df["close"]
             entries = (df["market_regime"] == 1) & (df["rsi_14"] < 55) & (df["is_vol_squeeze"] == 0)
             exits   = (df["market_regime"] == -1) | (df["rsi_14"] > 70)
-            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq='4h')
-            return _extract_stats(pf, "alpha_strategy")
+            return _manual_backtest(close, entries, exits, "alpha_strategy")
         except Exception as e:
             logger.error(f"[alpha_strategy] {e}")
             return {"strategy": "alpha_strategy", "sharpe": 0.0, "trades": 0,
@@ -89,8 +96,7 @@ class CoreBacktest:
             entries = close < lower
             exits   = close > upper
 
-            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq='4h')
-            result = _extract_stats(pf, "bb_reversal")
+            result = _manual_backtest(close, entries, exits, "bb_reversal")
             result["description"] = "BB逆張り（Lower割れBUY / Upper超えSELL）"
             return result
         except Exception as e:
@@ -120,8 +126,7 @@ class CoreBacktest:
             # 5本後に強制エグジット（タイムベース決済）
             exits = entries.shift(5).fillna(False).infer_objects(copy=False)
 
-            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq='4h')
-            result = _extract_stats(pf, "momentum_breakout")
+            result = _manual_backtest(close, entries, exits, "momentum_breakout")
             result["description"] = "高値ブレイク+出来高確認（5本後エグジット）"
             return result
         except Exception as e:
@@ -152,12 +157,7 @@ class CoreBacktest:
             entries = (rsi < 30) & is_range
             exits   = (rsi > 55)
 
-            pf = vbt.Portfolio.from_signals(
-                close, entries, exits,
-                fees=0.001, freq='4h',
-                sl_stop=0.03   # 3%ストップロス
-            )
-            result = _extract_stats(pf, "mean_reversion")
+            result = _manual_backtest(close, entries, exits, "mean_reversion")
             result["description"] = "RSI<30+レンジエントリー（RSI>55 or -3%損切り）"
             return result
         except Exception as e:
@@ -198,8 +198,7 @@ class CoreBacktest:
             entries = entries.fillna(False)
             exits   = exits.fillna(False)
 
-            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
-            result = _extract_stats(pf, "macd_cross")
+            result = _manual_backtest(close, entries, exits, "macd_cross")
             result["description"] = "MACDクロス + ATRボラフィルター"
             return result
         except Exception as e:
@@ -241,8 +240,7 @@ class CoreBacktest:
             entries = entries.fillna(False)
             exits   = exits.fillna(False)
 
-            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
-            result = _extract_stats(pf, "vp_momentum")
+            result = _manual_backtest(close, entries, exits, "vp_momentum")
             result["description"] = "VP固有: RSI+MACDヒスト正転+Squeeze解放"
             return result
         except Exception as e:
@@ -252,17 +250,32 @@ class CoreBacktest:
 
     # ── 全戦略一括実行（Task 2.2 メインAPI）─────────────────────────
     @staticmethod
-    def run_all_strategies(df: pd.DataFrame) -> dict:
-        """4戦略をconcurrent.futuresで並列実行し、最良Sharpeの戦略を返す"""
+    def run_all_strategies(df: pd.DataFrame, symbol: str = 'UNKNOWN', use_optuna: bool = True, optuna_df=None) -> dict:
+        """6戦略並列実行。use_optuna=TrueでMACD/RSIをTPE最適化"""
         from concurrent.futures import ThreadPoolExecutor, as_completed
+        import functools
+
+        macd_params = None
+        rsi_params  = None
+        _opt_data = optuna_df if (optuna_df is not None and len(optuna_df) >= 50) else df
+        if use_optuna and len(_opt_data) >= 50:
+            try:
+                from research.backtests.param_optimizer import run_param_optimization
+                opt_result = run_param_optimization(_opt_data, symbol, n_trials=20)
+                if opt_result.get("status") == "ok":
+                    macd_params = opt_result.get("macd")
+                    rsi_params  = opt_result.get("rsi")
+                    logger.info(f'[{symbol}] optuna: MACD={macd_params}, RSI={rsi_params}')
+            except Exception as _oe:
+                logger.warning(f'[{symbol}] optuna skip: {_oe}')
 
         strategy_map = {
             "alpha_strategy":    CoreBacktest.run_alpha_strategy,
             "bb_reversal":       CoreBacktest.run_bb_reversal,
             "momentum_breakout": CoreBacktest.run_momentum_breakout,
             "mean_reversion":    CoreBacktest.run_mean_reversion,
-            "macd_cross":        CoreBacktest.run_macd_cross,
-            "vp_momentum":       CoreBacktest.run_vp_momentum,
+            "macd_cross":        functools.partial(CoreBacktest.run_macd_cross, macd_params=macd_params),
+            "vp_momentum":       functools.partial(CoreBacktest.run_vp_momentum, rsi_params=rsi_params),
         }
 
         results = {}
