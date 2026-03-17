@@ -17,8 +17,8 @@ class DiscordReporter:
         """協議会レポート — 強気/弱気/統計/判定/取引結果の5フィールド"""
         
         fields = [
-            {"name": "🐂 Bullish Opinion", "value": cls._truncate(discussion_data.get('bull', 'N/A'), 1024), "inline": False},
-            {"name": "🐻 Bearish Opinion", "value": cls._truncate(discussion_data.get('bear', 'N/A'), 1024), "inline": False},
+            {"name": "🐂 Bullish Opinion", "value": cls._truncate(discussion_data.get('bull', 'N/A'), 300), "inline": False},
+            {"name": "🐻 Bearish Opinion", "value": cls._truncate(discussion_data.get('bear', 'N/A'), 300), "inline": False},
             {"name": "📊 Analysis & Backtest", "value": cls._truncate(discussion_data.get('stats', 'N/A'), 1024), "inline": False},
             {"name": "🤖 Neo's Verdict", "value": cls._truncate(discussion_data.get('verdict', 'Pending'), 1024), "inline": False},
         ]
@@ -37,7 +37,7 @@ class DiscordReporter:
             "color": color,
             "fields": fields,
             "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v2"},
-            "timestamp": None  # Discordが自動でタイムスタンプを付与
+            "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         }
         
         if image_path and os.path.exists(image_path):
@@ -157,11 +157,40 @@ class DiscordReporter:
             avg_pnl = 0.0
             pnl_str = "N/A"
 
+        # ポートフォリオ内訳取得
+        portfolio_str = "取得失敗"
+        try:
+            import sys as _sys
+            _sys.path.insert(0, ".")
+            from tools.paper_wallet import PaperWallet
+            from tools.market_data import MarketData
+            w = PaperWallet()
+            prices = {}
+            for symbol in w.state.get("holdings", {}).keys():
+                data = MarketData.fetch_token_data(symbol)
+                if data and data.get("priceUsd"):
+                    prices[symbol] = float(data["priceUsd"])
+            summary = w.get_portfolio_summary(prices)
+            lines_pf = [f"💵 USDC: ${summary['usd_balance']:,.2f}"]
+            for p in summary.get("positions", []):
+                pnl_emoji = "📈" if p["pnl_pct"] >= 0 else "📉"
+                lines_pf.append(
+                    f"{pnl_emoji} {p['symbol']}: {p['amount']:,.0f}枚"
+                    f" @ avg ${p['avg_price']:.6f}"
+                    f" → ${p['current_price']:.6f}"
+                    f" ({p['pnl_pct']:+.2f}%)"
+                )
+            lines_pf.append(f"💰 総資産: ${summary['total_value_usd']:,.2f} ({summary['total_pnl_usd']:+,.2f})")
+            portfolio_str = "\n".join(lines_pf)
+        except Exception as _pe:
+            portfolio_str = f"取得失敗: {str(_pe)[:50]}"
+
         fields = [
             {"name": "🎯 勝率", "value": f"`{bar}` **{accuracy:.1f}%**", "inline": False},
             {"name": "📈 評価済み取引数", "value": str(total_trades), "inline": True},
             {"name": "📊 平均P&L", "value": pnl_str, "inline": True},
             {"name": "🕐 更新時刻", "value": datetime.now().strftime("%Y-%m-%d %H:%M JST"), "inline": True},
+            {"name": "💼 ポートフォリオ内訳", "value": portfolio_str, "inline": False},
             {"name": "📋 直近5件", "value": recent_str or "なし", "inline": False},
         ]
 
