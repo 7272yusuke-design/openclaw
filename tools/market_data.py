@@ -112,8 +112,8 @@ class MarketData:
     # GeckoTerminal ペアアドレスマッピング（Aerodrome / Base chain）
     _GECKO_PAIRS = {
         "VIRTUAL": "0x3f0296BF652e19bca772EC3dF08b32732F93014A",
-        "AIXBT":   "0x4F9Fd6Be4a90f2620860d680c0d4d5Fb53d1A825",
-        "LUNA":    None,  # GeckoTerminalではTerra LUNA混在のため使用しない
+        "AIXBT":   "0xf1fdc83c3a336bdbdc9fb06e318b08eaddc82ff4",  # AIXBT/USDC 0.3% 最大出来高プール
+        "LUNA":    "0xa8e64fb120ce8796594670bae72279c8aa1e5359",  # LUNA/VIRTUAL Base chain（Terra LUNAではない）
     }
 
     @staticmethod
