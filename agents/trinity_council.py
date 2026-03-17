@@ -190,16 +190,27 @@ class TrinityCouncil(NeoBaseCrew):
                 print(f"  ⚠️ 市場センチメントデータ取得失敗: {_mce}")
             # J.1: クリプトニュースRSS取得
             try:
-                from tools.crypto_news import get_news_context_text
+                from tools.crypto_news import get_news_context_text, get_news
                 news_context = get_news_context_text(target_symbol)
                 vp_count = news_context.count("  - ") if news_context else 0
+                # K.1: FinBERTによる定量センチメントスコア
+                try:
+                    from tools.finbert_sentiment import get_finbert_context_text
+                    _news_data = get_news(target_symbol)
+                    _titles = _news_data.get("vp_news", []) + _news_data.get("market_news", [])
+                    finbert_context = get_finbert_context_text(_titles, "VP/Market News") if _titles else ""
+                    if finbert_context:
+                        print(f"  🤖 {finbert_context.splitlines()[1].strip()}")
+                except Exception as _fe:
+                    finbert_context = ""
+                    print(f"  ⚠️ FinBERT skipped: {str(_fe)[:50]}")
                 print(f"  📰 ニュース取得: {vp_count}件")
             except Exception as _nce:
                 news_context = ""
                 print(f"  ⚠️ ニュース取得失敗: {_nce}")
             s_result = sentiment_crew.run(
                 goal=f"{target_symbol} の市場センチメントを評価せよ",
-                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}\n{finbert_context}",
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
