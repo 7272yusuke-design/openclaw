@@ -214,7 +214,21 @@ class TrinityCouncil(NeoBaseCrew):
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
-            s_data = _json.loads(str(s_result)) if isinstance(s_result, str) else (s_result.__dict__ if hasattr(s_result, "__dict__") else {})
+            if isinstance(s_result, dict):
+                s_data = s_result
+            elif isinstance(s_result, str):
+                try:
+                    clean = s_result.strip()
+                    if "```" in clean:
+                        clean = clean.split("```")[1]
+                        if clean.startswith("json"): clean = clean[4:]
+                    s_data = _json.loads(clean.strip())
+                except Exception:
+                    s_data = {}
+            elif hasattr(s_result, "__dict__"):
+                s_data = s_result.__dict__
+            else:
+                s_data = {}
             sentiment_score = float(s_data.get("market_sentiment_score", sentiment_score))
             sentiment_label = s_data.get("sentiment_label", "neutral")
             sentiment_risk_factors = s_data.get("risk_factors", [])
