@@ -207,10 +207,16 @@ class TrinityCouncil(NeoBaseCrew):
                 print(f"  📰 ニュース取得: {vp_count}件")
             except Exception as _nce:
                 news_context = ""
+                vp_count = 0
                 print(f"  ⚠️ ニュース取得失敗: {_nce}")
+            # H.2: ニュース過多警戒（6件以上はノイズが多く誤判断リスクが高い）
+            news_noise_warning = ""
+            if vp_count >= 6:
+                news_noise_warning = f"\n⚠️ [H.2警告] ニュース件数={vp_count}件（6件以上は市場ノイズが多い状態。過去データでBUY accuracy=46.7%に低下。慎重な判断を推奨）"
+                print(f"  ⚠️ [H.2] ニュース過多警戒: {vp_count}件 → BUY精度低下リスク")
             s_result = sentiment_crew.run(
                 goal=f"{target_symbol} の市場センチメントを評価せよ",
-                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}\n{finbert_context}",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}\n{finbert_context}{news_noise_warning}",
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
