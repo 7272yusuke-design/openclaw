@@ -1,5 +1,10 @@
 import pandas as pd
 import logging
+try:
+    import pandas_ta as ta
+    _HAS_TA = True
+except ImportError:
+    _HAS_TA = False
 
 logger = logging.getLogger("neo.quant.alpha.regime")
 
@@ -16,10 +21,31 @@ class RegimeAlpha:
             return df
             
         df = df.copy()
-        # min_periods を設定して、短いデータでもNaN地獄を回避
-        df["ma_short"] = df["close"].rolling(window=short_w, min_periods=short_w//2).mean()
-        df["ma_mid"] = df["close"].rolling(window=mid_w, min_periods=mid_w//2).mean()
-        df["ma_long"] = df["close"].rolling(window=long_w, min_periods=long_w//2).mean()
+        if _HAS_TA:
+            # pandas-ta EMA（自作rollingより精度が高い）
+            df["ma_short"] = ta.ema(df["close"], length=short_w)
+            df["ma_mid"]   = ta.ema(df["close"], length=mid_w)
+            df["ma_long"]  = ta.ema(df["close"], length=long_w)
+            # RSIもpandas-taで上書き（より正確）
+            _rsi = ta.rsi(df["close"], length=14)
+            if _rsi is not None:
+                df["rsi_14"] = _rsi
+            # MACDを追加
+            _macd = ta.macd(df["close"], fast=12, slow=26, signal=9)
+            if _macd is not None:
+                df["macd"]        = _macd.get("MACD_12_26_9", 0)
+                df["macd_signal"] = _macd.get("MACDs_12_26_9", 0)
+                df["macd_hist"]   = _macd.get("MACDh_12_26_9", 0)
+            # ATRを追加（ストップロス計算用）
+            if all(c in df.columns for c in ["high","low","close"]):
+                _atr = ta.atr(df["high"], df["low"], df["close"], length=14)
+                if _atr is not None:
+                    df["atr_14"] = _atr
+        else:
+            # フォールバック: 自作rolling
+            df["ma_short"] = df["close"].rolling(window=short_w, min_periods=short_w//2).mean()
+            df["ma_mid"] = df["close"].rolling(window=mid_w, min_periods=mid_w//2).mean()
+            df["ma_long"] = df["close"].rolling(window=long_w, min_periods=long_w//2).mean()
         
         # レジーム判定 (1: Bull Trend, -1: Bear Trend, 0: Chop/Range)
         bull_cond = (df["close"] > df["ma_short"]) & (df["ma_short"] > df["ma_mid"]) & (df["ma_mid"] > df["ma_long"])

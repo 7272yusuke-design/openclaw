@@ -1,6 +1,11 @@
 import pandas as pd
 import numpy as np
 import logging
+try:
+    import pandas_ta as ta
+    _HAS_TA = True
+except ImportError:
+    _HAS_TA = False
 
 logger = logging.getLogger("neo.quant.alpha.volatility")
 
@@ -13,13 +18,27 @@ class VolatilityAlpha:
             return df
             
         df = df.copy()
-        rolling_mean = df["close"].rolling(window=window).mean()
-        rolling_std = df["close"].rolling(window=window).std()
-        
-        upper_band = rolling_mean + (rolling_std * 2)
-        lower_band = rolling_mean - (rolling_std * 2)
-        
-        # Bandwidth: 幅が狭いほどエネルギーが溜まっている(Squeeze)
+        if _HAS_TA:
+            _bb = ta.bbands(df["close"], length=window, std=2)
+            if _bb is not None:
+                upper_band = _bb.get(f"BBU_{window}_2.0", df["close"])
+                lower_band = _bb.get(f"BBL_{window}_2.0", df["close"])
+                rolling_mean = _bb.get(f"BBM_{window}_2.0", df["close"].rolling(window).mean())
+            else:
+                rolling_mean = df["close"].rolling(window=window).mean()
+                rolling_std = df["close"].rolling(window=window).std()
+                upper_band = rolling_mean + (rolling_std * 2)
+                lower_band = rolling_mean - (rolling_std * 2)
+            # OBVを追加（出来高と価格の乖離を検出）
+            if "volume" in df.columns:
+                _obv = ta.obv(df["close"], df["volume"])
+                if _obv is not None:
+                    df["obv"] = _obv
+        else:
+            rolling_mean = df["close"].rolling(window=window).mean()
+            rolling_std = df["close"].rolling(window=window).std()
+            upper_band = rolling_mean + (rolling_std * 2)
+            lower_band = rolling_mean - (rolling_std * 2)
         epsilon = 1e-8
         df[f"bb_bandwidth_{window}"] = (upper_band - lower_band) / (rolling_mean + epsilon)
         

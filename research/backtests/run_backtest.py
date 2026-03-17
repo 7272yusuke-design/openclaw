@@ -165,6 +165,91 @@ class CoreBacktest:
             return {"strategy": "mean_reversion", "sharpe": 0.0, "trades": 0,
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
 
+    @staticmethod
+    def run_macd_cross(df: pd.DataFrame) -> dict:
+        """K.2/J.4: MACDクロス戦略 + ATRフィルター（VP固有の急騰/急落に対応）"""
+        try:
+            import pandas_ta as ta
+            close = df["close"].copy()
+            # MACDが既に計算済みなら再利用、なければ計算
+            if "macd" not in df.columns or "macd_signal" not in df.columns:
+                _macd = ta.macd(close, fast=12, slow=26, signal=9)
+                if _macd is None:
+                    return {"strategy": "macd_cross", "sharpe": 0.0, "trades": 0,
+                            "confidence": "LOW", "win_rate": 0.0, "note": "MACD計算失敗"}
+                macd_line   = _macd.get("MACD_12_26_9", pd.Series(0, index=close.index))
+                macd_signal = _macd.get("MACDs_12_26_9", pd.Series(0, index=close.index))
+            else:
+                macd_line   = df["macd"]
+                macd_signal = df["macd_signal"]
+
+            # ATRフィルター（ボラが低すぎる時はエントリーしない）
+            if all(c in df.columns for c in ["high", "low", "close"]):
+                _atr = ta.atr(df["high"], df["low"], df["close"], length=14)
+                atr_filter = _atr > (_atr.rolling(50, min_periods=10).mean() * 0.5) if _atr is not None else pd.Series(True, index=close.index)
+            else:
+                atr_filter = pd.Series(True, index=close.index)
+
+            # エントリー: MACDがシグナルを上抜け + ATRフィルター
+            entries = (macd_line > macd_signal) & (macd_line.shift(1) <= macd_signal.shift(1)) & atr_filter
+            # エグジット: MACDがシグナルを下抜け
+            exits = (macd_line < macd_signal) & (macd_line.shift(1) >= macd_signal.shift(1))
+
+            entries = entries.fillna(False)
+            exits   = exits.fillna(False)
+
+            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
+            result = _extract_stats(pf, "macd_cross")
+            result["description"] = "MACDクロス + ATRボラフィルター"
+            return result
+        except Exception as e:
+            logger.error(f"[macd_cross] {e}")
+            return {"strategy": "macd_cross", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    @staticmethod
+    def run_vp_momentum(df: pd.DataFrame) -> dict:
+        """J.4: VP固有モメンタム戦略（RSI急騰 + MACD正転 + Squeeze解放）"""
+        try:
+            import pandas_ta as ta
+            close = df["close"].copy()
+
+            # RSI
+            rsi = df.get("rsi_14") if "rsi_14" in df.columns else ta.rsi(close, length=14)
+            if rsi is None:
+                rsi = pd.Series(50, index=close.index)
+
+            # MACD histogram（正転でモメンタム加速）
+            if "macd_hist" in df.columns:
+                macd_hist = df["macd_hist"]
+            else:
+                _macd = ta.macd(close, fast=12, slow=26, signal=9)
+                macd_hist = _macd.get("MACDh_12_26_9", pd.Series(0, index=close.index)) if _macd is not None else pd.Series(0, index=close.index)
+
+            # Squeeze解放（Bandwidthが拡大 = エネルギー放出）
+            if f"bb_bandwidth_20" in df.columns:
+                bw = df["bb_bandwidth_20"]
+                squeeze_release = bw > bw.shift(1)
+            else:
+                squeeze_release = pd.Series(True, index=close.index)
+
+            # エントリー: RSI40-65（過熱前）+ MACDヒスト正転 + Squeeze解放
+            entries = (rsi > 40) & (rsi < 65) & (macd_hist > 0) & (macd_hist.shift(1) <= 0) & squeeze_release
+            # エグジット: RSI>72（過熱）or MACDヒスト反転
+            exits = (rsi > 72) | (macd_hist < 0)
+
+            entries = entries.fillna(False)
+            exits   = exits.fillna(False)
+
+            pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
+            result = _extract_stats(pf, "vp_momentum")
+            result["description"] = "VP固有: RSI+MACDヒスト正転+Squeeze解放"
+            return result
+        except Exception as e:
+            logger.error(f"[vp_momentum] {e}")
+            return {"strategy": "vp_momentum", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
     # ── 全戦略一括実行（Task 2.2 メインAPI）─────────────────────────
     @staticmethod
     def run_all_strategies(df: pd.DataFrame) -> dict:
@@ -176,6 +261,8 @@ class CoreBacktest:
             "bb_reversal":       CoreBacktest.run_bb_reversal,
             "momentum_breakout": CoreBacktest.run_momentum_breakout,
             "mean_reversion":    CoreBacktest.run_mean_reversion,
+            "macd_cross":        CoreBacktest.run_macd_cross,
+            "vp_momentum":       CoreBacktest.run_vp_momentum,
         }
 
         results = {}
