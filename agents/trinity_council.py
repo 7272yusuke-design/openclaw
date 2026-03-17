@@ -469,11 +469,14 @@ class TrinityCouncil(NeoBaseCrew):
             "trade": trade_text
         }
         
-        DiscordReporter.send_council_minutes(
-            title=f"🏛️ 評議会決定: {target_symbol} → **{trade_action}**",
-            discussion_data=discussion_data,
-            color=status_color
-        )
+        if trade_action in ("BUY", "SELL"):
+            DiscordReporter.send_council_minutes(
+                title=f"🏛️ 評議会決定: {target_symbol} → **{trade_action}**",
+                discussion_data=discussion_data,
+                color=status_color
+            )
+        else:
+            print(f"⏭️ [Discord] WAIT判定のため送信スキップ")
 
         # ============================================================
         # Phase 6: Moltbook投稿

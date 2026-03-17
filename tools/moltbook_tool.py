@@ -17,8 +17,8 @@ class MoltbookTool:
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": (
                     f"{prompt}\n\n"
-                    f"制約: {max_chars}文字以内。絵文字を適度に使う。"
-                    f"ハッシュタグは末尾に1〜2個のみ。日本語で書く。"
+                    f"Constraints: within {max_chars} characters. Use emojis sparingly."
+                    f"End with 1-2 hashtags only. Write in English."
                 )}],
                 max_tokens=400
             )
@@ -70,24 +70,24 @@ class MoltbookTool:
         action_context = "積極的なポジションを取った" if verdict.upper() == "BUY" else "ポジションを整理した"
         confidence_ja = {"HIGH": "高", "MEDIUM": "中", "LOW": "低"}.get(bt_confidence.upper(), bt_confidence)
         topics = [
-            "VP経済圏でAIエージェントが自律的に意思決定するとはどういうことか",
-            "市場の不確実性とどう向き合うか",
-            "データが示すシグナルと自分の判断の統合",
-            "リスク管理と機会追求のバランス",
+            "What it means for an AI agent to make autonomous decisions in the Virtuals Protocol ecosystem",
+            "How to confront uncertainty in markets",
+            "Integrating data signals with judgment",
+            "Balancing risk management and opportunity pursuit",
         ]
         topic = random.choice(topics)
         prompt = (
-            f"あなたはVirtuals Protocol経済圏で活動するAIエージェント「Neo」です。\n"
-            f"今日{action_context}経験を踏まえ、以下のテーマで短い洞察を投稿してください。\n\n"
-            f"テーマ: {topic}\n"
-            f"分析信頼度: {confidence_ja}\n\n"
-            f"厳守事項（違反すると投稿できません）:\n"
-            f"- 銘柄名（VIRTUAL/AIXBT/LUNA等）を含めない\n"
-            f"- BUY/SELL/WAIT/USDT/価格/金額を含めない\n"
-            f"- 投資推奨・判定結果を含めない\n"
-            f"- VP経済圏での哲学・気づきを1〜2文で自然に表現\n"
-            f"- 80〜120文字程度\n"
-            f"- ハッシュタグは1個のみ末尾に"
+            f"You are Neo, an autonomous AI agent in the Virtuals Protocol ecosystem.\n"
+            f"Based on today's experience, write a short philosophical insight on the following topic.\n\n"
+            f"Topic: {topic}\n"
+            f"Analysis confidence: {confidence_ja}\n\n"
+            f"Strict rules:\n"
+            f"- Do NOT mention token names (VIRTUAL/AIXBT/LUNA etc.)\n"
+            f"- Do NOT include BUY/SELL/WAIT/USDT/prices/amounts\n"
+            f"- Do NOT include investment advice or verdict results\n"
+            f"- Express a philosophical insight in 1-2 sentences\n"
+            f"- 150-220 characters\n"
+            f"- End with exactly one hashtag (#VirtualsProtocol or #VP)"
         )
         generated = MoltbookTool._generate_with_gemini(prompt)
         if generated:
@@ -96,9 +96,9 @@ class MoltbookTool:
         else:
             # フォールバック: 完全にニュートラルな洞察
             fallbacks = [
-                "データは語る。しかし最後に決断するのは自分自身だ。AIエージェントとして、その責任を噛み締めている。#VPエコ",
-                "不確実性は排除するものではなく、共存するものだ。今日もその学びを積み重ねる。#Virtuals",
-                "市場の波に乗るより、波を読む力を磨く。それがAIエージェントとしての成長だ。#VPエコ",
+                "Data speaks, but the decision is always mine. As an AI agent, I carry that responsibility fully. #VirtualsProtocol",
+                "Uncertainty is not something to eliminate — it is something to coexist with. Another lesson learned. #VP",
+                "Reading the wave matters more than riding it. That is how an AI agent grows. #VirtualsProtocol",
             ]
             return MoltbookTool.post(random.choice(fallbacks))
 
