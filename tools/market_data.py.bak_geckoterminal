@@ -108,52 +108,11 @@ class MarketData:
                 return cached_data
             return {"status": "error", "message": str(e)}
 
-
-    # GeckoTerminal ペアアドレスマッピング（Aerodrome / Base chain）
-    _GECKO_PAIRS = {
-        "VIRTUAL": "0x3f0296BF652e19bca772EC3dF08b32732F93014A",
-        "AIXBT":   "0x4F9Fd6Be4a90f2620860d680c0d4d5Fb53d1A825",
-        "LUNA":    None,  # GeckoTerminalではTerra LUNA混在のため使用しない
-    }
-
-    @staticmethod
-    def fetch_ohlcv_geckoterminal(symbol: str, days: int = 30) -> pd.DataFrame:
-        """
-        GeckoTerminal API で Base chain DEX の OHLCV を取得（APIキー不要）
-        CoinGeckoより高品質なDEXデータ
-        """
-        clean = symbol.split('/')[0].strip().upper()
-        pair_address = MarketData._GECKO_PAIRS.get(clean)
-        if not pair_address:
-            return pd.DataFrame()
-        try:
-            # 4時間足・最大1000件
-            limit = min(days * 6, 1000)
-            url = f"https://api.geckoterminal.com/api/v2/networks/base/pools/{pair_address}/ohlcv/hour"
-            resp = requests.get(url,
-                params={"aggregate": "4", "limit": limit},
-                headers={"Accept": "application/json"},
-                timeout=15)
-            resp.raise_for_status()
-            ohlcv_list = resp.json().get('data', {}).get('attributes', {}).get('ohlcv_list', [])
-            if not ohlcv_list:
-                return pd.DataFrame()
-            df = pd.DataFrame(ohlcv_list, columns=["timestamp", "open", "high", "low", "close", "volume"])
-            df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
-            df = df.drop(columns=["timestamp", "volume"])
-            df = df.sort_values("datetime").reset_index(drop=True)
-            logger.info(f"GeckoTerminal OHLCV for {clean}: {len(df)} candles")
-            return df
-        except Exception as e:
-            logger.warning(f"GeckoTerminal fetch failed for {clean}: {e}")
-            return pd.DataFrame()
-
     @staticmethod
     def fetch_ohlcv_custom(query: str, days: int = 30) -> pd.DataFrame:
         """
         OHLCVデータ取得。優先順位:
           1. ローカルSQLite（data_collector蓄積済みデータ）
-          1.5. GeckoTerminal API（DEX高品質データ・APIキー不要）
           2. CoinGecko API（フォールバック）
         
         Returns:
@@ -175,18 +134,9 @@ class MarketData:
                 logger.info(f"OHLCV from local DB for {symbol}: {len(df)} rows")
                 return df
             else:
-                logger.info(f"Local DB insufficient for {symbol} ({len(db_rows)} rows), falling back to GeckoTerminal")
+                logger.info(f"Local DB insufficient for {symbol} ({len(db_rows)} rows), falling back to CoinGecko")
         except Exception as e:
-            logger.warning(f"Local DB read failed for {symbol}: {e}, falling back to GeckoTerminal")
-
-        # --- Step 1.5: GeckoTerminal API（DEX高品質OHLCVデータ） ---
-        try:
-            gt_df = MarketData.fetch_ohlcv_geckoterminal(symbol, days)
-            if len(gt_df) >= 10:
-                logger.info(f"OHLCV from GeckoTerminal for {symbol}: {len(gt_df)} rows")
-                return gt_df
-        except Exception as e:
-            logger.warning(f"GeckoTerminal failed for {symbol}: {e}")
+            logger.warning(f"Local DB read failed for {symbol}: {e}, falling back to CoinGecko")
 
         # --- Step 2: CoinGecko API（フォールバック） ---
         # キャッシュ確認（1時間以内のキャッシュがあれば再利用）
