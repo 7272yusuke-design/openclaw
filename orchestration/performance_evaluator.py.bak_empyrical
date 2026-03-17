@@ -11,12 +11,6 @@ if str(BASE_DIR) not in sys.path:
     sys.path.append(str(BASE_DIR))
 
 from tools.market_data import MarketData
-try:
-    import empyrical
-    import numpy as np
-    HAS_EMPYRICAL = True
-except ImportError:
-    HAS_EMPYRICAL = False
 from core.blackboard import NeoBlackboard
 
 def evaluate_performance(send_dashboard: bool = False):
@@ -67,28 +61,11 @@ def evaluate_performance(send_dashboard: bool = False):
     accuracy = (win_count / total_trades * 100) if total_trades > 0 else 0
     
     # P1修正: performance_summary セクションに書き込み
-    # empyrical: 多次元パフォーマンス指標を計算
-    advanced_metrics = {}
-    if HAS_EMPYRICAL and len(performance_results) >= 3:
-        try:
-            returns = np.array([r["pnl_pct"] / 100 for r in performance_results])
-            advanced_metrics = {
-                "sortino_ratio":  round(float(empyrical.sortino_ratio(returns) or 0), 3),
-                "max_drawdown":   round(float(empyrical.max_drawdown(returns) or 0), 3),
-                "calmar_ratio":   round(float(empyrical.calmar_ratio(returns) or 0), 3),
-                "annual_return":  round(float(empyrical.annual_return(returns) or 0), 3),
-                "omega_ratio":    round(float(empyrical.omega_ratio(returns) or 0), 3),
-            }
-            print(f"  📈 Sortino: {advanced_metrics['sortino_ratio']} | MaxDD: {advanced_metrics['max_drawdown']:.1%} | Calmar: {advanced_metrics['calmar_ratio']}")
-        except Exception as _e:
-            print(f"  ⚠️ empyrical計算スキップ: {_e}")
-
     board_data = {
         "accuracy_score": round(accuracy, 2),
         "total_evaluated_trades": total_trades,
         "recent_performance": performance_results[-5:],
-        "last_evaluated": datetime.now().isoformat(),
-        "advanced_metrics": advanced_metrics
+        "last_evaluated": datetime.now().isoformat()
     }
     
     NeoBlackboard.update("performance_summary", board_data)

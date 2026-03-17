@@ -1,18 +1,22 @@
 """
-vectorbt パラメータ最適化モジュール
-各戦略のハイパーパラメータをグリッドサーチで最適化する
+optuna ベイズ最適化パラメータ最適化モジュール（グリッドサーチから置き換え）
+各戦略のハイパーパラメータをTPEサンプラーで効率的に最適化する
 """
 import numpy as np
 import pandas as pd
 import vectorbt as vbt
+import optuna
 import logging
 
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 logger = logging.getLogger("neo.param_optimizer")
 
-def optimize_macd_params(df: pd.DataFrame, symbol: str = "UNKNOWN") -> dict:
+
+def optimize_macd_params(df: pd.DataFrame, symbol: str = "UNKNOWN", n_trials: int = 30) -> dict:
     """
-    MACD戦略のfast/slow/signal期間をグリッドサーチで最適化
-    返り値: {"fast": int, "slow": int, "signal": int, "sharpe": float}
+    optunaでMACD戦略のfast/slow/signal期間を最適化
+    グリッドサーチ(27通り)からTPEベイズ最適化(30試行)に変更
+    → 同じ時間でより良いパラメータを発見できる
     """
     try:
         import pandas_ta as ta
@@ -20,57 +24,58 @@ def optimize_macd_params(df: pd.DataFrame, symbol: str = "UNKNOWN") -> dict:
         if len(close) < 50:
             return {"fast": 12, "slow": 26, "signal": 9, "sharpe": 0.0, "note": "データ不足"}
 
-        # グリッド定義（小規模で軽量に）
-        fast_range   = [8, 12, 16]
-        slow_range   = [20, 26, 32]
-        signal_range = [7, 9, 11]
+        def objective(trial):
+            fast   = trial.suggest_int("fast", 6, 20)
+            slow   = trial.suggest_int("slow", 20, 40)
+            signal = trial.suggest_int("signal", 5, 15)
+            if fast >= slow:
+                return -999.0
+            try:
+                _macd = ta.macd(close, fast=fast, slow=slow, signal=signal)
+                if _macd is None:
+                    return -999.0
+                # カラム名は動的に取得
+                cols = _macd.columns.tolist()
+                macd_col   = [c for c in cols if c.startswith("MACD_") and "MACDs" not in c and "MACDh" not in c]
+                signal_col = [c for c in cols if c.startswith("MACDs_")]
+                if not macd_col or not signal_col:
+                    return -999.0
+                macd_line   = _macd[macd_col[0]]
+                macd_signal = _macd[signal_col[0]]
+                entries = (macd_line > macd_signal) & (macd_line.shift(1) <= macd_signal.shift(1))
+                exits   = (macd_line < macd_signal) & (macd_line.shift(1) >= macd_signal.shift(1))
+                entries = entries.fillna(False)
+                exits   = exits.fillna(False)
+                if entries.sum() < 2:
+                    return -999.0
+                pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
+                sharpe = float(pf.sharpe_ratio() or 0.0)
+                return sharpe if np.isfinite(sharpe) else -999.0
+            except Exception:
+                return -999.0
 
-        best = {"fast": 12, "slow": 26, "signal": 9, "sharpe": -999}
+        study = optuna.create_study(direction="maximize",
+                                    sampler=optuna.samplers.TPESampler(seed=42))
+        study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
 
-        for fast in fast_range:
-            for slow in slow_range:
-                if fast >= slow:
-                    continue
-                for signal in signal_range:
-                    try:
-                        _macd = ta.macd(close, fast=fast, slow=slow, signal=signal)
-                        if _macd is None:
-                            continue
-                        macd_line   = _macd.get(f"MACD_{fast}_{slow}_{signal}", None)
-                        macd_signal = _macd.get(f"MACDs_{fast}_{slow}_{signal}", None)
-                        if macd_line is None or macd_signal is None:
-                            continue
-
-                        entries = (macd_line > macd_signal) & (macd_line.shift(1) <= macd_signal.shift(1))
-                        exits   = (macd_line < macd_signal) & (macd_line.shift(1) >= macd_signal.shift(1))
-                        entries = entries.fillna(False)
-                        exits   = exits.fillna(False)
-
-                        if entries.sum() < 2:
-                            continue
-
-                        pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
-                        sharpe = float(pf.sharpe_ratio() or 0.0)
-                        if not np.isfinite(sharpe):
-                            sharpe = 0.0
-
-                        if sharpe > best["sharpe"]:
-                            best = {"fast": fast, "slow": slow, "signal": signal, "sharpe": round(sharpe, 3)}
-                    except Exception:
-                        continue
-
-        logger.info(f"[{symbol}] MACD最適パラメータ: fast={best['fast']}, slow={best['slow']}, signal={best['signal']}, Sharpe={best['sharpe']}")
-        return best
+        best = study.best_params
+        best_sharpe = round(study.best_value, 3) if np.isfinite(study.best_value) else 0.0
+        result = {
+            "fast": best["fast"], "slow": best["slow"],
+            "signal": best["signal"], "sharpe": best_sharpe,
+            "n_trials": n_trials
+        }
+        logger.info(f"[{symbol}] MACD最適: fast={result['fast']}, slow={result['slow']}, signal={result['signal']}, Sharpe={result['sharpe']}")
+        return result
 
     except Exception as e:
         logger.error(f"[optimize_macd_params] {e}")
         return {"fast": 12, "slow": 26, "signal": 9, "sharpe": 0.0, "note": str(e)[:60]}
 
 
-def optimize_rsi_params(df: pd.DataFrame, symbol: str = "UNKNOWN") -> dict:
+def optimize_rsi_params(df: pd.DataFrame, symbol: str = "UNKNOWN", n_trials: int = 30) -> dict:
     """
-    VP固有モメンタム戦略のRSI entry/exit閾値を最適化
-    返り値: {"rsi_entry_lo": int, "rsi_entry_hi": int, "rsi_exit": int, "sharpe": float}
+    optunaでVP固有モメンタム戦略のRSI閾値を最適化
     """
     try:
         import pandas_ta as ta
@@ -85,72 +90,68 @@ def optimize_rsi_params(df: pd.DataFrame, symbol: str = "UNKNOWN") -> dict:
         _macd = ta.macd(close, fast=12, slow=26, signal=9)
         macd_hist = _macd.get("MACDh_12_26_9", pd.Series(0, index=close.index)) if _macd is not None else pd.Series(0, index=close.index)
 
-        # グリッド定義
-        entry_lo_range = [30, 35, 40, 45]
-        entry_hi_range = [60, 65, 70]
-        exit_range     = [68, 72, 76]
+        def objective(trial):
+            lo = trial.suggest_int("rsi_entry_lo", 25, 50)
+            hi = trial.suggest_int("rsi_entry_hi", 55, 75)
+            ex = trial.suggest_int("rsi_exit",     65, 85)
+            if lo >= hi or ex <= hi:
+                return -999.0
+            try:
+                entries = (rsi > lo) & (rsi < hi) & (macd_hist > 0) & (macd_hist.shift(1) <= 0)
+                exits   = (rsi > ex) | (macd_hist < 0)
+                entries = entries.fillna(False)
+                exits   = exits.fillna(False)
+                if entries.sum() < 2:
+                    return -999.0
+                pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
+                sharpe = float(pf.sharpe_ratio() or 0.0)
+                return sharpe if np.isfinite(sharpe) else -999.0
+            except Exception:
+                return -999.0
 
-        best = {"rsi_entry_lo": 40, "rsi_entry_hi": 65, "rsi_exit": 72, "sharpe": -999}
+        study = optuna.create_study(direction="maximize",
+                                    sampler=optuna.samplers.TPESampler(seed=42))
+        study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
 
-        for lo in entry_lo_range:
-            for hi in entry_hi_range:
-                if lo >= hi:
-                    continue
-                for ex in exit_range:
-                    if ex <= hi:
-                        continue
-                    try:
-                        entries = (rsi > lo) & (rsi < hi) & (macd_hist > 0) & (macd_hist.shift(1) <= 0)
-                        exits   = (rsi > ex) | (macd_hist < 0)
-                        entries = entries.fillna(False)
-                        exits   = exits.fillna(False)
-
-                        if entries.sum() < 2:
-                            continue
-
-                        pf = vbt.Portfolio.from_signals(close, entries, exits, fees=0.001, freq="4h")
-                        sharpe = float(pf.sharpe_ratio() or 0.0)
-                        if not np.isfinite(sharpe):
-                            sharpe = 0.0
-
-                        if sharpe > best["sharpe"]:
-                            best = {
-                                "rsi_entry_lo": lo, "rsi_entry_hi": hi,
-                                "rsi_exit": ex, "sharpe": round(sharpe, 3)
-                            }
-                    except Exception:
-                        continue
-
-        logger.info(f"[{symbol}] RSI最適パラメータ: lo={best['rsi_entry_lo']}, hi={best['rsi_entry_hi']}, exit={best['rsi_exit']}, Sharpe={best['sharpe']}")
-        return best
+        best = study.best_params
+        best_sharpe = round(study.best_value, 3) if np.isfinite(study.best_value) else 0.0
+        result = {
+            "rsi_entry_lo": best["rsi_entry_lo"],
+            "rsi_entry_hi": best["rsi_entry_hi"],
+            "rsi_exit":     best["rsi_exit"],
+            "sharpe":       best_sharpe,
+            "n_trials":     n_trials
+        }
+        logger.info(f"[{symbol}] RSI最適: lo={result['rsi_entry_lo']}, hi={result['rsi_entry_hi']}, exit={result['rsi_exit']}, Sharpe={result['sharpe']}")
+        return result
 
     except Exception as e:
         logger.error(f"[optimize_rsi_params] {e}")
         return {"rsi_entry_lo": 40, "rsi_entry_hi": 65, "rsi_exit": 72, "sharpe": 0.0, "note": str(e)[:60]}
 
 
-def run_param_optimization(df: pd.DataFrame, symbol: str = "UNKNOWN") -> dict:
+def run_param_optimization(df: pd.DataFrame, symbol: str = "UNKNOWN", n_trials: int = 30) -> dict:
     """
-    全パラメータ最適化を実行して結果を返す
-    TrinityCouncilから呼び出し可能
+    全パラメータ最適化を実行して結果を返す（optuna TPEサンプラー使用）
     """
     if len(df) < 50:
         return {"symbol": symbol, "status": "skip", "note": "データ不足（50件未満）"}
 
-    logger.info(f"[{symbol}] パラメータ最適化開始 (データ{len(df)}件)")
+    logger.info(f"[{symbol}] optuna最適化開始 (データ{len(df)}件, {n_trials}試行)")
 
-    macd_params = optimize_macd_params(df, symbol)
-    rsi_params  = optimize_rsi_params(df, symbol)
+    macd_params = optimize_macd_params(df, symbol, n_trials)
+    rsi_params  = optimize_rsi_params(df, symbol, n_trials)
 
     result = {
         "symbol":      symbol,
         "data_points": len(df),
         "macd":        macd_params,
         "rsi":         rsi_params,
-        "status":      "ok"
+        "status":      "ok",
+        "optimizer":   "optuna-TPE"
     }
 
-    print(f"✅ [{symbol}] 最適化完了:")
+    print(f"✅ [{symbol}] optuna最適化完了:")
     print(f"   MACD: fast={macd_params['fast']}, slow={macd_params['slow']}, signal={macd_params['signal']} → Sharpe={macd_params['sharpe']}")
     print(f"   RSI:  lo={rsi_params['rsi_entry_lo']}, hi={rsi_params['rsi_entry_hi']}, exit={rsi_params['rsi_exit']} → Sharpe={rsi_params['sharpe']}")
 
@@ -158,14 +159,14 @@ def run_param_optimization(df: pd.DataFrame, symbol: str = "UNKNOWN") -> dict:
 
 
 if __name__ == "__main__":
-    # 単体テスト用
     import sys
     sys.path.insert(0, ".")
     from tools.market_data import MarketData
     symbol = "VIRTUAL/USDT"
-    print(f"[TEST] {symbol} パラメータ最適化テスト")
+    print(f"[TEST] {symbol} optuna最適化テスト")
     df = MarketData.fetch_ohlcv_custom(symbol, days=30)
     if df is not None and len(df) > 0:
-        run_param_optimization(df, symbol)
+        print(f"データ取得: {len(df)}件")
+        run_param_optimization(df, symbol, n_trials=30)
     else:
         print("データ取得失敗")
