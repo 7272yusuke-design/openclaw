@@ -9,8 +9,8 @@ import logging
 logger = logging.getLogger("neo.discord")
 
 class DiscordReporter:
-    REPORT_WEBHOOK = "https://discord.com/api/webhooks/1479009905280028724/cX7C6pOTilIA4HeBzMwWOG_AhKMOcDH9KKU9_r955U0yr5z4hTsPRB0ISFfxjp3Otj64"
-    LOG_WEBHOOK = "https://discord.com/api/webhooks/1478693375090622559/f0AwGgXAWkyGWOZVk5LLI9A1MKYQBvzmdSGoc3crPNMZ2mCaJEe-JIbF9ATuAsQp8Ioe"
+    REPORT_WEBHOOK = os.getenv("DISCORD_REPORT_WEBHOOK", "")
+    LOG_WEBHOOK = os.getenv("DISCORD_LOG_WEBHOOK", "")
 
     @classmethod
     def send_council_minutes(cls, title, discussion_data, color=0x3498db, image_path=None):
