@@ -4,8 +4,8 @@ import sys
 import os
 from pathlib import Path
 from datetime import datetime
+from collections import defaultdict
 
-# パス設定の追加
 BASE_DIR = Path("/docker/openclaw-taan/data/.openclaw/workspace")
 if str(BASE_DIR) not in sys.path:
     sys.path.append(str(BASE_DIR))
@@ -17,94 +17,165 @@ try:
     HAS_EMPYRICAL = True
 except ImportError:
     HAS_EMPYRICAL = False
+
 from core.blackboard import NeoBlackboard
+
+
+def _parse_log(log_path):
+    """paper_trade.logからBUY/SELLエントリを抽出してペアリング"""
+    buys = defaultdict(list)   # symbol -> [{"timestamp","price","amount_usd"}]
+    sells = defaultdict(list)  # symbol -> [{"timestamp","price","amount_usd"}]
+
+    pattern = re.compile(
+        r"\[(.*?)\] (.*?): \$(.*?) \| Action: (BUY|SELL|WAIT) \| Amount: \$(.*?) \|"
+    )
+    with open(log_path, "r", encoding="utf-8") as f:
+        for line in f:
+            m = pattern.search(line)
+            if not m:
+                continue
+            timestamp, symbol, price_str, action, amount_str = m.groups()
+            clean_symbol = symbol.split('/')[0].strip()
+            try:
+                price = float(price_str)
+                amount_usd = float(amount_str)
+            except ValueError:
+                continue
+
+            if action == "BUY" and amount_usd > 0:
+                buys[clean_symbol].append({
+                    "timestamp": timestamp,
+                    "price": price,
+                    "amount_usd": amount_usd
+                })
+            elif action == "SELL" and amount_usd > 0:
+                sells[clean_symbol].append({
+                    "timestamp": timestamp,
+                    "price": price,
+                    "amount_usd": amount_usd
+                })
+
+    return buys, sells
+
+
+def _calc_closed_trades(buys, sells):
+    """
+    決済済み取引のPnLを計算（FIFOマッチング）
+    戻り値: closed=[{symbol, entry_price, exit_price, pnl_pct}], open_buys={symbol:[...]}
+    """
+    closed = []
+    open_buys = {}
+
+    all_symbols = set(list(buys.keys()) + list(sells.keys()))
+    for symbol in all_symbols:
+        buy_queue = list(buys.get(symbol, []))   # FIFO
+        sell_list = list(sells.get(symbol, []))
+
+        remaining_buys = list(buy_queue)
+        for sell in sell_list:
+            sell_usd_left = sell["amount_usd"]
+            while sell_usd_left > 0 and remaining_buys:
+                buy = remaining_buys[0]
+                matched_usd = min(buy["amount_usd"], sell_usd_left)
+                pnl_pct = (sell["price"] - buy["price"]) / buy["price"] * 100
+                closed.append({
+                    "symbol": symbol,
+                    "entry_price": buy["price"],
+                    "exit_price": sell["price"],
+                    "amount_usd": matched_usd,
+                    "pnl_pct": round(pnl_pct, 2)
+                })
+                sell_usd_left -= matched_usd
+                buy["amount_usd"] -= matched_usd
+                if buy["amount_usd"] <= 0:
+                    remaining_buys.pop(0)
+
+        if remaining_buys:
+            open_buys[symbol] = remaining_buys
+
+    return closed, open_buys
+
 
 def evaluate_performance(send_dashboard: bool = False):
     print("📊 [Evaluator] Neo's Verdict Review starting...")
     log_path = BASE_DIR / "paper_trade.log"
-    
+
     if not log_path.exists():
         print("⚠️ Log file not found.")
         return
 
     try:
-        with open(log_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        buys, sells = _parse_log(log_path)
     except Exception as e:
-        print(f"⚠️ Error reading log: {e}")
+        print(f"⚠️ Log parse error: {e}")
         return
 
-    performance_results = []
-    win_count = 0
-    total_trades = 0
+    # 決済済み取引の勝率
+    closed, open_buys = _calc_closed_trades(buys, sells)
+    closed_wins = sum(1 for t in closed if t["pnl_pct"] > 0)
+    closed_total = len(closed)
+    closed_accuracy = (closed_wins / closed_total * 100) if closed_total > 0 else 0.0
 
-    for line in lines:
-        match = re.search(r"\[(.*?)\] (.*?): \$(.*?) \| Action: (.*?) \|", line)
-        if match:
-            timestamp, symbol, entry_price, action = match.groups()
-            entry_price = float(entry_price)
+    print(f"  📁 決済済み取引: {closed_total}件 | 勝率: {closed_accuracy:.2f}%")
 
-            if "BUY" in action.upper():
-                total_trades += 1
-                # スラッシュ以降（/USDTなど）を除去して価格取得
-                clean_symbol = symbol.split('/')[0].strip()
-                current_data = MarketData.fetch_token_data(clean_symbol)
-                
-                if current_data and current_data.get("status") == "success":
-                    current_price = float(current_data.get("priceUsd", 0.0))
-                    pnl_pct = ((current_price - entry_price) / entry_price) * 100
-                    
-                    if pnl_pct > 0:
-                        win_count += 1
-                    
-                    performance_results.append({
+    # 保有中ポジションの含み損益（参考情報）
+    open_summary = []
+    for symbol, buy_list in open_buys.items():
+        current_data = MarketData.fetch_token_data(symbol)
+        if current_data and current_data.get("status") == "success":
+            current_price = float(current_data.get("priceUsd", 0.0))
+            for b in buy_list:
+                if current_price > 0 and b["price"] > 0:
+                    pnl_pct = (current_price - b["price"]) / b["price"] * 100
+                    open_summary.append({
                         "symbol": symbol,
-                        "entry": entry_price,
-                        "current": current_price,
+                        "entry_price": b["price"],
+                        "current_price": current_price,
+                        "amount_usd": b["amount_usd"],
                         "pnl_pct": round(pnl_pct, 2)
                     })
 
-    accuracy = (win_count / total_trades * 100) if total_trades > 0 else 0
-    
-    # P1修正: performance_summary セクションに書き込み
-    # empyrical: 多次元パフォーマンス指標を計算
+    # empyricalで多次元指標（決済済み取引ベース）
     advanced_metrics = {}
-    if HAS_EMPYRICAL and len(performance_results) >= 3:
+    if HAS_EMPYRICAL and closed_total >= 3:
         try:
-            returns = np.array([r["pnl_pct"] / 100 for r in performance_results])
+            returns = np.array([t["pnl_pct"] / 100 for t in closed])
             advanced_metrics = {
-                "sortino_ratio":  round(float(empyrical.sortino_ratio(returns) or 0), 3),
-                "max_drawdown":   round(float(empyrical.max_drawdown(returns) or 0), 3),
-                "calmar_ratio":   round(float(empyrical.calmar_ratio(returns) or 0), 3),
-                "annual_return":  round(float(empyrical.annual_return(returns) or 0), 3),
-                "omega_ratio":    round(float(empyrical.omega_ratio(returns) or 0), 3),
+                "sortino_ratio": round(float(empyrical.sortino_ratio(returns) or 0), 3),
+                "max_drawdown":  round(float(empyrical.max_drawdown(returns) or 0), 3),
+                "calmar_ratio":  round(float(empyrical.calmar_ratio(returns) or 0), 3),
+                "annual_return": round(float(empyrical.annual_return(returns) or 0), 3),
+                "omega_ratio":   round(float(empyrical.omega_ratio(returns) or 0), 3),
             }
             print(f"  📈 Sortino: {advanced_metrics['sortino_ratio']} | MaxDD: {advanced_metrics['max_drawdown']:.1%} | Calmar: {advanced_metrics['calmar_ratio']}")
         except Exception as _e:
             print(f"  ⚠️ empyrical計算スキップ: {_e}")
 
     board_data = {
-        "accuracy_score": round(accuracy, 2),
-        "total_evaluated_trades": total_trades,
-        "recent_performance": performance_results[-5:],
+        "accuracy_score": round(closed_accuracy, 2),
+        "total_evaluated_trades": closed_total,
+        "open_positions_count": sum(len(v) for v in open_buys.values()),
+        "recent_performance": closed[-5:] if closed else [],
+        "open_positions": open_summary[-5:],
         "last_evaluated": datetime.now().isoformat(),
         "advanced_metrics": advanced_metrics
     }
-    
+
     NeoBlackboard.update("performance_summary", board_data)
-    print(f"✅ Performance Sync Complete: Accuracy {accuracy:.2f}% ({total_trades} trades)")
-    # Task 2.4: Discordダッシュボード送信（Nightly Batch時のみ）
+    print(f"✅ Performance Sync Complete: Closed Accuracy {closed_accuracy:.2f}% ({closed_total} closed trades, {sum(len(v) for v in open_buys.values())} open)")
+
     if send_dashboard:
-      try:
-        from tools.discord_reporter import DiscordReporter
-        DiscordReporter.send_performance_dashboard(
-            accuracy=round(accuracy, 2),
-            total_trades=total_trades,
-            recent_performance=performance_results,
-            win_count=win_count
-        )
-      except Exception as e:
-        print(f"⚠️ Dashboard送信失敗: {e}")
+        try:
+            from tools.discord_reporter import DiscordReporter
+            DiscordReporter.send_performance_dashboard(
+                accuracy=round(closed_accuracy, 2),
+                total_trades=closed_total,
+                recent_performance=closed,
+                win_count=closed_wins
+            )
+        except Exception as e:
+            print(f"⚠️ Dashboard送信失敗: {e}")
+
 
 if __name__ == "__main__":
     evaluate_performance()

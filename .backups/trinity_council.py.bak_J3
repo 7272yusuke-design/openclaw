@@ -76,49 +76,26 @@ class TrinityCouncil(NeoBaseCrew):
             if holding > 0:
                 pnl = self.portfolio.get_unrealized_pnl(clean_symbol, current_price)
                 print(f"  📈 含み損益: ${pnl['pnl_usd']:+.2f} ({pnl['pnl_pct']:+.2f}%)")
-                # J.3: 段階的利確（学習モード中は+10%で半量・+20%で全量）
-                from core.config import LEARNING_MODE
-                partial_tp_pct = 10.0 if LEARNING_MODE else 20.0
-                full_tp_pct = 20.0
-
-                if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
-                    # +20%到達: 全量売却
-                    print(f"\n[Phase 1-TP] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+                if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=20.0):
+                    print(f"\n[Phase 1-TP] 🎯 利確トリガー発動: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
                     sell_amount_usd = holding * current_price
-                    tp_label = "Full TP"
-                    tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
-                elif LEARNING_MODE and self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
-                    # +10%到達（学習モードのみ）: 半量売却
-                    print(f"\n[Phase 1-TP] 🎯 半量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}% (学習モード)")
-                    sell_amount_usd = (holding * current_price) * 0.5
-                    tp_label = "Partial TP (50%)"
-                    tp_reason = f"Partial Take Profit at +{pnl['pnl_pct']:.1f}% (learning mode, target: +{partial_tp_pct}%)"
-                else:
-                    sell_amount_usd = 0
-                    tp_label = ""
-                    tp_reason = ""
-
-                if sell_amount_usd > 0:
                     tp_result = self.portfolio.execute_trade(
                         symbol=clean_symbol,
                         action="SELL",
                         amount_usd=sell_amount_usd,
                         price=current_price,
-                        reason=tp_reason
+                        reason=f"Take Profit triggered at +{pnl['pnl_pct']:.1f}% (target: +20%)"
                     )
                     if tp_result.get("status") == "success":
-                        print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収 ({tp_label})")
+                        print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収")
+                        # 利確成功をtier=2記憶として保存（自己改善用）
                         tp_memory = (
-                            f"【{tp_label}利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} "
+                            f"【利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} "
                             f"+{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f}) "
-                            f"教訓: {tp_label}で利確実行"
+                            f"教訓: +20%到達で確実に利確すること"
                         )
-                        self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
-                        if tp_label.startswith("Full"):
-                            return {"verdict": "SELL", "verdict_text": f"Full Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
-                        else:
-                            # 半量利確後はCouncilを継続（残りポジションの判断へ）
-                            print(f"  📊 半量利確完了 → 残りポジションはCouncilで判断継続")
+                        self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
+                        return {"verdict": "SELL", "verdict_text": f"Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
                 elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=10.0):
                     print(f"\n[Phase 1-SL] 🛑 損切トリガー発動: {clean_symbol} {pnl['pnl_pct']:.1f}%")
                     sell_amount_usd = holding * current_price
@@ -190,58 +167,20 @@ class TrinityCouncil(NeoBaseCrew):
                 print(f"  ⚠️ 市場センチメントデータ取得失敗: {_mce}")
             # J.1: クリプトニュースRSS取得
             try:
-                from tools.crypto_news import get_news_context_text, get_news
+                from tools.crypto_news import get_news_context_text
                 news_context = get_news_context_text(target_symbol)
                 vp_count = news_context.count("  - ") if news_context else 0
-                # K.1: FinBERTによる定量センチメントスコア
-                try:
-                    from tools.finbert_sentiment import get_finbert_context_text, get_finbert_score
-                    _news_data = get_news(target_symbol)
-                    _titles = _news_data.get("vp_news", []) + _news_data.get("market_news", [])
-                    finbert_context = get_finbert_context_text(_titles, "VP/Market News") if _titles else ""
-                    _fb_result = get_finbert_score(_titles) if _titles else {}
-                    finbert_score = _fb_result.get("score", 0.0)  # -1.0〜+1.0
-                    finbert_label = _fb_result.get("label", "neutral")
-                    if finbert_context:
-                        print(f"  🤖 {finbert_context.splitlines()[1].strip()} (finbert_score={finbert_score:+.3f})")
-                except Exception as _fe:
-                    finbert_context = ""
-                    finbert_score = 0.0
-                    finbert_label = "neutral"
-                    print(f"  ⚠️ FinBERT skipped: {str(_fe)[:50]}")
                 print(f"  📰 ニュース取得: {vp_count}件")
             except Exception as _nce:
                 news_context = ""
-                vp_count = 0
-                finbert_score = 0.0
-                finbert_label = "neutral"
                 print(f"  ⚠️ ニュース取得失敗: {_nce}")
-            # H.2: ニュース過多警戒（6件以上はノイズが多く誤判断リスクが高い）
-            news_noise_warning = ""
-            if vp_count >= 6:
-                news_noise_warning = f"\n⚠️ [H.2警告] ニュース件数={vp_count}件（6件以上は市場ノイズが多い状態。過去データでBUY accuracy=46.7%に低下。慎重な判断を推奨）"
-                print(f"  ⚠️ [H.2] ニュース過多警戒: {vp_count}件 → BUY精度低下リスク")
             s_result = sentiment_crew.run(
                 goal=f"{target_symbol} の市場センチメントを評価せよ",
-                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}\n{finbert_context}{news_noise_warning}",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}",
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
-            if isinstance(s_result, dict):
-                s_data = s_result
-            elif isinstance(s_result, str):
-                try:
-                    clean = s_result.strip()
-                    if "```" in clean:
-                        clean = clean.split("```")[1]
-                        if clean.startswith("json"): clean = clean[4:]
-                    s_data = _json.loads(clean.strip())
-                except Exception:
-                    s_data = {}
-            elif hasattr(s_result, "__dict__"):
-                s_data = s_result.__dict__
-            else:
-                s_data = {}
+            s_data = _json.loads(str(s_result)) if isinstance(s_result, str) else (s_result.__dict__ if hasattr(s_result, "__dict__") else {})
             sentiment_score = float(s_data.get("market_sentiment_score", sentiment_score))
             sentiment_label = s_data.get("sentiment_label", "neutral")
             sentiment_risk_factors = s_data.get("risk_factors", [])
@@ -250,9 +189,6 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"  ⚠️ SentimentCrew失敗（フォールバック）: {str(se)[:60]}")
             sentiment_label = "neutral"
             sentiment_risk_factors = []
-            if "finbert_score" not in locals():
-                finbert_score = 0.0
-                finbert_label = "neutral"
 
         # 1d. 過去の記憶
         # 教訓を優先的にrecall
@@ -366,24 +302,7 @@ class TrinityCouncil(NeoBaseCrew):
         else:
             t2_desc = f"{target_symbol} の弱気レポート作成。リスク要因を列挙すること。"
         t2 = Task(description=t2_desc, agent=agent_bear, expected_output="リスク評価書")
-        # finbert_scoreが未定義の場合のフォールバック
-        _fb_score = finbert_score if "finbert_score" in locals() else 0.0
-        _fb_label = finbert_label if "finbert_label" in locals() else "neutral"
-        if _fb_score >= 0.4:
-            _fb_instr = "[FinBERT強気] score={:+.3f} ({}) — 定量分析が強い上昇センチメント。BUYを積極検討せよ。".format(_fb_score, _fb_label.upper())
-        elif _fb_score <= -0.4:
-            _fb_instr = "[FinBERT弱気] score={:+.3f} ({}) — 定量分析が強い下落センチメント。WAIT/SELLを強く検討せよ。".format(_fb_score, _fb_label.upper())
-        elif _fb_score >= 0.2:
-            _fb_instr = "[FinBERT軽微な強気] score={:+.3f} — やや上昇センチメント。他の指標と総合判断せよ。".format(_fb_score)
-        elif _fb_score <= -0.2:
-            _fb_instr = "[FinBERT軽微な弱気] score={:+.3f} — やや下落センチメント。リスクに注意せよ。".format(_fb_score)
-        else:
-            _fb_instr = "[FinBERT中立] score={:+.3f} — センチメントは中立。他の指標を優先せよ。".format(_fb_score)
-        t3 = Task(
-            description=target_symbol + " への最終投資判断。必ずBUY/SELL/WAITで始めよ。\n" + _fb_instr,
-            agent=agent_neo,
-            expected_output="最終判断と根拠"
-        )
+        t3 = Task(description=f"{target_symbol} への最終投資判断。必ずBUY/SELL/WAITで始めよ。", agent=agent_neo, expected_output="最終判断と根拠")
 
         crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
         import threading
@@ -426,50 +345,21 @@ class TrinityCouncil(NeoBaseCrew):
 
         if first_word == "BUY" and current_price > 0:
             trade_action = "BUY"
-
-            # === ポジション管理ガード ===
-            # 総資産を計算（USDC + 全保有トークンの評価額）
-            total_assets = current_usdc
-            for sym, amount in balances.items():
-                if sym == "USDC":
-                    continue
-                sym_data = MarketData.fetch_token_data(sym)
-                if sym_data and sym_data.get("status") == "success":
-                    sym_price = float(sym_data.get("priceUsd", 0.0))
-                    total_assets += amount * sym_price
-
-            # ① USDC下限ガード: 総資産の20%未満ならBUY禁止
-            usdc_ratio = current_usdc / total_assets if total_assets > 0 else 0
-            if usdc_ratio < 0.20:
-                trade_action = "WAIT"
-                trade_result = {"status": "skipped", "reason": f"USDC残高不足 ({usdc_ratio:.1%} < 20%上限)"}
-                print(f"\n[Phase 5] 🛑 BUY禁止: USDC残高{usdc_ratio:.1%}が下限20%未満 (総資産${total_assets:,.0f})")
+            trade_amount_usd = round(current_usdc * 0.10, 2)  # 残高の10%
+            
+            if trade_amount_usd >= 10.0:
+                print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol}")
+                trade_result = self.portfolio.execute_trade(
+                    symbol=clean_symbol,
+                    action="BUY",
+                    amount_usd=trade_amount_usd,
+                    price=current_price,
+                    reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
+                )
+                logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
             else:
-                # ② 銘柄ポジション上限ガード: 対象銘柄が総資産の30%超ならBUY禁止
-                holding_amount = balances.get(clean_symbol, 0.0)
-                holding_value = holding_amount * current_price
-                holding_ratio = holding_value / total_assets if total_assets > 0 else 0
-                if holding_ratio > 0.30:
-                    trade_action = "WAIT"
-                    trade_result = {"status": "skipped", "reason": f"{clean_symbol}ポジション上限超過 ({holding_ratio:.1%} > 30%)"}
-                    print(f"\n[Phase 5] 🛑 BUY禁止: {clean_symbol}保有比率{holding_ratio:.1%}が上限30%超 (${holding_value:,.0f})")
-                else:
-                    # ③ BUY額: 総資産の5% と USDC残高の10% の小さい方
-                    trade_amount_usd = round(min(total_assets * 0.05, current_usdc * 0.10), 2)
-
-                    if trade_amount_usd >= 10.0:
-                        print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
-                        trade_result = self.portfolio.execute_trade(
-                            symbol=clean_symbol,
-                            action="BUY",
-                            amount_usd=trade_amount_usd,
-                            price=current_price,
-                            reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
-                        )
-                        logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
-                    else:
-                        trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
-                        print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
+                trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
+                print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
         
         elif first_word == "SELL" and current_price > 0:
             trade_action = "SELL"
@@ -556,14 +446,11 @@ class TrinityCouncil(NeoBaseCrew):
             "trade": trade_text
         }
         
-        if trade_action in ("BUY", "SELL"):
-            DiscordReporter.send_council_minutes(
-                title=f"🏛️ 評議会決定: {target_symbol} → **{trade_action}**",
-                discussion_data=discussion_data,
-                color=status_color
-            )
-        else:
-            print(f"⏭️ [Discord] WAIT判定のため送信スキップ")
+        DiscordReporter.send_council_minutes(
+            title=f"🏛️ 評議会決定: {target_symbol} → **{trade_action}**",
+            discussion_data=discussion_data,
+            color=status_color
+        )
 
         # ============================================================
         # Phase 6: Moltbook投稿
@@ -599,13 +486,10 @@ class TrinityCouncil(NeoBaseCrew):
         except Exception:
             fng_value = "N/A"
 
-        _fb_score_mem = finbert_score if "finbert_score" in locals() else 0.0
-        _fb_label_mem = finbert_label if "finbert_label" in locals() else "neutral"
         memory_entry = (
             f"{target_symbol} @ ${current_price:.6f}: {trade_action} "
             f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f}, "
             f"sentiment={sentiment_label}({sentiment_score:.2f}), "
-            f"finbert={_fb_label_mem}({_fb_score_mem:+.3f}), "
             f"FearGreed={fng_value}, news={news_count}件, "
             f"onchain={onchain_summary}, "
             f"reason={verdict_text[:150]})"
@@ -618,8 +502,6 @@ class TrinityCouncil(NeoBaseCrew):
             "bt_confidence": bt_confidence,
             "sentiment": sentiment_label,
             "sentiment_score": str(round(sentiment_score, 2)),
-            "finbert_score": str(round(_fb_score_mem, 3)),
-            "finbert_label": _fb_label_mem,
             "fear_greed": fng_value,
             "news_count": str(news_count),
             "onchain_liquidity": onchain_summary[:80],

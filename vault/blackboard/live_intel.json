@@ -20,23 +20,38 @@
     },
     "active_opportunities": {
       "VIRTUAL/USDT": {
-        "sharpe": 5.2,
+        "sharpe": 5.1,
         "alert_level": "Critical",
-        "last_detected": "2026-03-14T08:00:06"
+        "last_detected": "2026-03-18T00:18:57"
       },
       "AIXBT/USDT": {
         "sharpe": 5.1,
         "alert_level": "Critical",
-        "last_detected": "2026-03-14T08:00:13"
+        "last_detected": "2026-03-18T00:19:04"
       },
       "LUNA/USDT": {
         "sharpe": 6.2,
         "alert_level": "Critical",
-        "last_detected": "2026-03-14T08:34:42"
+        "last_detected": "2026-03-18T00:26:29"
+      },
+      "ETH/USDT": {
+        "sharpe": 5.1,
+        "alert_level": "Critical",
+        "last_detected": "2026-03-17T17:00:52"
+      },
+      "SOL/USDT": {
+        "sharpe": 5.2,
+        "alert_level": "Warning",
+        "last_detected": "2026-03-17T18:44:33"
+      },
+      "BNB/USDT": {
+        "sharpe": 5.2,
+        "alert_level": "Warning",
+        "last_detected": "2026-03-17T20:49:34"
       }
     },
-    "opportunity_count": 3,
-    "last_updated": "2026-03-14T08:34:42.796890+00:00"
+    "opportunity_count": 6,
+    "last_updated": "2026-03-18T00:26:29.723940+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -46,6 +61,6 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-03-14T08:37:48.115266"
+    "last_evaluated": "2026-03-18T00:48:09.533395"
   }
 }
