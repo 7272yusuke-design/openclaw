@@ -26,7 +26,7 @@ def get_neo_llm():
 # VP銘柄監視 3層設定（Task A.1）
 # ============================================================
 VP_TIER1_SYMBOLS = ["VIRTUAL", "AIXBT"]       # 常時監視 + Sweep最優先
-VP_TIER2_SYMBOLS = ["LUNA"]                    # Sweep対象
+VP_TIER2_SYMBOLS = []                          # LUNA除外: CoinGecko価格が不正($0.1545)のため監視停止
 VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
 
 SWEEP_SYMBOLS         = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS   # 通常Sweep
