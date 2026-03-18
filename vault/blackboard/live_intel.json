@@ -32,7 +32,7 @@
       "LUNA/USDT": {
         "sharpe": 6.2,
         "alert_level": "Critical",
-        "last_detected": "2026-03-18T00:26:29"
+        "last_detected": "2026-03-18T00:52:45"
       },
       "ETH/USDT": {
         "sharpe": 5.1,
@@ -51,7 +51,7 @@
       }
     },
     "opportunity_count": 6,
-    "last_updated": "2026-03-18T00:26:29.723940+00:00"
+    "last_updated": "2026-03-18T00:52:45.283209+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -61,6 +61,6 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-03-18T00:48:09.533395"
+    "last_evaluated": "2026-03-18T00:53:09.298203"
   }
 }
