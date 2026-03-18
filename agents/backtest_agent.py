@@ -114,7 +114,27 @@ class BacktestAgent:
                        if best["sharpe"] >= 5.0
                        else "Sharpe 5.0未満 → WAIT推奨")
             lines += ["", f"💡 Council推奨: {verdict}"]
-
+            # モンテカルロ結果をレポートに追加
+            mc_label    = best.get("mc_label", "N/A")
+            mc_p5       = best.get("mc_sharpe_p5", 0.0)
+            mc_p50      = best.get("mc_sharpe_p50", 0.0)
+            mc_p95      = best.get("mc_sharpe_p95", 0.0)
+            mc_neg_prob = best.get("mc_neg_prob", 1.0)
+            mc_emoji    = {"ROBUST": "🟢", "STABLE": "🟡", "FRAGILE": "🟠", "RISKY": "🔴"}.get(mc_label, "⬜")
+            lines += [
+                "",
+                f"🎲 モンテカルロ信頼区間 (n=500):",
+                f"   {mc_emoji} 堅牢性: {mc_label}",
+                f"   Sharpe 5%ile={mc_p5} / 50%ile={mc_p50} / 95%ile={mc_p95}",
+                f"   マイナスSharpe確率: {mc_neg_prob*100:.1f}%",
+            ]
+            result.update({
+                "mc_label":      mc_label,
+                "mc_sharpe_p5":  mc_p5,
+                "mc_sharpe_p50": mc_p50,
+                "mc_sharpe_p95": mc_p95,
+                "mc_neg_prob":   mc_neg_prob,
+            })
             result["raw_report"] = "\n".join(lines)
             logger.info(f"✅ [BacktestAgent v3] {target_symbol}: best={best['strategy']} Sharpe={best['sharpe']}")
 

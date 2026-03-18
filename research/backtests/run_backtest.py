@@ -6,6 +6,52 @@ import logging
 logger = logging.getLogger("neo.quant.backtest")
 
 
+def _monte_carlo_confidence(rets: list, n_sim: int = 500) -> dict:
+    """
+    ブートストラップ・モンテカルロによるSharpe信頼区間計算。
+    同じ取引リターン列をランダムシャッフルしてn_sim回Sharpeを計算。
+    Returns: p5/p50/p95 Sharpe, 負Sharpe確率, 信頼ラベル
+    """
+    import random
+    if len(rets) < 3:
+        return {"mc_sharpe_p5": 0.0, "mc_sharpe_p50": 0.0, "mc_sharpe_p95": 0.0,
+                "mc_neg_prob": 1.0, "mc_label": "INSUFFICIENT"}
+    sharpes = []
+    ra = list(rets)
+    for _ in range(n_sim):
+        sample = random.choices(ra, k=len(ra))  # リサンプリング（重複あり）
+        arr = np.array(sample)
+        if arr.std() < 1e-6:
+            continue
+        sr = float((arr.mean() / arr.std()) * np.sqrt(252))
+        if math.isfinite(sr) and abs(sr) < 100:
+            sharpes.append(sr)
+    if len(sharpes) < 10:
+        return {"mc_sharpe_p5": 0.0, "mc_sharpe_p50": 0.0, "mc_sharpe_p95": 0.0,
+                "mc_neg_prob": 1.0, "mc_label": "INSUFFICIENT"}
+    sharpes.sort()
+    n = len(sharpes)
+    p5  = sharpes[int(n * 0.05)]
+    p50 = sharpes[int(n * 0.50)]
+    p95 = sharpes[int(n * 0.95)]
+    neg_prob = sum(1 for s in sharpes if s < 0) / n
+    # 信頼ラベル: 下振れ5%ラインで判定
+    if p5 >= 2.0:
+        label = "ROBUST"    # 最悪ケースでもSharpe2以上
+    elif p5 >= 0.5:
+        label = "STABLE"    # 最悪ケースでもプラス
+    elif p5 >= 0.0:
+        label = "FRAGILE"   # 最悪ケースでトントン
+    else:
+        label = "RISKY"     # 最悪ケースでマイナス
+    return {
+        "mc_sharpe_p5":  round(p5, 3),
+        "mc_sharpe_p50": round(p50, 3),
+        "mc_sharpe_p95": round(p95, 3),
+        "mc_neg_prob":   round(neg_prob, 3),
+        "mc_label":      label
+    }
+
 def _manual_backtest(close, entries, exits, strategy_name, fees=0.001):
     """vectorbt不使用の手動バックテスト + Sharpe計算"""
     empty = {"strategy": strategy_name, "sharpe": 0.0, "sharpe_raw": 0.0,
@@ -46,10 +92,16 @@ def _manual_backtest(close, entries, exits, strategy_name, fees=0.001):
         if not math.isfinite(sr) or abs(sr) > 100:
             return {**empty, "trades": n}
         conf = "HIGH" if n >= 10 else "MED" if n >= 3 else "LOW"
+        mc = _monte_carlo_confidence(rets)
         return {"strategy": strategy_name, "sharpe": max(0.0, round(sr,3)),
                 "sharpe_raw": round(sr,3), "total_return": f"{total_ret:.2f}%",
                 "max_dd": f"{mdd:.2f}%", "win_rate": round(wr,1),
-                "trades": n, "confidence": conf}
+                "trades": n, "confidence": conf,
+                "mc_sharpe_p5":  mc["mc_sharpe_p5"],
+                "mc_sharpe_p50": mc["mc_sharpe_p50"],
+                "mc_sharpe_p95": mc["mc_sharpe_p95"],
+                "mc_neg_prob":   mc["mc_neg_prob"],
+                "mc_label":      mc["mc_label"]}
     except Exception as e:
         logger.error(f"[_manual_backtest] {strategy_name}: {e}")
         return empty
