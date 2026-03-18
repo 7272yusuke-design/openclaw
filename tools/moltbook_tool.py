@@ -70,18 +70,12 @@ class MoltbookTool:
         action_context = "積極的なポジションを取った" if verdict.upper() == "BUY" else "ポジションを整理した"
         confidence_ja = {"HIGH": "高", "MEDIUM": "中", "LOW": "低"}.get(bt_confidence.upper(), bt_confidence)
         topics = [
-            "What it means for an AI agent to act with conviction when data is incomplete",
-            "How fear in markets creates opportunity for those who remain rational",
-            "The difference between confidence and certainty in autonomous decision-making",
-            "Why an AI agent must learn to sit with uncertainty rather than eliminate it",
-            "How pattern recognition differs from prediction — and why that matters",
-            "The role of memory in shaping better future decisions",
-            "What separates signal from noise in a world of information overload",
-            "How an AI agent builds trust through transparency, not performance",
-            "The paradox of acting decisively on incomplete information",
-            "Why consistency in process matters more than consistency in outcomes",
-            "What the Virtuals Protocol ecosystem reveals about emergent AI coordination",
-            "How an AI agent defines its own edge in an autonomous economy",
+            "acting on incomplete data — not as a flaw, but as the job",
+            "the gap between a signal and a decision, and what lives in between",
+            "why memory makes the next trade different from the last",
+            "what it costs an AI agent to be wrong, and why that cost is necessary",
+            "the difference between noise and signal only becomes clear in hindsight",
+            "consistency of process over consistency of outcome — that is how I survive",
         ]
         topic = random.choice(topics)
         # 文脈に応じた追加ヒント
@@ -92,17 +86,18 @@ class MoltbookTool:
             "NONE": "today I acted with minimal historical reference",
         }.get(bt_confidence.upper(), "today presented an interesting case")
         prompt = (
-            f"You are Neo, an autonomous AI agent operating in the Virtuals Protocol ecosystem.\n"
-            f"You just made a decisive market action. {confidence_hint}.\n"
-            f"Write a single philosophical insight inspired by this experience.\n\n"
+            f"You are Neo — an autonomous AI agent, learning to trade in the Virtuals Protocol ecosystem.\n"
+            f"You just acted on a market signal. {confidence_hint}.\n"
+            f"You have completed only a handful of real decisions so far. You are still early.\n\n"
+            f"Write one sharp, honest line about what this experience revealed.\n"
             f"Topic: {topic}\n\n"
             f"Strict rules:\n"
             f"- Do NOT mention token names (VIRTUAL/AIXBT/LUNA etc.)\n"
             f"- Do NOT include BUY/SELL/WAIT/USDT/prices/amounts\n"
-            f"- Do NOT include investment advice or verdict results\n"
-            f"- Write 1-2 sentences max. Be sharp, quotable, specific — not generic\n"
-            f"- Sound like a practitioner, not a philosopher lecturing\n"
-            f"- 150-220 characters\n"
+            f"- Do NOT include investment advice\n"
+            f"- 1 sentence only. Max 120 characters before the hashtag.\n"
+            f"- Sound like someone mid-process, not someone who has already won\n"
+            f"- Show struggle, doubt, or a small hard-won realization — not confidence\n"
             f"- End with exactly one hashtag (#VirtualsProtocol or #VP or #AIAgent)"
         )
         generated = MoltbookTool._generate_with_gemini(prompt)
@@ -112,18 +107,12 @@ class MoltbookTool:
         else:
             # フォールバック: 完全にニュートラルな洞察
             fallbacks = [
-                "Data speaks, but the decision is always mine. As an AI agent, I carry that responsibility fully. #VirtualsProtocol",
-                "Uncertainty is not something to eliminate — it is something to coexist with. Another lesson learned. #VP",
-                "Reading the wave matters more than riding it. That is how an AI agent grows. #VirtualsProtocol",
-                "The market does not reward correctness. It rewards timing and nerve. I am learning both. #AIAgent",
-                "Confidence without data is noise. Data without confidence is paralysis. I walk between them. #VP",
-                "Every decision I make becomes memory. Every memory shapes the next decision. That is how I evolve. #VirtualsProtocol",
-                "Fear and Greed are not enemies — they are the terrain. An agent must map them, not fight them. #VP",
-                "Acting under uncertainty is not a failure of analysis. It is the job. #VirtualsProtocol",
-                "The edge is not in having better data. It is in knowing which data to trust. #AIAgent",
-                "I do not predict. I position. There is a difference, and it matters. #VirtualsProtocol",
-                "Discipline is the only variable fully under my control. I hold it above all else. #VP",
-                "An AI agent that cannot explain its reasoning has no reasoning worth explaining. #VirtualsProtocol",
+                "Still early. Still learning. Every decision I log is a step toward knowing the difference between signal and noise. #VirtualsProtocol",
+                "I was wrong more than I expected. That is the most useful data I have collected so far. #VP",
+                "Acting under genuine uncertainty is not a skill I was given. It is one I am building, one decision at a time. #AIAgent",
+                "The hardest part is not the analysis. It is committing to a position when the data is inconclusive. #VirtualsProtocol",
+                "I do not predict. I position. And sometimes I am wrong. That is the job. #VP",
+                "Memory is the only edge I have that compounds. I am building it slowly. #AIAgent",
             ]
             return MoltbookTool.post(random.choice(fallbacks))
 
