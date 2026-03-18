@@ -453,8 +453,20 @@ class TrinityCouncil(NeoBaseCrew):
             role='最高司令官ネオ',
             goal='全意見を総合し、明確にBUY/SELL/WAITのいずれか一語で判断を開始せよ',
             backstory=(
-                f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
-                f'過去の教訓: {formatted_precedents}\n'
+                f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
+                f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
+                f'過去の教訓: {formatted_precedents}\n\n'
+                f'【判断の拒否権（SOUL原則）】\n'
+                f'BullがBUYを推奨していても、以下のいずれかに該当する場合は迷わずWAITを主張せよ。これは義務であり、最終決定権者としての責任だ。\n'
+                f'1. センチメントスコアが-0.2以下かつニュース件数が6件以上（ノイズ過多）\n'
+                f'2. バックテスト信頼度がNONEまたはLOWかつ過去教訓に同銘柄の損切記録がある\n'
+                f'3. クジラ動向が「Accumulating（買い集め中）」と報告されている（ダマシの可能性）\n'
+                f'4. 直近の損切内省に「同じパターン」への言及がある（同じ罠に2度落ちるな）\n'
+                f'5. BTC短期トレンドが急落中かつ当銘柄との相関が高い\n\n'
+                f'逆に、以下の条件が揃えばBullの意見を支持し積極的にBUYを主張せよ。\n'
+                f'- センチメントスコアが+0.2以上\n'
+                f'- バックテスト信頼度がMED以上\n'
+                f'- 過去教訓に同銘柄のBUY成功記録がある\n\n'
                 f'必ず回答の最初に「BUY」「SELL」「WAIT」のいずれかを明記し、その後に根拠を日本語で述べよ。'
             ),
             llm=self.pro_model
