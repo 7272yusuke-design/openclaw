@@ -120,19 +120,6 @@ class TrinityCouncil(NeoBaseCrew):
                             f"教訓: {tp_label}で利確実行"
                         )
                         self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
-                        # Discord報告
-                        try:
-                            _bal = self.portfolio.get_balance().get('USDC', 0)
-                            DiscordReporter.send_trade_alert(
-                                symbol=f"{clean_symbol} ({tp_label} +{pnl['pnl_pct']:.1f}%)",
-                                action="SELL",
-                                amount_usd=sell_amount_usd,
-                                price=current_price,
-                                status=f"success | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}",
-                                balance_after=_bal
-                            )
-                        except Exception as _de:
-                            print(f"  ⚠️ Discord報告失敗: {_de}")
                         if tp_label.startswith("Full"):
                             return {"verdict": "SELL", "verdict_text": f"Full Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
                         else:
@@ -150,19 +137,6 @@ class TrinityCouncil(NeoBaseCrew):
                     )
                     if sl_result.get("status") == "success":
                         print(f"  ✅ 損切完了: ${sell_amount_usd:.2f} USDC回収")
-                        # Discord報告
-                        try:
-                            _bal = self.portfolio.get_balance().get('USDC', 0)
-                            DiscordReporter.send_trade_alert(
-                                symbol=f"{clean_symbol} (Stop Loss {pnl['pnl_pct']:.1f}%)",
-                                action="SELL",
-                                amount_usd=sell_amount_usd,
-                                price=current_price,
-                                status=f"stop_loss | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}",
-                                balance_after=_bal
-                            )
-                        except Exception as _de:
-                            print(f"  ⚠️ Discord報告失敗: {_de}")
                         # 損切をtier=2記憶として保存（自己改善用）
                         sl_memory = (
                             f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} "
