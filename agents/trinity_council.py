@@ -62,7 +62,8 @@ class TrinityCouncil(NeoBaseCrew):
         # 1b. 現在価格の取得
         clean_symbol = target_symbol.split('/')[0].strip()
         # VP銘柄はGeckoTerminal直接取得（キャッシュ誤利確防止）
-        if clean_symbol in ("VIRTUAL", "AIXBT", "LUNA"):
+        # LUNA: Solanaチェーンのため GeckoTerminal(Base chain) 対象外 → CoinGecko経由
+        if clean_symbol in ("VIRTUAL", "AIXBT"):
             price_data = MarketData._fetch_price_from_geckoterminal(clean_symbol)
             if not price_data:
                 price_data = MarketData.fetch_token_data(clean_symbol)

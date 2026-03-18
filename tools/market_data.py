@@ -30,7 +30,8 @@ class MarketData:
     _GECKO_PAIRS = {
         "VIRTUAL": "0x3f0296BF652e19bca772EC3dF08b32732F93014A",
         "AIXBT":   "0xf1fdc83c3a336bdbdc9fb06e318b08eaddc82ff4",
-        "LUNA":    "0xa8e64fb120ce8796594670bae72279c8aa1e5359",
+        # LUNA: Solanaチェーントークンのため GeckoTerminal(Base chain) 対象外
+        # CoinGecko経由で価格取得する
     }
     
     # Rate Limit対策: 最後のAPI呼び出し時刻

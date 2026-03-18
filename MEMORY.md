@@ -1,7 +1,7 @@
 # MEMORY.md — Neo Long-Term Memory Index
-> **最終更新**: 2026-03-16（記憶整理 + Blackboard書き込み停止）
-> **記憶DB**: ChromaDB (`vault/chroma_db/`) — 15件のクリーンな記憶
-> **書き込みルール**: trinity_council.pyのみがChromaDBに書き込む（Blackboard自動書き込み停止済み）
+> **最終更新**: 2026-03-18（ChromaDB整理 + LUNA DEXバグ修正）
+> **記憶DB**: ChromaDB (`vault/chroma_db/`) — コレクション: `neo_memories`（66件）
+> **書き込みルール**: trinity_council.pyのみがChromaDBに書き込む
 
 ---
 
@@ -14,18 +14,19 @@
 | クジラ「Accumulating」サインのダマシ対策 | whale,fake_signal,VIRTUAL,AIXBT |
 | Moltbook投稿ルール（最低2.5分間隔・スパムキーワード禁止） | Moltbook,rate_limit,spam |
 
-### Tier 2: 重要参照（システム運用ルール）2件
+### Tier 2: 重要参照（システム運用ルール）4件
 | 内容 |
 |---|
 | Git 100MB制限: neo-env/バイナリは.gitignore必須 |
 | システム整合性: .envパースエラー対策・環境変数は常にクリーンに |
+| LUNA利確成功記録（正常データのみ保持） |
 
-### Tier 3: 通常記録 10件
+### Tier 3: 通常記録 59件
 | 種別 | 件数 | 内容 |
 |---|---|---|
 | 日次ログ | 7件 | 2026-02-17〜02-28の初期構築フェーズ記録 |
-| BUY取引記録 | 2件 | VIRTUAL @ $0.7231 / $0.7378 |
-| VP学習計画 | 1件 | Virtual Protocol学習計画（2026-02-17） |
+| BUY取引記録 | 約32件 | VIRTUAL/LUNA/AIXBT等のBUY判定 |
+| WAIT取引記録 | 20件 | 直近20件のみ保持（古いものは削除済み） |
 
 ---
 
@@ -50,7 +51,7 @@
 
 ---
 
-## 🏗️ 現在のシステム仕様（Neo v4.3 — 2026-03-16）
+## 🏗️ 現在のシステム仕様（Neo v4.3 — 2026-03-18）
 
 ### アーキテクチャ
 - **メインレーダー**: `run_trigger.py`（30秒間隔）
@@ -58,6 +59,11 @@
 - **取引エンジン**: `PaperWallet`（ポジション管理付き・利確+20%/損切-10%自動執行）
 - **学習モード**: ON（Sharpe 0.5以上でCouncil召集・100回達成まで）
 - **データソース**: CoinGecko OHLC API + DexScreenerオンチェーン
+
+### 価格取得ルール（2026-03-18修正）
+- **VIRTUAL/AIXBT**: GeckoTerminal（Base chain DEX）→ フォールバック: CoinGecko
+- **LUNA**: CoinGeckoのみ（Solanaチェーントークン。Base chain DEX対象外）
+- **ETH/SOL/BNB**: CoinGeckoのみ
 
 ### トリガー条件
 1. **ボラティリティ**: VIRTUAL 2%変動 → Council召集
@@ -84,13 +90,20 @@
 
 ### ❌ 書き込まない
 - Alpha Sweep自動更新（Blackboardのみ）
-- performance_summary更新（Blackboardのみ）← **2026-03-16修正済み**
-- execution_history更新（Blackboardのみ）← **2026-03-16修正済み**
+- performance_summary更新（Blackboardのみ）
+- execution_history更新（Blackboardのみ）
 - Blackboard経由の自動書き込み（`core/blackboard.py`から書き込み禁止）
 
 ---
 
-## 🗑️ 廃棄済み記憶（2026-03-14/16 整理）
-- **207件のノイズ記録**: WAITログ・performance_summary自動更新（2026-03-16整理）
-- **39件のAlpha Sweepノイズ**: 偽Sharpeデータ（2026-03-14整理）
-- **重複Council判定**: AIXBT重複6件・プロンプトリーク3件（2026-03-14整理）
+## 🗑️ 廃棄済み記憶（整理履歴）
+- **2026-03-18**: 72件削除（異常利確3件 + accuracy=0.0%の15件 + 古いWAIT54件）
+- **2026-03-16**: 207件削除（WAITログ・performance_summary自動更新）
+- **2026-03-14**: 42件削除（Alpha Sweepノイズ・重複・プロンプトリーク）
+
+---
+
+## 🐛 修正済みバグ（再発防止）
+- **2026-03-18**: LUNAの価格取得バグ修正
+  - 原因: LUNA(_GECKO_PAIRS)がBase chain DEXアドレスを参照 → $0.007のLUNAが$0.15のトークン価格で利確判定
+  - 修正: `_GECKO_PAIRS`からLUNA削除。`trinity_council.py`もCoinGecko経由に統一
