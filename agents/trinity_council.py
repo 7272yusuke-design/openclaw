@@ -541,6 +541,9 @@ class TrinityCouncil(NeoBaseCrew):
 
             # === ポジション管理ガード ===
             # 総資産を計算（USDC + 全保有トークンの評価額）
+            # Phase5直前にUSDC残高を再取得（Council途中の取引を反映）
+            balances = self.portfolio.get_balance()
+            current_usdc = balances.get("USDC", 0.0)
             total_assets = current_usdc
             for sym, amount in balances.items():
                 if sym == "USDC":

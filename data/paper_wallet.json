@@ -1,14 +1,19 @@
 {
-  "usd_balance": 186437.11546102827,
+  "usd_balance": 0.0,
   "holdings": {
     "VIRTUAL": {
-      "amount": 116778.14833869197,
-      "avg_price": 0.7577140180658487,
+      "amount": 108348.42766566557,
+      "avg_price": 0.7546774952038497,
       "entry_time": "2026-03-16T05:28:59.064883"
     },
+    "LUNA": {
+      "amount": 1206712.7214306036,
+      "avg_price": 0.007117278079092426,
+      "entry_time": "2026-03-16T03:41:36.447406"
+    },
     "AIXBT": {
-      "amount": 543277.2919950762,
-      "avg_price": 0.026707539987022876,
+      "amount": 15966.47834274953,
+      "avg_price": 0.02655,
       "entry_time": "2026-03-17T20:19:19.159910"
     }
   },
@@ -164,7 +169,7 @@
       "price": 0.7817,
       "amount_token": 2370.500191889472,
       "amount_usd": 1853.02,
-      "reason": "Trinity Council BUY verdict (accuracy: 93.33%, confidence: LOW)"
+      "reason": "Trinity Council BUY verdict (accuracy: 100.0%, confidence: LOW)"
     },
     {
       "timestamp": "2026-03-16T17:38:41.447171",
@@ -173,7 +178,7 @@
       "price": 0.791,
       "amount_token": 2108.3691529709226,
       "amount_usd": 1667.72,
-      "reason": "Trinity Council BUY verdict (accuracy: 100.0%, confidence: LOW)"
+      "reason": "Trinity Council BUY verdict (accuracy: 93.33%, confidence: LOW)"
     },
     {
       "timestamp": "2026-03-16T18:39:36.876870",
@@ -203,51 +208,6 @@
       "reason": "Trinity Council BUY verdict (accuracy: 100.0%, confidence: LOW)"
     },
     {
-      "timestamp": "2026-03-17T01:23:26.735571",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.821,
-      "amount_token": 1332.7527405602925,
-      "amount_usd": 1094.19,
-      "reason": "Trinity Council BUY verdict (accuracy: 100.0%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-17T02:39:53.321285",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.8187,
-      "amount_token": 1202.8459753267375,
-      "amount_usd": 984.77,
-      "reason": "Trinity Council BUY verdict (accuracy: 95.24%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-17T08:50:33.086476",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7979,
-      "amount_token": 1110.7782930191752,
-      "amount_usd": 886.29,
-      "reason": "Trinity Council BUY verdict (accuracy: 90.91%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-17T10:25:18.145104",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7889,
-      "amount_token": 1011.1040689567751,
-      "amount_usd": 797.66,
-      "reason": "Trinity Council BUY verdict (accuracy: 73.91%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-17T14:34:25.893615",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7816,
-      "amount_token": 918.5005117707267,
-      "amount_usd": 717.9,
-      "reason": "Trinity Council BUY verdict (accuracy: 58.33%, confidence: LOW)"
-    },
-    {
       "timestamp": "2026-03-17T15:35:32.561990",
       "symbol": "LUNA",
       "action": "BUY",
@@ -257,33 +217,6 @@
       "reason": "Trinity Council BUY verdict (accuracy: 68.0%, confidence: MED)"
     },
     {
-      "timestamp": "2026-03-17T16:06:04.845294",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7766,
-      "amount_token": 748.7767190316766,
-      "amount_usd": 581.5,
-      "reason": "Trinity Council BUY verdict (accuracy: 53.85%, confidence: MED)"
-    },
-    {
-      "timestamp": "2026-03-17T17:10:16.417170",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.781,
-      "amount_token": 670.1024327784892,
-      "amount_usd": 523.35,
-      "reason": "Trinity Council BUY verdict (accuracy: 59.26%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-17T19:48:44.660432",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7826,
-      "amount_token": 601.8527983644262,
-      "amount_usd": 471.01,
-      "reason": "Trinity Council BUY verdict (accuracy: 71.43%, confidence: LOW)"
-    },
-    {
       "timestamp": "2026-03-17T20:19:19.159910",
       "symbol": "AIXBT",
       "action": "BUY",
@@ -291,15 +224,6 @@
       "amount_token": 15966.47834274953,
       "amount_usd": 423.91,
       "reason": "Trinity Council BUY verdict (accuracy: 55.17%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-17T21:23:31.681559",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7932,
-      "amount_token": 480.98840141200196,
-      "amount_usd": 381.52,
-      "reason": "Trinity Council BUY verdict (accuracy: 73.33%, confidence: MED)"
     },
     {
       "timestamp": "2026-03-17T21:54:02.546103",
@@ -318,35 +242,8 @@
       "amount_token": 41508.394895903286,
       "amount_usd": 309.03,
       "reason": "Trinity Council BUY verdict (accuracy: 87.5%, confidence: MED)"
-    },
-    {
-      "timestamp": "2026-03-17T22:55:27.157164",
-      "symbol": "VIRTUAL",
-      "action": "BUY",
-      "price": 0.7901,
-      "amount_token": 352.0187318061005,
-      "amount_usd": 278.13,
-      "reason": "Trinity Council BUY verdict (accuracy: 75.76%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-18T03:51:50.438834",
-      "symbol": "AIXBT",
-      "action": "BUY",
-      "price": 0.0267123101505124,
-      "amount_token": 527310.8136523267,
-      "amount_usd": 14085.69,
-      "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: LOW)"
-    },
-    {
-      "timestamp": "2026-03-18T04:22:13.749064",
-      "symbol": "LUNA",
-      "action": "SELL",
-      "price": 0.1545,
-      "amount_token": 1206712.7214306036,
-      "amount_usd": 186437.11546102827,
-      "reason": "Full Take Profit at +2070.8% (target: +20.0%)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-03-18T04:22:13.749150"
+  "last_updated": "2026-03-18T08:38:06.921133"
 }
