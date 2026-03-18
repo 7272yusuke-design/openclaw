@@ -1,5 +1,5 @@
 {
-  "usd_balance": 0.0,
+  "usd_balance": 186437.11546102827,
   "holdings": {
     "VIRTUAL": {
       "amount": 116778.14833869197,
@@ -10,11 +10,6 @@
       "amount": 543277.2919950762,
       "avg_price": 0.026707539987022876,
       "entry_time": "2026-03-17T20:19:19.159910"
-    },
-    "LUNA": {
-      "amount": 1206712.7214306036,
-      "avg_price": 0.007117278079092426,
-      "entry_time": "2026-03-16T03:41:36.447406"
     }
   },
   "history": [
@@ -341,8 +336,17 @@
       "amount_token": 527310.8136523267,
       "amount_usd": 14085.69,
       "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-18T04:22:13.749064",
+      "symbol": "LUNA",
+      "action": "SELL",
+      "price": 0.1545,
+      "amount_token": 1206712.7214306036,
+      "amount_usd": 186437.11546102827,
+      "reason": "Full Take Profit at +2070.8% (target: +20.0%)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-03-18T03:51:50.438913"
+  "last_updated": "2026-03-18T04:22:13.749150"
 }

@@ -4,13 +4,16 @@ DiscordReporter v2 — 取引結果フィールド追加、フィールド長制
 import requests
 import json
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import logging
 
 logger = logging.getLogger("neo.discord")
 
 class DiscordReporter:
-    REPORT_WEBHOOK = os.getenv("DISCORD_REPORT_WEBHOOK", "")
-    LOG_WEBHOOK = os.getenv("DISCORD_LOG_WEBHOOK", "")
+    REPORT_WEBHOOK    = os.getenv("DISCORD_REPORT_WEBHOOK", "")
+    LOG_WEBHOOK       = os.getenv("DISCORD_LOG_WEBHOOK", "")
+    DASHBOARD_WEBHOOK = os.getenv("DISCORD_DASHBOARD_WEBHOOK", "")
 
     @classmethod
     def send_council_minutes(cls, title, discussion_data, color=0x3498db, image_path=None):
@@ -202,7 +205,7 @@ class DiscordReporter:
         }
 
         payload = {"embeds": [embed]}
-        success = cls._post(cls.REPORT_WEBHOOK, payload)
+        success = cls._post(cls.DASHBOARD_WEBHOOK or cls.REPORT_WEBHOOK, payload)
         if success:
             logger.info("✅ Performance dashboard sent to Discord")
             print("✅ [Dashboard] Discord送信完了")
