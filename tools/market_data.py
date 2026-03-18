@@ -103,6 +103,61 @@ class MarketData:
             return None
 
     @staticmethod
+    def fetch_btc_trend() -> dict:
+        """BTC価格トレンドを3段階（24h/30d/180d）で取得
+        新興トークンのバックテスト不足を補うマクロフィルターとして使用"""
+        try:
+            MarketData._rate_limit_wait()
+            url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+            params = {"vs_currency": "usd", "days": 180, "interval": "daily"}
+            resp = requests.get(url, params=params, timeout=10)
+            resp.raise_for_status()
+            prices = resp.json().get("prices", [])
+            if len(prices) < 30:
+                return {}
+
+            price_now  = prices[-1][1]
+            price_30d  = prices[-30][1]
+            price_180d = prices[0][1]
+
+            # 24hはsimple/price APIから取得
+            MarketData._rate_limit_wait()
+            sp = requests.get(
+                "https://api.coingecko.com/api/v3/simple/price",
+                params={"ids": "bitcoin", "vs_currencies": "usd", "include_24hr_change": "true"},
+                timeout=10
+            ).json()
+            change_24h = float(sp.get("bitcoin", {}).get("usd_24h_change", 0) or 0)
+            change_30d  = (price_now - price_30d)  / price_30d  * 100
+            change_180d = (price_now - price_180d) / price_180d * 100
+
+            # トレンド判定
+            def _trend(c30, c180):
+                if c180 < -20 and c30 < 0:
+                    return "長期下落トレンド🔴"
+                elif c180 < -20 and c30 >= 0:
+                    return "長期下落・短期反発⚠️"
+                elif c180 >= 0 and c30 >= 0:
+                    return "長期上昇トレンド🟢"
+                elif c180 >= 0 and c30 < 0:
+                    return "長期上昇・短期調整🟡"
+                else:
+                    return "中立横ばい⚪"
+
+            trend_label = _trend(change_30d, change_180d)
+
+            return {
+                "price": price_now,
+                "change_24h": round(change_24h, 2),
+                "change_30d": round(change_30d, 2),
+                "change_180d": round(change_180d, 2),
+                "trend": trend_label
+            }
+        except Exception as e:
+            logger.warning(f"fetch_btc_trend error: {e}")
+            return {}
+
+    @staticmethod
     def _fetch_price_from_coingecko(symbol: str):
         """CoinGecko simple/price APIで価格取得（主要銘柄専用）"""
         cg_id = COINGECKO_ID_MAP.get(symbol)

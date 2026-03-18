@@ -12,7 +12,7 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: LUNA/USDT",
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: AIXBT/USDT",
     "success_probability": 0.85,
     "strategy_id": "TEST_ANTI_NOISE",
     "diplomatic_presets": {
@@ -20,14 +20,14 @@
     },
     "active_opportunities": {
       "VIRTUAL/USDT": {
-        "sharpe": 5.1,
+        "sharpe": 5.2,
         "alert_level": "Critical",
-        "last_detected": "2026-03-18T00:18:57"
+        "last_detected": "2026-03-18T03:52:34"
       },
       "AIXBT/USDT": {
         "sharpe": 5.1,
         "alert_level": "Critical",
-        "last_detected": "2026-03-18T00:19:04"
+        "last_detected": "2026-03-18T03:52:41"
       },
       "LUNA/USDT": {
         "sharpe": 6.2,
@@ -42,16 +42,16 @@
       "SOL/USDT": {
         "sharpe": 5.2,
         "alert_level": "Warning",
-        "last_detected": "2026-03-17T18:44:33"
+        "last_detected": "2026-03-18T02:16:02"
       },
       "BNB/USDT": {
         "sharpe": 5.2,
         "alert_level": "Warning",
-        "last_detected": "2026-03-17T20:49:34"
+        "last_detected": "2026-03-18T02:50:08"
       }
     },
     "opportunity_count": 6,
-    "last_updated": "2026-03-18T01:16:58.522400+00:00"
+    "last_updated": "2026-03-18T03:52:41.583029+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -61,6 +61,6 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-03-18T01:17:24.042889"
+    "last_evaluated": "2026-03-18T03:52:02.479103"
   }
 }

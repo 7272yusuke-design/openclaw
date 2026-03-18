@@ -61,13 +61,7 @@ class TrinityCouncil(NeoBaseCrew):
 
         # 1b. 現在価格の取得
         clean_symbol = target_symbol.split('/')[0].strip()
-        # VP銘柄はGeckoTerminal直接取得（キャッシュ誤利確防止）
-        if clean_symbol in ("VIRTUAL", "AIXBT", "LUNA"):
-            price_data = MarketData._fetch_price_from_geckoterminal(clean_symbol)
-            if not price_data:
-                price_data = MarketData.fetch_token_data(clean_symbol)
-        else:
-            price_data = MarketData.fetch_token_data(clean_symbol)
+        price_data = MarketData.fetch_token_data(clean_symbol)
         current_price = 0.0
         if price_data and price_data.get("status") == "success":
             current_price = float(price_data.get("priceUsd", 0.0))
@@ -194,32 +188,31 @@ class TrinityCouncil(NeoBaseCrew):
             except Exception as _mce:
                 market_context = ""
                 print(f"  ⚠️ 市場センチメントデータ取得失敗: {_mce}")
-            # BTC市場コンテキスト取得（3段階トレンド判定: 24h/30d/180d）
+            # BTC市場コンテキスト取得
             btc_context = ""
             btc_warning = ""
             try:
                 from tools.market_data import MarketData as _MD
-                _btc = _MD.fetch_btc_trend()
-                if _btc:
-                    _btc_price    = _btc.get("price", 0)
-                    _btc_24h      = _btc.get("change_24h", 0)
-                    _btc_30d      = _btc.get("change_30d", 0)
-                    _btc_180d     = _btc.get("change_180d", 0)
-                    _btc_trend    = _btc.get("trend", "不明")
-
-                    # 警戒/強気メッセージ（180d構造トレンド優先・24h短期も考慮）
-                    if _btc_180d < -20 and _btc_30d < 0:
-                        btc_warning = f"\n⚠️ [BTC警戒・長期下落] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 構造的な下落トレンド継続中。BUYは極めて慎重に。"
-                    elif _btc_180d < -20 and _btc_30d >= 0:
-                        btc_warning = f"\n⚠️ [BTC注意・長期下落中の反発] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期下落トレンド中の一時反発の可能性。過信禁物。"
-                    elif _btc_180d >= 0 and _btc_30d >= 0 and _btc_24h >= 3:
-                        btc_warning = f"\n📈 [BTC強気・長期上昇] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期・中期・短期が全て上昇。市場全体が強気。"
-                    elif _btc_24h <= -7:
-                        btc_warning = f"\n⚠️ [BTC急落] 24h:{_btc_24h:+.1f}% — 本日急落中。短期的な売り圧力に注意。"
-                    elif _btc_24h <= -3:
-                        btc_warning = f"\n⚠️ [BTC下落] 24h:{_btc_24h:+.1f}% — 本日下落中。BUY判断は慎重に。"
-
-                    btc_context = f"\n📊 BTC市場: ${_btc_price:,.0f} | 24h:{_btc_24h:+.1f}% / 30d:{_btc_30d:+.1f}% / 180d:{_btc_180d:+.1f}% — {_btc_trend}"
+                _btc = _MD.fetch_token_data("BTC")
+                if _btc and _btc.get("status") == "success":
+                    _btc_price = float(_btc.get("priceUsd", 0))
+                    _btc_change_24h = float(_btc.get("priceChange", {}).get("h24", 0) or 0)
+                    # BTCトレンド判定
+                    if _btc_change_24h <= -7:
+                        _btc_trend = "急落中🔴"
+                        btc_warning = f"\n⚠️ [BTC警戒] BTC急落中({_btc_change_24h:+.1f}%)。市場全体が売り圧力。BUYは極めて慎重に。"
+                    elif _btc_change_24h <= -3:
+                        _btc_trend = "下落局面🟠"
+                        btc_warning = f"\n⚠️ [BTC警戒] BTC下落中({_btc_change_24h:+.1f}%)。市場全体に売り圧力あり。BUY判断は慎重に。"
+                    elif _btc_change_24h >= 7:
+                        _btc_trend = "急騰中🟢"
+                        btc_warning = f"\n📈 [BTC強気] BTC急騰中({_btc_change_24h:+.1f}%)。市場全体が強気。ただし過熱に注意。"
+                    elif _btc_change_24h >= 3:
+                        _btc_trend = "上昇局面🟢"
+                        btc_warning = f"\n📈 [BTC強気] BTC上昇中({_btc_change_24h:+.1f}%)。市場全体が強気。BUY判断の後押し。"
+                    else:
+                        _btc_trend = "横ばい⚪"
+                    btc_context = f"\n📊 BTC市場: ${_btc_price:,.0f} ({_btc_change_24h:+.1f}% 24h) — {_btc_trend}"
                     print(f"  {btc_context.strip()}")
             except Exception as _btce:
                 print(f"  ⚠️ BTC取得失敗: {_btce}")
