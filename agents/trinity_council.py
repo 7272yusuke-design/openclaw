@@ -164,12 +164,47 @@ class TrinityCouncil(NeoBaseCrew):
                             )
                         except Exception as _de:
                             print(f"  ⚠️ Discord報告失敗: {_de}")
-                        # 損切をtier=2記憶として保存（自己改善用）
+                        # 損切をtier=2記憶として保存（自己改善用・内省付き）
+                        try:
+                            _board = NeoBlackboard.load()
+                            _bb = _board.get("active_opportunities", {}).get(f"{clean_symbol}/USDT", {})
+                            _sentiment = _bb.get("sentiment", "不明")
+                            _sharpe = _bb.get("sharpe", "不明")
+                            _news = _bb.get("news_count", "不明")
+                            _whale = _bb.get("whale_signal", "不明")
+                            _bt = _bb.get("bt_confidence", "不明")
+                            import google.generativeai as _genai
+                            import os as _os
+                            _genai.configure(api_key=_os.environ.get("GEMINI_API_KEY",""))
+                            _model = _genai.GenerativeModel("gemini-2.0-flash")
+                            _introspect_prompt = (
+                                f"あなたは自律取引AIエージェントNeoです。\n"
+                                f"以下の状況で損切が発動しました。なぜ負けたのかを1-2文で内省してください。\n\n"
+                                f"銘柄: {clean_symbol}\n"
+                                f"エントリー価格: ${pnl['avg_price']:.4f}\n"
+                                f"損切価格: ${current_price:.4f}\n"
+                                f"損益: {pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})\n"
+                                f"センチメント: {_sentiment}\n"
+                                f"Sharpe: {_sharpe}\n"
+                                f"ニュース数: {_news}\n"
+                                f"クジラ動向: {_whale}\n"
+                                f"バックテスト信頼度: {_bt}\n\n"
+                                f"ルール:\n"
+                                f"- 「なぜ負けたか」「どのシグナルを見誤ったか」を具体的に\n"
+                                f"- 次回同じ状況でどう判断すべきかを1文で\n"
+                                f"- 合計100字以内"
+                            )
+                            _resp = _model.generate_content(_introspect_prompt)
+                            _introspection = _resp.text.strip()
+                        except Exception as _ie:
+                            _introspection = f"-10%到達。センチメント・クジラ動向の見直しが必要。"
+                            print(f"  ⚠️ 内省生成失敗: {_ie}")
                         sl_memory = (
                             f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} "
-                            f"{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f}) "
-                            f"教訓: -10%到達前に下落シグナルを見逃さないこと"
+                            f"{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})\n"
+                            f"内省: {_introspection}"
                         )
+                        print(f"  🧠 損切内省: {_introspection}")
                         self.memory.store(sl_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "loss", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
                         return {"verdict": "SELL", "verdict_text": f"Stop Loss: {pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": sl_result}
 
