@@ -91,22 +91,8 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] Nightly Research失敗: {e}")
 
-    # 4. Tearsheetレポート生成（M.2）
-    logger.info("[Nightly] Step 4/5: quantstats HTMLティアシート生成")
-    try:
-        from orchestration.tearsheet_generator import generate_tearsheet
-        tearsheet_path = generate_tearsheet()
-        if tearsheet_path:
-            DiscordReporter.send_log(
-                "📊 Neo Tearsheet生成完了",
-                f"HTMLレポートを生成しました: `{tearsheet_path}`",
-                0x3498db
-            )
-    except Exception as e:
-        logger.error(f"[Nightly] Tearsheet生成失敗: {e}")
-
-    # 5. Discord日次サマリー
-    logger.info("[Nightly] Step 5/5: Discord日次サマリー送信")
+    # 4. Discord日次サマリー
+    logger.info("[Nightly] Step 4/4: Discord日次サマリー送信")
     try:
         from core.blackboard import NeoBlackboard
         board = NeoBlackboard.load()
