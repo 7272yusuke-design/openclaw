@@ -188,35 +188,6 @@ class TrinityCouncil(NeoBaseCrew):
             except Exception as _mce:
                 market_context = ""
                 print(f"  ⚠️ 市場センチメントデータ取得失敗: {_mce}")
-            # BTC市場コンテキスト取得
-            btc_context = ""
-            btc_warning = ""
-            try:
-                from tools.market_data import MarketData as _MD
-                _btc = _MD.fetch_token_data("BTC")
-                if _btc and _btc.get("status") == "success":
-                    _btc_price = float(_btc.get("priceUsd", 0))
-                    _btc_change_24h = float(_btc.get("priceChange", {}).get("h24", 0) or 0)
-                    # BTCトレンド判定
-                    if _btc_change_24h <= -7:
-                        _btc_trend = "急落中🔴"
-                        btc_warning = f"\n⚠️ [BTC警戒] BTC急落中({_btc_change_24h:+.1f}%)。市場全体が売り圧力。BUYは極めて慎重に。"
-                    elif _btc_change_24h <= -3:
-                        _btc_trend = "下落局面🟠"
-                        btc_warning = f"\n⚠️ [BTC警戒] BTC下落中({_btc_change_24h:+.1f}%)。市場全体に売り圧力あり。BUY判断は慎重に。"
-                    elif _btc_change_24h >= 7:
-                        _btc_trend = "急騰中🟢"
-                        btc_warning = f"\n📈 [BTC強気] BTC急騰中({_btc_change_24h:+.1f}%)。市場全体が強気。ただし過熱に注意。"
-                    elif _btc_change_24h >= 3:
-                        _btc_trend = "上昇局面🟢"
-                        btc_warning = f"\n📈 [BTC強気] BTC上昇中({_btc_change_24h:+.1f}%)。市場全体が強気。BUY判断の後押し。"
-                    else:
-                        _btc_trend = "横ばい⚪"
-                    btc_context = f"\n📊 BTC市場: ${_btc_price:,.0f} ({_btc_change_24h:+.1f}% 24h) — {_btc_trend}"
-                    print(f"  {btc_context.strip()}")
-            except Exception as _btce:
-                print(f"  ⚠️ BTC取得失敗: {_btce}")
-
             # J.1: クリプトニュースRSS取得
             try:
                 from tools.crypto_news import get_news_context_text, get_news
@@ -250,11 +221,9 @@ class TrinityCouncil(NeoBaseCrew):
             if vp_count >= 6:
                 news_noise_warning = f"\n⚠️ [H.2警告] ニュース件数={vp_count}件（6件以上は市場ノイズが多い状態。過去データでBUY accuracy=46.7%に低下。慎重な判断を推奨）"
                 print(f"  ⚠️ [H.2] ニュース過多警戒: {vp_count}件 → BUY精度低下リスク")
-            if btc_warning:
-                print(f"  {btc_warning.strip()}")
             s_result = sentiment_crew.run(
                 goal=f"{target_symbol} の市場センチメントを評価せよ",
-                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}{btc_context}\n{news_context}\n{finbert_context}{news_noise_warning}{btc_warning}",
+                context=f"価格: ${current_price:.6f}, クジラ動向: {whale_sig}, 外部コンテキスト: {context}\n{market_context}\n{news_context}\n{finbert_context}{news_noise_warning}",
                 constraints="score=-1.0〜1.0, label=bullish/neutral/bearish"
             )
             import json as _json
@@ -411,7 +380,7 @@ class TrinityCouncil(NeoBaseCrew):
         else:
             _fb_instr = "[FinBERT中立] score={:+.3f} — センチメントは中立。他の指標を優先せよ。".format(_fb_score)
         t3 = Task(
-            description=target_symbol + " への最終投資判断。必ずBUY/SELL/WAITで始めよ。\n" + _fb_instr + (btc_warning if btc_warning else ""),
+            description=target_symbol + " への最終投資判断。必ずBUY/SELL/WAITで始めよ。\n" + _fb_instr,
             agent=agent_neo,
             expected_output="最終判断と根拠"
         )
