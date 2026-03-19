@@ -28,6 +28,79 @@ class MoltbookTool:
             print(f"⚠️ Gemini生成失敗: {e}")
             return None
 
+
+    @staticmethod
+    def _refine_with_gemini(text: str, original_prompt: str, max_chars: int = 280) -> str:
+        """
+        Self-Refine: 生成テキストを自己評価し、基準未達なら改善版を生成。
+        評価基準:
+          - クリシェワード使用 (-20pt each)
+          - 文字数超過 (-30pt)
+          - BUY/SELL/価格等の禁止ワード (-40pt)
+          - 1文に収まっている (+20pt)
+          - ハッシュタグが1つだけ (+10pt)
+        70点未満なら改善指示付きで再生成。70点以上はそのまま返す。
+        """
+        CLICHES = ["journey", "embrace", "navigate", "unlock", "empower", "leverage", "synergy"]
+        FORBIDDEN = ["BUY", "SELL", "WAIT", "USDT", "USD", "$", "price", "amount"]
+
+        def score(t: str) -> tuple[int, list[str]]:
+            issues = []
+            pts = 100
+            for w in CLICHES:
+                if w.lower() in t.lower():
+                    pts -= 20
+                    issues.append(f"cliché: '{w}'")
+            for w in FORBIDDEN:
+                if w in t:
+                    pts -= 40
+                    issues.append(f"forbidden word: '{w}'")
+            if len(t) > max_chars:
+                pts -= 30
+                issues.append(f"too long: {len(t)} chars (max {max_chars})")
+            hashtag_count = t.count("#")
+            if hashtag_count == 1:
+                pts += 10
+            elif hashtag_count > 2:
+                pts -= 20
+                issues.append(f"too many hashtags: {hashtag_count}")
+            sentences = [s.strip() for s in t.replace("!", ".").replace("?", ".").split(".") if s.strip()]
+            if len(sentences) <= 2:
+                pts += 20
+            return max(0, pts), issues
+
+        pts, issues = score(text)
+        print(f"📊 [Self-Refine] スコア: {pts}/100 issues={issues}")
+
+        if pts >= 80:
+            print("✅ [Self-Refine] 品質基準クリア → そのまま使用")
+            return text
+
+        # 改善指示を付けて再生成
+        issues_str = "; ".join(issues) if issues else "quality too low"
+        refine_prompt = (
+            f"{original_prompt}\n\n"
+            f"Previous attempt had these problems: {issues_str}\n"
+            f"Previous text: {text}\n\n"
+            f"Write an improved version fixing all the above issues. "
+            f"Stay within {max_chars} characters."
+        )
+        try:
+            import litellm, os
+            response = litellm.completion(
+                model="gemini/gemini-2.0-flash",
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                messages=[{"role": "user", "content": refine_prompt}],
+                max_tokens=400
+            )
+            refined = response.choices[0].message.content.strip()[:max_chars]
+            new_pts, _ = score(refined)
+            print(f"✨ [Self-Refine] 改善後スコア: {new_pts}/100")
+            return refined
+        except Exception as e:
+            print(f"⚠️ [Self-Refine] 改善生成失敗: {e} → 元テキストを使用")
+            return text
+
     @staticmethod
     def post(text: str) -> bool:
         """テキストをそのままMoltbookに投稿（既存互換）。"""
@@ -102,6 +175,7 @@ class MoltbookTool:
         )
         generated = MoltbookTool._generate_with_gemini(prompt)
         if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt)
             print(f"✨ [MoltbookTool] Gemini生成投稿:\n{generated}")
             return MoltbookTool.post(generated)
         else:
@@ -138,6 +212,7 @@ class MoltbookTool:
         prompt = chr(10).join(parts)
         generated = MoltbookTool._generate_with_gemini(prompt, max_chars=260)
         if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=260)
             print("✨ [MoltbookTool] 洞察投稿:" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
@@ -164,6 +239,7 @@ class MoltbookTool:
         prompt = chr(10).join(parts)
         generated = MoltbookTool._generate_with_gemini(prompt, max_chars=260)
         if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=260)
             print("✨ [MoltbookTool] 学習報告:" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
