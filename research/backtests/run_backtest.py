@@ -303,10 +303,66 @@ class CoreBacktest:
             return {"strategy": "vp_momentum", "sharpe": 0.0, "trades": 0,
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
 
+
+    # ── 戦略7: EMA Trend Filter（freqtrade-strategies参考）────────────
+    @staticmethod
+    def run_ema_trend(df: pd.DataFrame) -> dict:
+        """EMA20/50/200トレンドフィルター: 全EMA上向き整列でBUY、下向きでSELL"""
+        try:
+            close = df["close"]
+            ema20  = close.ewm(span=20,  adjust=False).mean()
+            ema50  = close.ewm(span=50,  adjust=False).mean()
+            ema200 = close.ewm(span=200, adjust=False).mean()
+
+            # 強気整列: close > EMA20 > EMA50 > EMA200
+            bullish = (close > ema20) & (ema20 > ema50) & (ema50 > ema200)
+            # 前足が非整列 → 今足が整列 = エントリー
+            entries = bullish & ~bullish.shift(1).fillna(False)
+            # EMA20がEMA50を下回ったらエグジット
+            exits = ema20 < ema50
+
+            entries = entries.fillna(False)
+            exits   = exits.fillna(False)
+
+            result = _manual_backtest(close, entries, exits, "ema_trend")
+            result["description"] = "EMA20/50/200トレンド整列エントリー"
+            return result
+        except Exception as e:
+            logger.error(f"[ema_trend] {e}")
+            return {"strategy": "ema_trend", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    # ── 戦略8: RSI Bounce（freqtrade-strategies参考）────────────────
+    @staticmethod
+    def run_rsi_bounce(df: pd.DataFrame) -> dict:
+        """RSI30割れからの反発BUY + RSI60超えでエグジット（トレンド順張り版）"""
+        try:
+            close = df["close"]
+            rsi   = df["rsi_14"] if "rsi_14" in df.columns else _calc_rsi(close)
+            ema50 = close.ewm(span=50, adjust=False).mean()
+
+            # RSIが30を下から上に抜けた瞬間 + EMA50上方（トレンド確認）
+            rsi_cross_up = (rsi > 30) & (rsi.shift(1) <= 30)
+            entries = rsi_cross_up & (close > ema50)
+
+            # RSI60超え or EMA50を価格が割り込んだらエグジット
+            exits = (rsi > 60) | (close < ema50)
+
+            entries = entries.fillna(False)
+            exits   = exits.fillna(False)
+
+            result = _manual_backtest(close, entries, exits, "rsi_bounce")
+            result["description"] = "RSI30反発+EMA50上方フィルター"
+            return result
+        except Exception as e:
+            logger.error(f"[rsi_bounce] {e}")
+            return {"strategy": "rsi_bounce", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
     # ── 全戦略一括実行（Task 2.2 メインAPI）─────────────────────────
     @staticmethod
     def run_all_strategies(df: pd.DataFrame, symbol: str = 'UNKNOWN', use_optuna: bool = True, optuna_df=None) -> dict:
-        """6戦略並列実行。use_optuna=TrueでMACD/RSIをTPE最適化"""
+        """8戦略並列実行。use_optuna=TrueでMACD/RSIをTPE最適化"""
         from concurrent.futures import ThreadPoolExecutor, as_completed
         import functools
 
@@ -331,6 +387,8 @@ class CoreBacktest:
             "mean_reversion":    CoreBacktest.run_mean_reversion,
             "macd_cross":        functools.partial(CoreBacktest.run_macd_cross, macd_params=macd_params),
             "vp_momentum":       functools.partial(CoreBacktest.run_vp_momentum, rsi_params=rsi_params),
+            "ema_trend":         CoreBacktest.run_ema_trend,
+            "rsi_bounce":        CoreBacktest.run_rsi_bounce,
         }
 
         results = {}
