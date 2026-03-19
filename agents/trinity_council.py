@@ -725,6 +725,11 @@ class TrinityCouncil(NeoBaseCrew):
             f"onchain={onchain_summary}, "
             f"reason={verdict_text[:150]})"
         )
+        # WAITは教訓として上位tierで保存・専用categoryで検索可能にする
+        _is_wait = "WAIT" in str(trade_action).upper()
+        _category = "wait_record" if _is_wait else "trade_record"
+        _tier = "2" if _is_wait else "3"
+        _wait_reason = verdict_text[:200] if _is_wait else ""
         memory_metadata = {
             "symbol": clean_symbol,
             "action": trade_action,
@@ -739,8 +744,9 @@ class TrinityCouncil(NeoBaseCrew):
             "news_count": str(news_count),
             "onchain_liquidity": onchain_summary[:80],
             "amount_usd": str(trade_amount_usd),
-            "category": "trade_record",
-            "tier": "3"
+            "category": _category,
+            "tier": _tier,
+            "wait_reason": _wait_reason
         }
         self.memory.store(memory_entry, metadata=memory_metadata)
 
