@@ -8,7 +8,7 @@ Neo Hybrid Radar v2 — 統合トリガーシステム
 """
 import time
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from tools.market_data import MarketData
 from core.blackboard import NeoBlackboard
 from agents.trinity_council import TrinityCouncil
@@ -48,7 +48,7 @@ def _run_nightly_batch():
     2. Performance Evaluator（勝率更新 + Discordダッシュボード）
     3. Discord日次サマリー送信
     """
-    from datetime import datetime as _dt
+    from datetime import datetime, timezone as _dt
     batch_start = time.time()
     today = _dt.now().strftime("%Y-%m-%d")
     logger.info(f"[Nightly] === {today} バッチ開始 ===")
@@ -70,7 +70,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] Evaluator失敗: {e}")
 
     # 3. VP Discovery（週次・月曜のみ）
-    from datetime import datetime as _dt2
+    from datetime import datetime, timezone as _dt2
     if _dt2.utcnow().weekday() == 0:  # 0=月曜
         logger.info("[Nightly] Step 3b: VP新興銘柄スキャン（週次）")
         try:
