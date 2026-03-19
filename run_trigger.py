@@ -236,8 +236,9 @@ def start_hybrid_radar():
                             else:
                                 logger.info(f"  ⏳ 冷却中（残り{int(cooldown_remaining/60)}分）— {_vsym}ボラトリガーを保留")
 
-                        # アンカー価格を更新
-                        anchor_prices[_vsym] = _vprice
+                        # アンカー価格を更新（Cooling中は更新しない→Cooling明けに再トリガー防止）
+                        if is_cooled_down:
+                            anchor_prices[_vsym] = _vprice
                 except Exception as e:
                     logger.error(f"ボラティリティ監視エラー [{_vsym}]: {e}")
 
