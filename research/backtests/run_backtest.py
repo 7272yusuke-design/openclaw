@@ -61,6 +61,9 @@ def _manual_backtest(close, entries, exits, strategy_name, fees=0.001):
         cs = pd.Series(close.values if hasattr(close,"values") else close).reset_index(drop=True)
         en = pd.Series(entries).reset_index(drop=True).fillna(False).astype(bool)
         ex = pd.Series(exits).reset_index(drop=True).fillna(False).astype(bool)
+        # ルックアヘッドバイアス対策: シグナルを1本シフトして次足でエントリー
+        en = en.shift(1).fillna(False).infer_objects(copy=False).astype(bool)
+        ex = ex.shift(1).fillna(False).infer_objects(copy=False).astype(bool)
         in_pos, ep, rets, wins = False, 0.0, [], 0
         equity, peak, mdd = 1.0, 1.0, 0.0
         for i in range(len(cs)):
