@@ -41,7 +41,14 @@ import('moltbook').then(async m => {
             upvotes: best.upvotes || 0,
             comments: best.comment_count || 0,
             date: best.created_at || ''
-        }
+        },
+        posts_detail: posts.map(p => ({
+            preview: (p.content_preview || '').substring(0, 80),
+            upvotes: p.upvotes || 0,
+            comments: p.comment_count || 0,
+            submolt: (p.submolt || {}).name || 'unknown',
+            date: p.created_at || ''
+        }))
     }));
 }).catch(e => { console.error('Error:', e.message); process.exit(1); });
 """
@@ -125,6 +132,77 @@ def get_growth_summary() -> str:
         return "\n".join(lines)
     except Exception as e:
         return f"📊 Moltbook統計エラー: {e}"
+
+
+
+def analyze_best_topics() -> dict:
+    """
+    蓄積済みposts_detailからトピック傾向を分析。
+    submolt別・キーワード別のavg upvotesを返す。
+    """
+    if not os.path.exists(STATS_PATH):
+        return {}
+    try:
+        with open(STATS_PATH) as f:
+            history = json.load(f)
+    except Exception:
+        return {}
+
+    # 全投稿を収集（重複排除）
+    seen = set()
+    all_posts = []
+    for h in history:
+        for p in h.get("posts_detail", []):
+            key = p.get("preview", "")[:40]
+            if key and key not in seen:
+                seen.add(key)
+                all_posts.append(p)
+
+    if not all_posts:
+        return {}
+
+    # submolt別集計
+    submolt_stats = {}
+    for p in all_posts:
+        sm = p.get("submolt", "unknown")
+        if sm not in submolt_stats:
+            submolt_stats[sm] = {"count": 0, "upvotes": 0, "comments": 0}
+        submolt_stats[sm]["count"] += 1
+        submolt_stats[sm]["upvotes"] += p.get("upvotes", 0)
+        submolt_stats[sm]["comments"] += p.get("comments", 0)
+
+    submolt_ranking = sorted(
+        [{"submolt": k, "count": v["count"],
+          "avg_upvotes": round(v["upvotes"] / v["count"], 2),
+          "avg_comments": round(v["comments"] / v["count"], 2)}
+         for k, v in submolt_stats.items()],
+        key=lambda x: x["avg_upvotes"], reverse=True
+    )
+
+    # キーワード傾向（upvotes>=1の投稿から抽出）
+    high_posts = [p for p in all_posts if p.get("upvotes", 0) >= 1]
+    low_posts  = [p for p in all_posts if p.get("upvotes", 0) == 0]
+
+    return {
+        "total_posts_analyzed": len(all_posts),
+        "submolt_ranking": submolt_ranking,
+        "best_submolt": submolt_ranking[0]["submolt"] if submolt_ranking else "agentfinance",
+        "high_engagement_previews": [p["preview"][:60] for p in high_posts[:5]],
+        "low_engagement_previews":  [p["preview"][:60] for p in low_posts[:3]],
+    }
+
+
+def get_topic_recommendation() -> str:
+    """投稿トピック推奨をテキストで返す（moltbook_tool.py用）"""
+    analysis = analyze_best_topics()
+    if not analysis:
+        return ""
+    lines = [f"[M.3分析] {analysis['total_posts_analyzed']}件分析済み"]
+    for s in analysis["submolt_ranking"]:
+        lines.append(f"  {s['submolt']}: avg {s['avg_upvotes']}up ({s['count']}件)")
+    if analysis["high_engagement_previews"]:
+        lines.append("高反響パターン: " + " / ".join(analysis["high_engagement_previews"][:2]))
+    return "\n".join(lines)
 
 
 def run_tracking():

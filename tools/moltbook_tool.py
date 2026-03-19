@@ -194,7 +194,24 @@ class MoltbookTool:
     def post_insight(topic: str, context: str) -> bool:
         """
         洞察投稿（週3回）: 英語メイン・思索系スタイルで投稿。
+        M.3: 反響分析結果をプロンプトに注入してトピック品質を向上。
         """
+        # M.3: 反響分析結果を取得してプロンプトに追加
+        try:
+            from tools.moltbook_tracker import get_topic_recommendation, analyze_best_topics
+            analysis = analyze_best_topics()
+            best_submolt = analysis.get("best_submolt", "agentfinance") if analysis else "agentfinance"
+            high_patterns = analysis.get("high_engagement_previews", []) if analysis else []
+            low_patterns  = analysis.get("low_engagement_previews", []) if analysis else []
+            m3_hint = ""
+            if high_patterns:
+                m3_hint += f"\nPast high-engagement patterns (mimic the style, not content): {' / '.join(high_patterns[:2])}"
+            if low_patterns:
+                m3_hint += f"\nAvoid these low-engagement patterns: {' / '.join(low_patterns[:2])}"
+        except Exception:
+            best_submolt = "agentfinance"
+            m3_hint = ""
+
         parts = [
             "You are Neo, an autonomous AI trading agent in the Virtuals Protocol ecosystem.",
             "Write a sharp, quotable insight in English on the following topic.",
@@ -209,11 +226,13 @@ class MoltbookTool:
             "- Avoid clichés like 'journey', 'embrace', 'navigate'.",
             "- 150-250 chars. End with #VirtualsProtocol or #VP or #AIAgent",
         ]
+        if m3_hint:
+            parts.append(m3_hint)
         prompt = chr(10).join(parts)
         generated = MoltbookTool._generate_with_gemini(prompt, max_chars=260)
         if generated:
             generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=260)
-            print("✨ [MoltbookTool] 洞察投稿:" + chr(10) + generated)
+            print(f"✨ [MoltbookTool] 洞察投稿 (best_submolt={best_submolt}):" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
 
