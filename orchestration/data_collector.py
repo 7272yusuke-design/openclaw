@@ -116,6 +116,29 @@ def get_ohlcv_from_db(symbol: str, limit: int = 180) -> list:
         return []
 
 
+def get_latest_price_from_db(symbol: str) -> float | None:
+    """SQLiteから最新価格を取得（ボラティリティ監視用・API呼び出し削減）"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.execute(
+            "SELECT close, timestamp FROM prices WHERE symbol=? ORDER BY timestamp DESC LIMIT 1",
+            (symbol.upper(),)
+        )
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return None
+        price, ts = row
+        # 10分以上古いデータは使わない
+        import time
+        age_sec = (time.time() * 1000 - ts) / 1000
+        if age_sec > 600:
+            return None
+        return float(price)
+    except Exception as e:
+        logger.warning(f"DB latest price error for {symbol}: {e}")
+        return None
+
 def get_db_stats() -> dict:
     """DB統計を返す（確認用）"""
     try:

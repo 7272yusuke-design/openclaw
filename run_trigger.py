@@ -14,6 +14,7 @@ from core.blackboard import NeoBlackboard
 from agents.trinity_council import TrinityCouncil
 from tools.discord_reporter import DiscordReporter
 from orchestration.alpha_sweep_operation import run_sweep
+from orchestration.data_collector import get_latest_price_from_db
 from core.config import VOLATILITY_WATCH_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 from orchestration.nightly_research import run_nightly_research
@@ -216,9 +217,12 @@ def start_hybrid_radar():
             current_price = anchor_prices.get("VIRTUAL", 0.0)  # ステータス表示用
             for _vsym in VOLATILITY_WATCH_SYMBOLS:
                 try:
-                    _vdata = MarketData.fetch_token_data(_vsym)
-                    if _vdata and _vdata.get("status") == "success":
-                        _vprice = float(_vdata.get("priceUsd", 0.0))
+                    # SQLite優先（API呼び出し削減・429対策）
+                    _vprice = get_latest_price_from_db(_vsym)
+                    if _vprice is None:
+                        _vdata = MarketData.fetch_token_data(_vsym)
+                        _vprice = float(_vdata.get("priceUsd", 0.0)) if _vdata and _vdata.get("status") == "success" else 0.0
+                    if _vprice > 0:
                         _anchor = anchor_prices.get(_vsym, 0.0)
                         _change = abs((_vprice - _anchor) / _anchor) * 100 if _anchor > 0 else 0
 
@@ -236,9 +240,8 @@ def start_hybrid_radar():
                             else:
                                 logger.info(f"  ⏳ 冷却中（残り{int(cooldown_remaining/60)}分）— {_vsym}ボラトリガーを保留")
 
-                        # アンカー価格を更新（Cooling中は更新しない→Cooling明けに再トリガー防止）
-                        if is_cooled_down:
-                            anchor_prices[_vsym] = _vprice
+                        # アンカー価格を更新
+                        anchor_prices[_vsym] = _vprice
                 except Exception as e:
                     logger.error(f"ボラティリティ監視エラー [{_vsym}]: {e}")
 
