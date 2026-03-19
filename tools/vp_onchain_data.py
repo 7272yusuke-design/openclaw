@@ -7,7 +7,7 @@ import json
 import time
 import logging
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 logger = logging.getLogger("neo.vp_onchain")

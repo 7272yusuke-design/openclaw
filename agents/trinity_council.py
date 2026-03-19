@@ -229,6 +229,22 @@ class TrinityCouncil(NeoBaseCrew):
         except Exception as _oe:
             print(f"  ⚠️ オンチェーンデータ取得失敗: {_oe}")
 
+        # K.3: クジラ監視（Base chain onchain）
+        whale_onchain_context = ""
+        try:
+            from tools.whale_monitor import fetch_whale_events, build_whale_context
+            _whale_result = fetch_whale_events(clean_symbol)
+            whale_onchain_context = build_whale_context(clean_symbol)
+            _wsig = _whale_result.get("signal", "NEUTRAL")
+            _wcnt = _whale_result.get("whale_count", 0)
+            print(f"  🐋 [K.3] クジラ監視: {_wsig} ({_wcnt}件)")
+            # whale_sigをオンチェーン情報で上書き
+            if _wsig == "WHALE_ACTIVE":
+                whale_sig = f"Accumulating (K.3検知: {_wcnt}件 ${_whale_result.get('whale_volume_usd',0):,.0f})"
+            onchain_context = onchain_context + "\n" + whale_onchain_context if onchain_context else whale_onchain_context
+        except Exception as _we:
+            print(f"  ⚠️ [K.3] クジラ監視失敗: {str(_we)[:60]}")
+
         # 1c-1c. ACP外部エージェント情報取得
         acp_intel = ""
         try:
