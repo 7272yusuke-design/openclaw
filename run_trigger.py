@@ -209,7 +209,7 @@ def start_hybrid_radar():
             # ============================================================
             # 0b. Nightly Batch（JST 02:00 = UTC 17:00 に1日1回）
             # ============================================================
-            now_utc = datetime.utcnow()
+            now_utc = datetime.now(timezone.utc)
             now_jst_hour = (now_utc.hour + 9) % 24
             today_str = now_utc.strftime('%Y-%m-%d')
             if now_jst_hour == 2 and last_nightly_date != today_str:

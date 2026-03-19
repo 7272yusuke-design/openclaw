@@ -100,7 +100,7 @@ def run_vp_discovery() -> dict:
     DISCOVERY_CACHE.parent.mkdir(parents=True, exist_ok=True)
     DISCOVERY_CACHE.write_text(json.dumps({
         "symbols":    new_symbols,
-        "scanned_at": datetime.utcnow().isoformat(),
+        "scanned_at": datetime.now(timezone.utc).isoformat(),
         "qualified":  qualified,
     }, ensure_ascii=False))
 
@@ -112,7 +112,7 @@ def run_vp_discovery() -> dict:
         from core.blackboard import NeoBlackboard as _BB
         _BB.update("discovery_watchlist", {
             "symbols":    new_symbols,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
             "added":      added,
             "removed":    removed,
         })

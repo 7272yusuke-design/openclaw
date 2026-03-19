@@ -90,7 +90,7 @@ def fetch_dex_data(symbol: str) -> dict:
         "price_change_24h": float((best.get("priceChange") or {}).get("h24") or 0),
         "dex_name":         best.get("dexId", "unknown"),
         "chain":            best.get("chainId", "unknown"),
-        "fetched_at":       datetime.utcnow().isoformat(),
+        "fetched_at":       datetime.now(timezone.utc).isoformat(),
     }
 
     cache[cache_key] = result

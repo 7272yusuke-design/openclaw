@@ -30,15 +30,15 @@ class PaperWallet:
             "usd_balance": self.initial_balance,
             "holdings": {},  # e.g., {"VIRTUAL": {"amount": 100, "avg_price": 2.5}}
             "history": [],
-            "created_at": datetime.utcnow().isoformat(),
-            "last_updated": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat()
         }
         self._save_wallet()
 
     def _save_wallet(self):
         """Saves current state to JSON."""
         os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
-        self.state["last_updated"] = datetime.utcnow().isoformat()
+        self.state["last_updated"] = datetime.now(timezone.utc).isoformat()
         with open(self.data_path, 'w') as f:
             json.dump(self.state, f, indent=2)
 
@@ -63,7 +63,7 @@ class PaperWallet:
         amount_usd: Amount in USD to buy/sell
         price: Current token price
         """
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         token_amount = amount_usd / price
 
         if action.upper() == "BUY":
