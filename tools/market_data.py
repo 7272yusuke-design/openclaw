@@ -30,6 +30,8 @@ class MarketData:
     _GECKO_PAIRS = {
         "VIRTUAL": "0x3f0296BF652e19bca772EC3dF08b32732F93014A",
         "AIXBT":   "0xf1fdc83c3a336bdbdc9fb06e318b08eaddc82ff4",
+        "TIBBIR":  "0x0c3b466104545efa096b8f944c1e524e1d0d4888",  # TIBBIR/VIRTUAL 流動性$2.6M
+        "ROBO":    "0x0bdf1509320b344131b257c66871f34de26f953d",   # ROBO/VIRTUAL 1% 流動性$550K
         # LUNA: Solanaチェーントークンのため GeckoTerminal(Base chain) 対象外
         # CoinGecko経由で価格取得する
     }
