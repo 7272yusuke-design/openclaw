@@ -10,7 +10,7 @@ import time
 import logging
 import urllib.request
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 BASE_DIR = Path("/docker/openclaw-taan/data/.openclaw/workspace")
 sys.path.append(str(BASE_DIR))
