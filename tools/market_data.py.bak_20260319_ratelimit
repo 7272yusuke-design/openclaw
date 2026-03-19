@@ -37,8 +37,6 @@ class MarketData:
     # Rate Limit対策: 最後のAPI呼び出し時刻
     _last_cg_call = 0
     _CG_INTERVAL = 6  # CoinGecko無料枠: 10-30 req/min → 6秒間隔で安全
-    _last_gt_call = 0
-    _GT_INTERVAL = 10  # GeckoTerminal無料枠: 6req/min → 10秒間隔で安全
 
     @staticmethod
     def _normalize_symbol(query: str) -> str:
@@ -74,13 +72,6 @@ class MarketData:
     def _fetch_price_from_geckoterminal(symbol: str):
         """GeckoTerminalからVP銘柄の価格取得（Base chain DEX実データ）"""
         import requests as _req
-        # GeckoTerminal レートリミット制御
-        elapsed = time.time() - MarketData._last_gt_call
-        if elapsed < MarketData._GT_INTERVAL:
-            wait_time = MarketData._GT_INTERVAL - elapsed
-            logger.debug(f"GT rate limit: waiting {wait_time:.1f}s")
-            time.sleep(wait_time)
-        MarketData._last_gt_call = time.time()
         clean = symbol.split('/')[0].strip().upper()
         pair_address = MarketData._GECKO_PAIRS.get(clean)
         if not pair_address:

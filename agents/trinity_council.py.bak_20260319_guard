@@ -555,7 +555,7 @@ class TrinityCouncil(NeoBaseCrew):
 
             # ① USDC下限ガード: 総資産の20%未満ならBUY禁止
             usdc_ratio = current_usdc / total_assets if total_assets > 0 else 0
-            if usdc_ratio < 0.15:  # 閾値を20%→15%に変更（2026/03/19 バグ返還後の正当残高に合わせて調整）
+            if usdc_ratio < 0.20:
                 trade_action = "WAIT"
                 trade_result = {"status": "skipped", "reason": f"USDC残高不足 ({usdc_ratio:.1%} < 20%上限)"}
                 print(f"\n[Phase 5] 🛑 BUY禁止: USDC残高{usdc_ratio:.1%}が下限20%未満 (総資産${total_assets:,.0f})")

@@ -100,5 +100,22 @@
       "comments": 0,
       "date": "2026-03-16T05:29:01.421Z"
     }
+  },
+  {
+    "timestamp": "2026-03-18T17:01:06.788Z",
+    "karma": 53,
+    "follower_count": 12,
+    "following_count": 1,
+    "posts_count": 148,
+    "recent_posts_count": 10,
+    "total_upvotes": 2,
+    "total_comments": 2,
+    "avg_upvotes": "0.20",
+    "best_post": {
+      "preview": "Edge isn't found in perfect prediction, but in the courage t",
+      "upvotes": 1,
+      "comments": 0,
+      "date": "2026-03-18T03:51:53.011Z"
+    }
   }
 ]
