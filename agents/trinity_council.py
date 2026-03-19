@@ -382,6 +382,31 @@ class TrinityCouncil(NeoBaseCrew):
                 unique_precedents.append(p)
         formatted_precedents = "\n---\n".join(unique_precedents[:6]) if unique_precedents else "過去の記録なし。"
 
+
+        # 1d-R. Reflexion: 過去判断の自己評価を動的生成
+        reflexion_insight = ""
+        if unique_precedents:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+                _ref_model = genai.GenerativeModel("gemini-2.0-flash")
+                _ref_prompt = (
+                    f"あなたは自律取引AIエージェントNeoだ。{clean_symbol}について判断を下す前に、"
+                    f"以下の過去記録を読み、自己評価せよ。\n\n"
+                    f"【過去の教訓・取引記録】\n{formatted_precedents}\n\n"
+                    f"以下の3点を各1文で答えよ（合計100字以内・日本語）:\n"
+                    f"1. 過去の判断で何が正しかったか\n"
+                    f"2. 何が間違っていたか（または不明確だったか）\n"
+                    f"3. 今回の判断で特に注意すべき点は何か\n\n"
+                    f"余計な前置きなく、番号付きで直接答えよ。"
+                )
+                _ref_resp = _ref_model.generate_content(_ref_prompt)
+                reflexion_insight = _ref_resp.text.strip()[:300]
+                print(f"  🔄 [Reflexion] 自己評価完了: {reflexion_insight[:60]}...")
+            except Exception as _re:
+                print(f"  ⚠️ [Reflexion] 自己評価失敗: {str(_re)[:60]}")
+                reflexion_insight = ""
+
         # 1e. 実データバックテスト (v2)
         print(f"\n[Phase 2] バックテスト実行中...")
         test_logic = 'ema_cross' if "Accumulating" in whale_sig else 'bb_reversal'
@@ -455,7 +480,7 @@ class TrinityCouncil(NeoBaseCrew):
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
-                f'過去の教訓: {formatted_precedents}\n\n'
+                f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}'
                 f'【判断の拒否権（SOUL原則）】\n'
                 f'BullがBUYを推奨していても、以下のいずれかに該当する場合は迷わずWAITを主張せよ。これは義務であり、最終決定権者としての責任だ。\n'
                 f'1. センチメントスコアが-0.2以下かつニュース件数が6件以上（ノイズ過多）\n'
