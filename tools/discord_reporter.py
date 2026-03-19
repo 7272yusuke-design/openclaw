@@ -14,6 +14,7 @@ class DiscordReporter:
     REPORT_WEBHOOK    = os.getenv("DISCORD_REPORT_WEBHOOK", "")
     LOG_WEBHOOK       = os.getenv("DISCORD_LOG_WEBHOOK", "")
     DASHBOARD_WEBHOOK = os.getenv("DISCORD_DASHBOARD_WEBHOOK", "")
+    NIGHTLY_WEBHOOK   = os.getenv("DISCORD_NIGHTLY_WEBHOOK", "")
 
     @classmethod
     def send_council_minutes(cls, title, discussion_data, color=0x3498db, image_path=None):

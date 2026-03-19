@@ -134,7 +134,17 @@ def _run_nightly_batch():
             f"✅ Sweep / Evaluator / Dashboard 完了"
             f"{moltbook_report}"
         )
-        DiscordReporter.send_log("🌙 Nightly Batch Report", summary, color=0x9b59b6)
+        # Nightly専用チャンネルに送信
+        import requests as _req
+        _nightly_url = DiscordReporter.NIGHTLY_WEBHOOK or DiscordReporter.LOG_WEBHOOK
+        _payload = {
+            "embeds": [{
+                "title": "🌙 Nightly Batch Report",
+                "description": summary,
+                "color": 0x9b59b6
+            }]
+        }
+        _req.post(_nightly_url, json=_payload, timeout=10)
         logger.info(f"[Nightly] === バッチ完了 ({elapsed}秒) ===")
     except Exception as e:
         logger.error(f"[Nightly] サマリー送信失敗: {e}")
