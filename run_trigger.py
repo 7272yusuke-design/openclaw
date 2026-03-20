@@ -125,6 +125,14 @@ def _run_nightly_batch():
         except Exception as e:
             logger.error(f"[Nightly] MoltbookTracker失敗: {e}")
 
+        # Moltbookエンゲージメントレポート取得
+        engage_report = ""
+        try:
+            from tools.moltbook_engager import MoltbookEngager
+            engage_report = "\n\n" + MoltbookEngager.get_engagement_report()
+        except Exception as e:
+            logger.error(f"[Nightly] MoltbookEngager統計失敗: {e}")
+
         summary = (
             f"📅 **日次バッチ完了** — {today}\n"
             f"⏱️ 実行時間: {elapsed}秒\n"
@@ -132,6 +140,7 @@ def _run_nightly_batch():
             f"🔍 Alpha機会: {opp_count}件\n"
             f"✅ Sweep / Evaluator / Dashboard 完了"
             f"{moltbook_report}"
+            f"{engage_report}"
         )
         # Nightly専用チャンネルに送信
         import requests as _req

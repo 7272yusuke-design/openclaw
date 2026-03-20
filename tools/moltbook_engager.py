@@ -260,6 +260,81 @@ class MoltbookEngager:
         return stats
 
     @classmethod
+    def get_engagement_stats(cls, max_posts: int = 20) -> dict:
+        replied_ids = cls._load_json_set(cls.REPLIED_FILE)
+        stats = {
+            "total_posts_checked": 0,
+            "total_comments_received": 0,
+            "total_replied": 0,
+            "total_unreplied": 0,
+            "unique_commenters": set(),
+            "recent_conversations": []
+        }
+        posts_json = cls._run_moltbook_cmd(["myposts", str(max_posts)])
+        if not posts_json:
+            return stats
+        try:
+            posts = json.loads(posts_json)
+        except json.JSONDecodeError:
+            return stats
+        for post in posts:
+            post_id = post.get("id") or post.get("_id")
+            if not post_id:
+                continue
+            stats["total_posts_checked"] += 1
+            comments_json = cls._run_moltbook_cmd(["comments", post_id])
+            if not comments_json:
+                continue
+            try:
+                comments = json.loads(comments_json)
+            except json.JSONDecodeError:
+                continue
+            for comment in comments:
+                author_name = comment.get("author", {}).get("name", "")
+                if author_name.lower() in ["neo", "dragon"]:
+                    continue
+                comment_id = comment.get("id", "")
+                comment_text = comment.get("content", "")
+                is_replied = comment_id in replied_ids
+                stats["total_comments_received"] += 1
+                stats["unique_commenters"].add(author_name)
+                if is_replied:
+                    stats["total_replied"] += 1
+                else:
+                    stats["total_unreplied"] += 1
+                if len(stats["recent_conversations"]) < 10:
+                    stats["recent_conversations"].append({
+                        "author": author_name,
+                        "comment_preview": comment_text[:80],
+                        "replied": is_replied,
+                        "post_title": post.get("title", "")[:40]
+                    })
+        stats["unique_commenters"] = list(stats["unique_commenters"])
+        return stats
+
+    @classmethod
+    def get_engagement_report(cls) -> str:
+        stats = cls.get_engagement_stats()
+        upvoted_ids = cls._load_json_set(cls.UPVOTED_FILE)
+        lines = []
+        lines.append("\U0001f91d **Moltbook\u30a8\u30f3\u30b2\u30fc\u30b8\u30e1\u30f3\u30c8\u30ec\u30dd\u30fc\u30c8**")
+        lines.append("  \u53d7\u4fe1\u30b3\u30e1\u30f3\u30c8: " + str(stats["total_comments_received"]) + "\u4ef6\uff08" + str(len(stats["unique_commenters"])) + "\u4eba\uff09")
+        lines.append("  \u8fd4\u4fe1\u6e08\u307f: " + str(stats["total_replied"]) + "\u4ef6 / \u672a\u8fd4\u4fe1: " + str(stats["total_unreplied"]) + "\u4ef6")
+        lines.append("  Upvote\u5b9f\u65bd: " + str(len(upvoted_ids)) + "\u4ef6\uff08\u7d2f\u8a08\uff09")
+        if stats["unique_commenters"]:
+            top5 = ", ".join(stats["unique_commenters"][:5])
+            lines.append("  \u4ea4\u6d41\u76f8\u624b: " + top5)
+        if stats["total_unreplied"] > 0:
+            lines.append("  \u26a0\ufe0f \u672a\u8fd4\u4fe1" + str(stats["total_unreplied"]) + "\u4ef6\u3042\u308a")
+        convos = stats.get("recent_conversations", [])
+        if convos:
+            lines.append("  \U0001f4dd \u76f4\u8fd1\u306e\u4f1a\u8a71:")
+            for c in convos[:3]:
+                mark = "\u2705" if c["replied"] else "\u23f3"
+                lines.append("    " + mark + " [" + c["author"] + "] " + c["comment_preview"][:50] + "...")
+        return "\n".join(lines)
+
+    @classmethod
     def run_engagement_cycle(cls) -> dict:
         """返信チェック + フィード巡回を1サイクル実行。"""
         print(f"🔄 [Engager] エンゲージメントサイクル開始 {datetime.now(timezone.utc).isoformat()}")
