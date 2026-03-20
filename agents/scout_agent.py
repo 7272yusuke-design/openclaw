@@ -118,7 +118,22 @@ class ScoutCrew(NeoBaseCrew):
 
         try:
             payload = result.pydantic or ScoutPayload.model_validate_json(result.raw)
-            if payload and payload.sharpe_ratio >= 5.0:
+            # 実計算Sharpeを取得（LLM幻覚値を使わない）
+            actual_sharpe = 0.0
+            actual_confidence = "LOW"
+            try:
+                market_tool = MarketTool()
+                raw_json = market_tool._run(goal.split('の')[0].strip())
+                import json as _json
+                market_result = _json.loads(raw_json)
+                qa = market_result.get("quant_alpha", {})
+                actual_sharpe = qa.get("sharpe", 0.0)
+                actual_confidence = qa.get("confidence", "LOW")
+                logger.info(f"[Scout] 実計算Sharpe={actual_sharpe} (LLM値={payload.sharpe_ratio if payload else 'N/A'})")
+            except Exception as _e:
+                logger.warning(f"[Scout] 実計算Sharpe取得失敗: {_e}")
+
+            if payload and actual_sharpe >= 5.0:
                 full_board = NeoBlackboard.load()
                 strat_intel = full_board.get("strategic_intel", {})
                 
@@ -127,7 +142,8 @@ class ScoutCrew(NeoBaseCrew):
                 symbol = goal.split('の')[0].strip()
                 
                 opportunities[symbol] = {
-                    "sharpe": payload.sharpe_ratio,
+                    "sharpe": actual_sharpe,
+                    "confidence": actual_confidence,
                     "alert_level": payload.alert_level,
                     "last_detected": time.strftime("%Y-%m-%dT%H:%M:%S")
                 }
