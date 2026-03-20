@@ -210,8 +210,7 @@ def start_hybrid_radar():
             now_utc = datetime.now(timezone.utc)
             now_jst_hour = (now_utc.hour + 9) % 24
             today_str = now_utc.strftime('%Y-%m-%d')
-            # 暫定: デバッグのため JST 05:00-06:00 も実行対象にする
-            if (now_jst_hour == 2 or now_jst_hour == 5 or now_jst_hour == 6 or now_jst_hour == 7) and last_nightly_date != today_str:
+            if now_jst_hour == 2 and last_nightly_date != today_str:
                 last_nightly_date = today_str
                 logger.info(f'[Nightly] 深夜バッチ開始 JST{now_jst_hour:02d}:00 ({today_str})')
                 try:
