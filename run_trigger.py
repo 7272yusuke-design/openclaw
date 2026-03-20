@@ -15,7 +15,7 @@ from agents.trinity_council import TrinityCouncil
 from tools.discord_reporter import DiscordReporter
 from orchestration.alpha_sweep_operation import run_sweep
 from orchestration.data_collector import get_latest_price_from_db
-from core.config import VOLATILITY_WATCH_SYMBOLS
+from core.config import VOLATILITY_WATCH_SYMBOLS, COUNCIL_ELIGIBLE_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 from orchestration.nightly_research import run_nightly_research
 from orchestration.vp_discovery import run_vp_discovery
@@ -291,7 +291,11 @@ def start_hybrid_radar():
                     opps = strat.get("active_opportunities", {})
 
                     eligible = []
+                    council_ok = [sym + "/USDT" for sym in COUNCIL_ELIGIBLE_SYMBOLS]
                     for s, d in opps.items():
+                        if s not in council_ok:
+                            logger.debug(f"⏭️ [ALPHA] {s} はCouncil対象外 — スキップ")
+                            continue
                         sharpe = d.get("sharpe", 0.0)
                         last_detected = d.get("last_detected")
                         if sharpe >= ALPHA_THRESHOLD and processed_alphas.get(s) != last_detected:

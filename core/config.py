@@ -32,6 +32,7 @@ VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
 SWEEP_SYMBOLS         = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS   # 通常Sweep
 SWEEP_SYMBOLS_NIGHTLY = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS + VP_TIER3_SYMBOLS  # Nightly
 VOLATILITY_WATCH_SYMBOLS = VP_TIER1_SYMBOLS   # ボラティリティ監視
+COUNCIL_ELIGIBLE_SYMBOLS = VP_TIER1_SYMBOLS    # Council召集可能（Tier1のみ）
 
 # ============================================================
 # 学習モード設定（Task F.1）
