@@ -48,9 +48,8 @@ def _run_nightly_batch():
     2. Performance Evaluator（勝率更新 + Discordダッシュボード）
     3. Discord日次サマリー送信
     """
-    from datetime import datetime, timezone as _dt
     batch_start = time.time()
-    today = _dt.now().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     logger.info(f"[Nightly] === {today} バッチ開始 ===")
 
     # 1. Alpha Sweep フルスキャン
@@ -70,8 +69,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] Evaluator失敗: {e}")
 
     # 3. VP Discovery（週次・月曜のみ）
-    from datetime import datetime, timezone as _dt2
-    if _dt2.utcnow().weekday() == 0:  # 0=月曜
+    if datetime.now(timezone.utc).weekday() == 0:  # 0=月曜
         logger.info("[Nightly] Step 3b: VP新興銘柄スキャン（週次）")
         try:
             result = run_vp_discovery()
@@ -212,13 +210,14 @@ def start_hybrid_radar():
             now_utc = datetime.now(timezone.utc)
             now_jst_hour = (now_utc.hour + 9) % 24
             today_str = now_utc.strftime('%Y-%m-%d')
-            if now_jst_hour == 2 and last_nightly_date != today_str:
+            # 暫定: デバッグのため JST 05:00-06:00 も実行対象にする
+            if (now_jst_hour == 2 or now_jst_hour == 5 or now_jst_hour == 6 or now_jst_hour == 7) and last_nightly_date != today_str:
                 last_nightly_date = today_str
-                logger.info(f'[Nightly] 深夜バッチ開始 JST02:00 ({today_str})')
+                logger.info(f'[Nightly] 深夜バッチ開始 JST{now_jst_hour:02d}:00 ({today_str})')
                 try:
                     _run_nightly_batch()
                 except Exception as e:
-                    logger.error(f'[Nightly] エラー: {e}')
+                    logger.error(f'[Nightly] バッチ失敗: {e}')
 
 
                         # ============================================================
