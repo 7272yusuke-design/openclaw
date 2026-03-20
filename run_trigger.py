@@ -21,6 +21,98 @@ from orchestration.nightly_research import run_nightly_research
 from orchestration.vp_discovery import run_vp_discovery
 from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_THRESHOLD
 
+# --- TP/SLサイクルチェック（Council非依存・毎30秒） ---
+def check_tp_sl_all_positions():
+    """保有中ポジションの利確/損切を毎サイクルチェック（Council召集不要）"""
+    from tools.paper_wallet import PaperWallet
+    from core.memory_db import NeoMemoryDB
+    pw = PaperWallet()
+    holdings = pw.state.get("holdings", {})
+    if not holdings:
+        return
+    memory = NeoMemoryDB()
+    for clean_symbol, hdata in list(holdings.items()):
+        amount = hdata.get("amount", 0)
+        if amount <= 0:
+            continue
+        try:
+            # VP銘柄はGeckoTerminal直接取得
+            if clean_symbol in ("VIRTUAL", "AIXBT"):
+                price_data = MarketData._fetch_price_from_geckoterminal(clean_symbol)
+                if not price_data:
+                    price_data = MarketData.fetch_token_data(clean_symbol)
+            else:
+                price_data = MarketData.fetch_token_data(clean_symbol)
+            if not price_data or price_data.get("status") != "success":
+                continue
+            current_price = float(price_data.get("priceUsd", 0.0))
+            if current_price <= 0:
+                continue
+
+            pnl = pw.get_unrealized_pnl(clean_symbol, current_price)
+            partial_tp_pct = 3.0 if LEARNING_MODE else 20.0
+            full_tp_pct = 7.0 if LEARNING_MODE else 20.0
+
+            sell_amount_usd = 0
+            tp_label = ""
+            tp_reason = ""
+
+            # 全量利確チェック
+            if pw.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
+                sell_amount_usd = amount * current_price
+                tp_label = "Full TP"
+                tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
+                logger.warning(f"[TP/SL] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+            # 半量利確チェック（学習モードのみ）
+            elif LEARNING_MODE and pw.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
+                sell_amount_usd = (amount * current_price) * 0.5
+                tp_label = "Partial TP (50%)"
+                tp_reason = f"Partial Take Profit at +{pnl['pnl_pct']:.1f}% (learning mode, target: +{partial_tp_pct}%)"
+                logger.warning(f"[TP/SL] 🎯 半量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+
+            if sell_amount_usd > 0:
+                result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=tp_reason)
+                if result.get("status") == "success":
+                    logger.info(f"[TP/SL] ✅ 利確完了: {clean_symbol} ${sell_amount_usd:.2f} ({tp_label})")
+                    tp_memory = f"【{tp_label}利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} +{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})"
+                    memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
+                    try:
+                        _bal = pw.get_balance().get('USDC', 0)
+                        DiscordReporter.send_trade_alert(symbol=f"{clean_symbol} ({tp_label} +{pnl['pnl_pct']:.1f}%)", action="SELL", amount_usd=sell_amount_usd, price=current_price, status=f"success | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}", balance_after=_bal)
+                    except Exception as _de:
+                        logger.error(f"[TP/SL] Discord報告失敗: {_de}")
+                continue  # 利確したらこの銘柄は損切チェック不要
+
+            # 損切チェック
+            sl_pct = 3.0 if LEARNING_MODE else 10.0
+            if pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
+                logger.warning(f"[TP/SL] 🛑 損切トリガー: {clean_symbol} {pnl['pnl_pct']:.1f}%")
+                sell_amount_usd = amount * current_price
+                result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%)")
+                if result.get("status") == "success":
+                    logger.info(f"[TP/SL] ✅ 損切完了: {clean_symbol} ${sell_amount_usd:.2f}")
+                    # Gemini内省
+                    _introspection = f"-{sl_pct}%到達。センチメント・クジラ動向の見直しが必要。"
+                    try:
+                        import google.generativeai as _genai
+                        import os as _os
+                        _genai.configure(api_key=_os.environ.get("GEMINI_API_KEY",""))
+                        _model = _genai.GenerativeModel("gemini-2.0-flash")
+                        _resp = _model.generate_content(f"あなたは自律取引AIエージェントNeoです。{clean_symbol}をエントリー${pnl['avg_price']:.4f}→損切${current_price:.4f}({pnl['pnl_pct']:.1f}%)で損切しました。なぜ負けたか、次回どう判断すべきか、合計100字以内で内省してください。")
+                        _introspection = _resp.text.strip()
+                    except Exception as _ie:
+                        logger.error(f"[TP/SL] 内省生成失敗: {_ie}")
+                    sl_memory = f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} {pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})\n内省: {_introspection}"
+                    logger.info(f"[TP/SL] 🧠 損切内省: {_introspection}")
+                    memory.store(sl_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "loss", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
+                    try:
+                        _bal = pw.get_balance().get('USDC', 0)
+                        DiscordReporter.send_trade_alert(symbol=f"{clean_symbol} (Stop Loss {pnl['pnl_pct']:.1f}%)", action="SELL", amount_usd=sell_amount_usd, price=current_price, status=f"stop_loss | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}", balance_after=_bal)
+                    except Exception as _de:
+                        logger.error(f"[TP/SL] Discord報告失敗: {_de}")
+        except Exception as e:
+            logger.error(f"[TP/SL] {clean_symbol} チェックエラー: {e}")
+
 # --- 設定 ---
 CHECK_INTERVAL = 30           # 監視間隔（秒）
 VOLATILITY_THRESHOLD = 2.0    # ボラティリティ閾値（%）
@@ -246,6 +338,14 @@ def start_hybrid_radar():
                 except Exception as e:
                     logger.error(f'[Nightly] バッチ失敗: {e}')
 
+
+            # ============================================================
+            # 0. TP/SLサイクルチェック（毎30秒・Council非依存）
+            # ============================================================
+            try:
+                check_tp_sl_all_positions()
+            except Exception as _tpsl_e:
+                logger.error(f"[TP/SL] サイクルチェックエラー: {_tpsl_e}")
 
                         # ============================================================
             # 1. ボラティリティ監視 (Tier1: VIRTUAL / AIXBT)

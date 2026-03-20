@@ -36,7 +36,8 @@ def run_neo_backtest(csv_path, initial_cash=1000.0, logic='rsi'):
     df['ema9'] = ta.ema(df['close'], length=9)
     df['ema20'] = ta.ema(df['close'], length=20)
     bb = ta.bbands(df['close'], length=20, std=2)
-    df['bb_upper'], df['bb_lower'] = bb['BBU_20_2.0'], bb['BBL_20_2.0']
+    df['bb_upper'] = bb[[c for c in bb.columns if c.startswith('BBU')][-1]]
+    df['bb_lower'] = bb[[c for c in bb.columns if c.startswith('BBL')][-1]]
     df.fillna(0, inplace=True)
     class ExtendedPandasData(bt.feeds.PandasData):
         lines = ('rsi', 'ema9', 'ema20', 'bb_upper', 'bb_lower')

@@ -25,5 +25,5 @@ class NeoIndicators:
             "rsi": round(latest['rsi'], 2),
             "trend": "Upward" if latest['ema9'] > latest['ema20'] else "Downward",
             "ema_cross": "Golden Cross" if (prev['ema9'] <= prev['ema20'] and latest['ema9'] > latest['ema20']) else "None",
-            "bb_position": "Overbought" if latest['close'] > bbands['BBU_20_2.0'].iloc[-1] else ("Oversold" if latest['close'] < bbands['BBL_20_2.0'].iloc[-1] else "Neutral")
+            "bb_position": "Overbought" if latest['close'] > bbands[[c for c in bbands.columns if c.startswith('BBU')][-1]].iloc[-1] else ("Oversold" if latest['close'] < bbands[[c for c in bbands.columns if c.startswith('BBL')][-1]].iloc[-1] else "Neutral")
         }
