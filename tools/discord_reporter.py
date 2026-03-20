@@ -18,21 +18,70 @@ class DiscordReporter:
 
     @classmethod
     def send_council_minutes(cls, title, discussion_data, color=0x3498db, image_path=None):
-        """協議会レポート — 強気/弱気/統計/判定/取引結果の5フィールド"""
+        """協議会レポート v3 — 市況・意見・判定・取引を構造化表示"""
+        d = discussion_data
         
+        # --- 市況サマリー（1フィールドにコンパクトに） ---
+        market_lines = []
+        if d.get("current_price"):
+            market_lines.append(f"💲 **価格**: ${d['current_price']:.6f}")
+        if d.get("btc_context"):
+            market_lines.append(f"₿ {d['btc_context']}")
+        if d.get("fear_greed") and d["fear_greed"] != "N/A":
+            market_lines.append(f"😱 **Fear & Greed**: {d['fear_greed']}/100")
+        if d.get("finbert_label"):
+            fb_emoji = "📈" if d.get("finbert_score", 0) > 0.1 else ("📉" if d.get("finbert_score", 0) < -0.1 else "➡️")
+            market_lines.append(f"{fb_emoji} **FinBERT**: {d['finbert_label']} ({d.get('finbert_score', 0):+.3f})")
+        if d.get("whale_signal"):
+            market_lines.append(f"🐋 **Whale**: {d['whale_signal']}")
+        if d.get("news_count") is not None:
+            market_lines.append(f"📰 **ニュース**: {d['news_count']}件")
+        market_text = "\n".join(market_lines) if market_lines else "N/A"
+        
+        # --- ポジション情報 ---
+        pos_lines = []
+        if d.get("usdc_balance") is not None:
+            pos_lines.append(f"💰 **USDC**: ${d['usdc_balance']:,.0f} ({d.get('usdc_ratio', 0):.0f}%)")
+        if d.get("holding_amount") and d["holding_amount"] > 0:
+            pnl_emoji = "📈" if d.get("unrealized_pnl_pct", 0) >= 0 else "📉"
+            pos_lines.append(f"{pnl_emoji} **保有**: {d['holding_amount']:.2f} tokens @ ${d.get('avg_price', 0):.6f}")
+            pos_lines.append(f"   含み損益: {d.get('unrealized_pnl_pct', 0):+.2f}% (${d.get('unrealized_pnl_usd', 0):+.2f})")
+        else:
+            pos_lines.append("📦 **保有**: なし（新規エントリー）")
+        pos_text = "\n".join(pos_lines)
+        
+        # --- Bull/Bear意見（クリーンアップ） ---
+        def _clean_opinion(raw):
+            """CrewAI出力からコードブロック・JSON・制御文字を除去"""
+            text = str(raw) if raw else "N/A"
+            import re
+            text = re.sub(r'```[\s\S]*?```', '', text)
+            text = re.sub(r'\{[\s\S]*?\}', '', text)
+            text = re.sub(r'\n{3,}', '\n\n', text)
+            text = text.strip()
+            if not text:
+                return "N/A"
+            return text
+        
+        bull_text = _clean_opinion(d.get("bull"))
+        bear_text = _clean_opinion(d.get("bear"))
+        
+        # --- フィールド組み立て ---
         fields = [
-            {"name": "🐂 Bullish Opinion", "value": cls._truncate(discussion_data.get('bull', 'N/A'), 300), "inline": False},
-            {"name": "🐻 Bearish Opinion", "value": cls._truncate(discussion_data.get('bear', 'N/A'), 300), "inline": False},
-            {"name": "📊 Analysis & Backtest", "value": cls._truncate(discussion_data.get('stats', 'N/A'), 1024), "inline": False},
-            {"name": "🤖 Neo's Verdict", "value": cls._truncate(discussion_data.get('verdict', 'Pending'), 1024), "inline": False},
+            {"name": "📊 市況データ", "value": cls._truncate(market_text, 500), "inline": False},
+            {"name": "💼 ポジション", "value": cls._truncate(pos_text, 300), "inline": False},
+            {"name": "🐂 強気派の意見", "value": cls._truncate(bull_text, 500), "inline": False},
+            {"name": "🐻 弱気派の意見", "value": cls._truncate(bear_text, 500), "inline": False},
+            {"name": "📈 バックテスト", "value": cls._truncate(d.get("backtest_summary", "N/A"), 400), "inline": False},
+            {"name": "🤖 Neoの最終判断", "value": cls._truncate(d.get("verdict", "Pending"), 800), "inline": False},
         ]
         
         # 取引結果フィールド（存在する場合のみ追加）
-        trade_info = discussion_data.get('trade')
+        trade_info = d.get("trade")
         if trade_info:
             fields.append({
-                "name": "💰 Trade Execution",
-                "value": cls._truncate(trade_info, 1024),
+                "name": "💰 取引執行",
+                "value": cls._truncate(trade_info, 500),
                 "inline": False
             })
         
@@ -40,7 +89,7 @@ class DiscordReporter:
             "title": title[:256],
             "color": color,
             "fields": fields,
-            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v2"},
+            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v3"},
             "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         }
         
@@ -55,8 +104,8 @@ class DiscordReporter:
         if total_len > 5800:
             logger.warning(f"Embed total length {total_len} near limit. Truncating fields.")
             for field in fields:
-                if len(field["value"]) > 600:
-                    field["value"] = field["value"][:597] + "..."
+                if len(field["value"]) > 400:
+                    field["value"] = field["value"][:397] + "..."
         
         success = cls._post(cls.REPORT_WEBHOOK, payload, image_path)
         if success:

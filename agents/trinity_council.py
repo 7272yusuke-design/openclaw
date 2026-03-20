@@ -715,16 +715,57 @@ class TrinityCouncil(NeoBaseCrew):
         color_map = {"BUY": 0x2ecc71, "SELL": 0xe74c3c, "WAIT": 0x95a5a6}
         status_color = color_map.get(trade_action, 0x3498db)
         
+        # ポジション情報を取得
+        _holding_amt = self.portfolio.get_holding(clean_symbol)
+        _pnl_data = self.portfolio.get_unrealized_pnl(clean_symbol, current_price) if _holding_amt > 0 and current_price > 0 else {}
+        _total_assets = current_usdc
+        for _s, _a in self.portfolio.get_balance().items():
+            if _s != "USDC":
+                _sd = MarketData.fetch_token_data(_s)
+                if _sd and _sd.get("status") == "success":
+                    _total_assets += _a * float(_sd.get("priceUsd", 0))
+        _usdc_ratio = (current_usdc / _total_assets * 100) if _total_assets > 0 else 0
+
+        # BTC情報を整形
+        _btc_short = ""
+        try:
+            if btc_context:
+                _btc_short = btc_context.strip().replace("📊 ", "")
+        except Exception:
+            pass
+
+        # FinBERT情報
+        _fb_score_rpt = finbert_score if "finbert_score" in locals() else 0.0
+        _fb_label_rpt = finbert_label if "finbert_label" in locals() else "neutral"
+
+        # Fear & Greed
+        try:
+            _fng = market_context.split("Fear & Greed Index:")[1].split("/")[0].strip() if market_context and "Fear & Greed" in market_context else "N/A"
+        except Exception:
+            _fng = "N/A"
+
+        # バックテストサマリー（コードブロック除去）
+        _bt_summary = f"**信頼度**: {bt_confidence}\n**精度**: {accuracy}% ({total_past_trades}件)\n{backtest_report[:400]}"
+
         discussion_data = {
             "bull": str(t1.output)[:1024] if t1.output else "N/A",
             "bear": str(t2.output)[:1024] if t2.output else "N/A",
-            "stats": (
-                f"**🐳 Whale Signal:** `{whale_sig}`\n"
-                f"**🎯 Accuracy:** `{accuracy}% ({total_past_trades} trades)`\n"
-                f"**📈 Backtest ({bt_confidence}):**\n```\n{backtest_report[:500]}\n```"
-            ),
             "verdict": f"**{trade_action}**\n\n{verdict_text[:800]}",
-            "trade": trade_text
+            "trade": trade_text,
+            "current_price": current_price,
+            "btc_context": _btc_short,
+            "fear_greed": _fng,
+            "finbert_score": _fb_score_rpt,
+            "finbert_label": _fb_label_rpt,
+            "whale_signal": whale_sig,
+            "news_count": news_count if "news_count" in locals() else 0,
+            "usdc_balance": current_usdc,
+            "usdc_ratio": _usdc_ratio,
+            "holding_amount": _holding_amt,
+            "avg_price": _pnl_data.get("avg_price", 0),
+            "unrealized_pnl_pct": _pnl_data.get("pnl_pct", 0),
+            "unrealized_pnl_usd": _pnl_data.get("pnl_usd", 0),
+            "backtest_summary": _bt_summary,
         }
         
         if trade_action in ("BUY", "SELL"):
