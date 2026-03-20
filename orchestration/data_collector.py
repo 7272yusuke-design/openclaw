@@ -67,6 +67,20 @@ def collect_once(conn):
             price = float(data.get("priceUsd", 0))
             if price == 0:
                 continue
+            # 異常値フィルター: 直近価格との乖離が50%超なら棄却
+            try:
+                row = conn.execute(
+                    "SELECT close FROM prices WHERE symbol=? ORDER BY timestamp DESC LIMIT 1",
+                    (symbol,)
+                ).fetchone()
+                if row and row[0] > 0:
+                    last_price = row[0]
+                    deviation = abs(price - last_price) / last_price
+                    if deviation > 0.5:
+                        logger.warning(f"⚠️ {symbol} 異常値棄却: ${price:.6f} (前回${last_price:.6f}, 乖離{deviation:.1%})")
+                        continue
+            except Exception:
+                pass  # 初回データ等はフィルターなしで通す
             # open/high/low/close を現在価格で埋める（ティックデータとして蓄積）
             conn.execute(
                 "INSERT OR IGNORE INTO prices (symbol, timestamp, open, high, low, close, volume) "

@@ -124,7 +124,7 @@ class CoreBacktest:
         """Regime + RSI + Bollinger Squeeze"""
         try:
             close   = df["close"]
-            entries = (df["market_regime"] == 1) & (df["rsi_14"] < 55) & (df["is_vol_squeeze"] == 0)
+            entries = (df["market_regime"] == 1) & (df["rsi_14"] < 55)
             exits   = (df["market_regime"] == -1) | (df["rsi_14"] > 70)
             return _manual_backtest(close, entries, exits, "alpha_strategy")
         except Exception as e:
@@ -166,6 +166,7 @@ class CoreBacktest:
         try:
             close  = df["close"]
             high   = df["high"] if "high" in df.columns else close
+            low    = df["low"]  if "low"  in df.columns else close
 
             # volumeがない場合は全シグナル有効扱い
             if "volume" in df.columns and df["volume"].sum() > 0:
@@ -178,8 +179,11 @@ class CoreBacktest:
             high_roll = high.rolling(20).max().shift(1)
             entries   = (high > high_roll) & vol_ok
 
-            # 5本後に強制エグジット（タイムベース決済）
-            exits = entries.shift(5).fillna(False).infer_objects(copy=False)
+            # ATRベース損切 or 10本後に強制エグジット
+            atr = (high - low).rolling(14).mean()
+            stop_loss = close < (close.shift(1) - atr * 2)
+            time_exit = entries.shift(10).fillna(False).infer_objects(copy=False)
+            exits = stop_loss | time_exit
 
             result = _manual_backtest(close, entries, exits, "momentum_breakout")
             result["description"] = "高値ブレイク+出来高確認（5本後エグジット）"
@@ -288,7 +292,7 @@ class CoreBacktest:
                 squeeze_release = pd.Series(True, index=close.index)
 
             # エントリー: RSI40-65（過熱前）+ MACDヒスト正転 + Squeeze解放
-            entries = (rsi > 40) & (rsi < 65) & (macd_hist > 0) & (macd_hist.shift(1) <= 0) & squeeze_release
+            entries = (rsi > 40) & (rsi < 65) & (macd_hist > 0) & (macd_hist.shift(1) <= 0)
             # エグジット: RSI>72（過熱）or MACDヒスト反転
             exits = (rsi > 72) | (macd_hist < 0)
 
@@ -343,7 +347,7 @@ class CoreBacktest:
 
             # RSIが30を下から上に抜けた瞬間 + EMA50上方（トレンド確認）
             rsi_cross_up = (rsi > 30) & (rsi.shift(1) <= 30)
-            entries = rsi_cross_up & (close > ema50)
+            entries = rsi_cross_up & (close > ema50 * 0.99)  # EMA50の1%下まで許容
 
             # RSI60超え or EMA50を価格が割り込んだらエグジット
             exits = (rsi > 60) | (close < ema50)
@@ -385,8 +389,8 @@ class CoreBacktest:
             "bb_reversal":       CoreBacktest.run_bb_reversal,
             "momentum_breakout": CoreBacktest.run_momentum_breakout,
             "mean_reversion":    CoreBacktest.run_mean_reversion,
-            "macd_cross":        functools.partial(CoreBacktest.run_macd_cross, macd_params=macd_params),
-            "vp_momentum":       functools.partial(CoreBacktest.run_vp_momentum, rsi_params=rsi_params),
+            "macd_cross":        CoreBacktest.run_macd_cross,
+            "vp_momentum":       CoreBacktest.run_vp_momentum,
             "ema_trend":         CoreBacktest.run_ema_trend,
             "rsi_bounce":        CoreBacktest.run_rsi_bounce,
         }
