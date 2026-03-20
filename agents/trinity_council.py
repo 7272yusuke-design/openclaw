@@ -85,8 +85,8 @@ class TrinityCouncil(NeoBaseCrew):
                 print(f"  📈 含み損益: ${pnl['pnl_usd']:+.2f} ({pnl['pnl_pct']:+.2f}%)")
                 # J.3: 段階的利確（学習モード中は+10%で半量・+20%で全量）
                 from core.config import LEARNING_MODE
-                partial_tp_pct = 10.0 if LEARNING_MODE else 20.0
-                full_tp_pct = 20.0
+                partial_tp_pct = 3.0 if LEARNING_MODE else 20.0
+                full_tp_pct = 7.0 if LEARNING_MODE else 20.0
 
                 if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
                     # +20%到達: 全量売却
@@ -139,7 +139,7 @@ class TrinityCouncil(NeoBaseCrew):
                         else:
                             # 半量利確後はCouncilを継続（残りポジションの判断へ）
                             print(f"  📊 半量利確完了 → 残りポジションはCouncilで判断継続")
-                elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=10.0):
+                elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=3.0):
                     print(f"\n[Phase 1-SL] 🛑 損切トリガー発動: {clean_symbol} {pnl['pnl_pct']:.1f}%")
                     sell_amount_usd = holding * current_price
                     sl_result = self.portfolio.execute_trade(
@@ -147,7 +147,7 @@ class TrinityCouncil(NeoBaseCrew):
                         action="SELL",
                         amount_usd=sell_amount_usd,
                         price=current_price,
-                        reason=f"Stop Loss triggered at {pnl['pnl_pct']:.1f}% (limit: -10%)"
+                        reason=f"Stop Loss triggered at {pnl['pnl_pct']:.1f}% (limit: -3%)"
                     )
                     if sl_result.get("status") == "success":
                         print(f"  ✅ 損切完了: ${sell_amount_usd:.2f} USDC回収")
@@ -197,7 +197,7 @@ class TrinityCouncil(NeoBaseCrew):
                             _resp = _model.generate_content(_introspect_prompt)
                             _introspection = _resp.text.strip()
                         except Exception as _ie:
-                            _introspection = f"-10%到達。センチメント・クジラ動向の見直しが必要。"
+                            _introspection = f"-3%到達。センチメント・クジラ動向の見直しが必要。"
                             print(f"  ⚠️ 内省生成失敗: {_ie}")
                         sl_memory = (
                             f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} "
