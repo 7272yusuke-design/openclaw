@@ -176,32 +176,35 @@ class DiscordReporter:
 
     @classmethod
     def send_performance_dashboard(cls, accuracy, total_trades, recent_performance, win_count=None):
-        """精度追跡ダッシュボード — 日次/評価後に自動送信"""
-        from datetime import datetime
-
+        """精度追跡ダッシュボード v3 — 学習進捗・TP/SL閾値・ポートフォリオ"""
+        from datetime import datetime, timezone, timedelta
+        JST = timezone(timedelta(hours=9))
+        # 学習モード情報取得
+        try:
+            from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES
+        except ImportError:
+            LEARNING_MODE = True
+            LEARNING_TARGET_TRADES = 100
         # 勝率バー生成（10マス）
         filled = int(accuracy / 10) if accuracy > 0 else 0
         bar = "🟩" * filled + "⬜" * (10 - filled)
-
         # ステータス色
         if accuracy >= 60:
-            color = 0x2ecc71   # 緑
+            color = 0x2ecc71
         elif accuracy >= 40:
-            color = 0xf39c12   # 橙
+            color = 0xf39c12
         else:
-            color = 0xe74c3c   # 赤
-
+            color = 0xe74c3c
         # 直近取引サマリー
         if recent_performance:
             lines = []
             for p in recent_performance[-5:]:
                 pnl = p.get("pnl_pct", 0)
                 emoji = "✅" if pnl > 0 else "❌"
-                lines.append(f"{emoji} {p.get('symbol','?')} | 入: ${p.get('entry',0):.4f} 現: ${p.get('current',0):.4f} | {pnl:+.2f}%")
+                lines.append(f"{emoji} {p.get('symbol','?')} | ${p.get('entry',0):.4f}→${p.get('current',0):.4f} | {pnl:+.2f}%")
             recent_str = "\n".join(lines)
         else:
-            recent_str = "取引履歴なし"
-
+            recent_str = "決済済み取引なし"
         # 累積P&L計算
         if recent_performance:
             avg_pnl = sum(p.get("pnl_pct", 0) for p in recent_performance) / len(recent_performance)
@@ -209,7 +212,6 @@ class DiscordReporter:
         else:
             avg_pnl = 0.0
             pnl_str = "N/A"
-
         # ポートフォリオ内訳取得
         portfolio_str = "取得失敗"
         try:
@@ -225,35 +227,45 @@ class DiscordReporter:
                     prices[symbol] = float(data["priceUsd"])
             summary = w.get_portfolio_summary(prices)
             lines_pf = [f"💵 USDC: ${summary['usd_balance']:,.2f}"]
-            for p in summary.get("positions", []):
-                pnl_emoji = "📈" if p["pnl_pct"] >= 0 else "📉"
+            for pos in summary.get("positions", []):
+                pnl_emoji = "📈" if pos["pnl_pct"] >= 0 else "📉"
                 lines_pf.append(
-                    f"{pnl_emoji} {p['symbol']}: {p['amount']:,.0f}枚"
-                    f" @ avg ${p['avg_price']:.6f}"
-                    f" → ${p['current_price']:.6f}"
-                    f" ({p['pnl_pct']:+.2f}%)"
+                    f"{pnl_emoji} {pos['symbol']}: {pos['amount']:,.0f}枚"
+                    f" @ ${pos['avg_price']:.6f} → ${pos['current_price']:.6f}"
+                    f" ({pos['pnl_pct']:+.2f}%)"
                 )
-            lines_pf.append(f"💰 総資産: ${summary['total_value_usd']:,.2f} ({summary['total_pnl_usd']:+,.2f})")
+            lines_pf.append(f"💰 **総資産: ${summary['total_value_usd']:,.2f}** ({summary['total_pnl_usd']:+,.2f})")
             portfolio_str = "\n".join(lines_pf)
         except Exception as _pe:
             portfolio_str = f"取得失敗: {str(_pe)[:50]}"
-
+        # 学習モード進捗
+        history_count = 0
+        try:
+            from tools.paper_wallet import PaperWallet as _PW2
+            _w2 = _PW2()
+            history_count = len(_w2.state.get("history", []))
+        except Exception:
+            pass
+        mode_str = "📚 学習モード" if LEARNING_MODE else "⚡ 通常モード"
+        progress = f"{history_count}/{LEARNING_TARGET_TRADES}"
+        progress_pct = min(history_count / LEARNING_TARGET_TRADES * 100, 100)
+        progress_bar = "▓" * int(progress_pct / 10) + "░" * (10 - int(progress_pct / 10))
+        tp_sl_str = "TP1=+3% / TP2=+7% / SL=-3%" if LEARNING_MODE else "TP=+20% / SL=-10%"
         fields = [
-            {"name": "🎯 勝率", "value": f"`{bar}` **{accuracy:.1f}%**", "inline": False},
-            {"name": "📈 評価済み取引数", "value": str(total_trades), "inline": True},
+            {"name": "🎯 決済済み勝率", "value": f"`{bar}` **{accuracy:.1f}%** ({total_trades}件)", "inline": False},
             {"name": "📊 平均P&L", "value": pnl_str, "inline": True},
-            {"name": "🕐 更新時刻", "value": datetime.now().strftime("%Y-%m-%d %H:%M JST"), "inline": True},
-            {"name": "💼 ポートフォリオ内訳", "value": portfolio_str, "inline": False},
-            {"name": "📋 直近5件", "value": recent_str or "なし", "inline": False},
+            {"name": "🕐 更新時刻", "value": datetime.now(JST).strftime("%Y-%m-%d %H:%M JST"), "inline": True},
+            {"name": f"{mode_str}", "value": f"`{progress_bar}` {progress} ({progress_pct:.0f}%)\n📐 閾値: {tp_sl_str}", "inline": False},
+            {"name": "💼 ポートフォリオ", "value": portfolio_str, "inline": False},
+            {"name": "📋 直近決済5件", "value": recent_str or "なし", "inline": False},
         ]
-
         embed = {
             "title": "📊 Neo Performance Dashboard",
             "color": color,
             "fields": fields,
-            "footer": {"text": "Neo Trinity Council v2 | Paper Trading"}
+            "footer": {"text": "Neo Trinity Council v3 | Paper Trading"},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-
         payload = {"embeds": [embed]}
         success = cls._post(cls.DASHBOARD_WEBHOOK or cls.REPORT_WEBHOOK, payload)
         if success:

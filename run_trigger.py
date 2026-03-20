@@ -197,54 +197,95 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] Tearsheet生成失敗: {e}")
 
-    # 5. Discord日次サマリー
+    # 5. Discord日次サマリー（構造化レポート v3）
     logger.info("[Nightly] Step 5/5: Discord日次サマリー送信")
     try:
         from core.blackboard import NeoBlackboard
+        from datetime import timedelta
+        JST = timezone(timedelta(hours=9))
         board = NeoBlackboard.load()
         perf = board.get("performance_summary", {})
-        opps = board.get("active_opportunities", {})
+        opps = board.get("strategic_intel", {}).get("active_opportunities", {})
         accuracy = perf.get("accuracy_score", 0.0)
         total_trades = perf.get("total_evaluated_trades", 0)
         opp_count = len(opps)
         elapsed = round(time.time() - batch_start, 1)
 
-        # Moltbook反響レポート取得
-        moltbook_report = ""
+        # 学習モード進捗 + ポートフォリオ
+        try:
+            from tools.paper_wallet import PaperWallet as _PW
+            _pw = _PW()
+            _hist = _pw.state.get("history", [])
+            _hist_count = len(_hist)
+            _usdc = _pw.state.get("usd_balance", 0)
+            _holdings = _pw.state.get("holdings", {})
+            _today_buys = sum(1 for h in _hist if h.get("action") == "BUY" and today in h.get("timestamp", ""))
+            _today_sells = sum(1 for h in _hist if h.get("action") == "SELL" and today in h.get("timestamp", ""))
+            _pf_lines = [f"💵 USDC: ${_usdc:,.2f}"]
+            _total_val = _usdc
+            for _sym, _hd in _holdings.items():
+                try:
+                    _pd = MarketData.fetch_token_data(_sym)
+                    _pr = float(_pd.get("priceUsd", 0)) if _pd and _pd.get("status") == "success" else 0
+                    _val = _hd["amount"] * _pr
+                    _total_val += _val
+                    _pnl_pct = ((_pr - _hd["avg_price"]) / _hd["avg_price"] * 100) if _hd["avg_price"] > 0 else 0
+                    _e = "📈" if _pnl_pct >= 0 else "📉"
+                    _pf_lines.append(f"{_e} {_sym}: {_hd['amount']:,.0f}枚 @ ${_hd['avg_price']:.6f} → ${_pr:.6f} ({_pnl_pct:+.2f}%)")
+                except Exception:
+                    pass
+            _pf_lines.append(f"💰 **総資産: ${_total_val:,.2f}**")
+            _pf_str = "\n".join(_pf_lines)
+        except Exception as _pwe:
+            _hist_count = 0
+            _today_buys = 0
+            _today_sells = 0
+            _pf_str = "取得失敗"
+            logger.error(f"[Nightly] Wallet情報取得失敗: {_pwe}")
+
+        _progress_pct = min(_hist_count / LEARNING_TARGET_TRADES * 100, 100) if LEARNING_MODE else 100
+        _progress_bar = "▓" * int(_progress_pct / 10) + "░" * (10 - int(_progress_pct / 10))
+        _mode = "📚 学習モード" if LEARNING_MODE else "⚡ 通常モード"
+        _tp_sl = "TP1=+3% / TP2=+7% / SL=-3%" if LEARNING_MODE else "TP=+20% / SL=-10%"
+
+        # Moltbook反響
+        moltbook_str = "取得失敗"
         try:
             from tools.moltbook_tracker import run_tracking
-            moltbook_report = "\n\n" + run_tracking()
+            moltbook_str = run_tracking()
         except Exception as e:
             logger.error(f"[Nightly] MoltbookTracker失敗: {e}")
 
-        # Moltbookエンゲージメントレポート取得
-        engage_report = ""
+        # エンゲージメント
+        engage_str = "取得失敗"
         try:
             from tools.moltbook_engager import MoltbookEngager
-            engage_report = "\n\n" + MoltbookEngager.get_engagement_report()
+            engage_str = MoltbookEngager.get_engagement_report()
         except Exception as e:
             logger.error(f"[Nightly] MoltbookEngager統計失敗: {e}")
 
-        summary = (
-            f"📅 **日次バッチ完了** — {today}\n"
-            f"⏱️ 実行時間: {elapsed}秒\n"
-            f"🎯 現在の勝率: {accuracy}% ({total_trades}件)\n"
-            f"🔍 Alpha機会: {opp_count}件\n"
-            f"✅ Sweep / Evaluator / Dashboard 完了"
-            f"{moltbook_report}"
-            f"{engage_report}"
-        )
-        # Nightly専用チャンネルに送信
-        import requests as _req
+        # 構造化Embed送信
+        fields = [
+            {"name": f"{_mode}", "value": f"`{_progress_bar}` {_hist_count}/{LEARNING_TARGET_TRADES} ({_progress_pct:.0f}%)\n📐 {_tp_sl}", "inline": False},
+            {"name": "🎯 勝率", "value": f"**{accuracy}%** ({total_trades}件決済済み)", "inline": True},
+            {"name": "📅 本日の取引", "value": f"BUY: {_today_buys}件 / SELL: {_today_sells}件", "inline": True},
+            {"name": "🔍 Alpha機会", "value": f"{opp_count}件", "inline": True},
+            {"name": "💼 ポートフォリオ", "value": DiscordReporter._truncate(_pf_str, 500), "inline": False},
+            {"name": "📣 Moltbook反響", "value": DiscordReporter._truncate(moltbook_str, 400), "inline": False},
+            {"name": "🤝 エンゲージメント", "value": DiscordReporter._truncate(engage_str, 400), "inline": False},
+            {"name": "⏱️ バッチ実行", "value": f"{elapsed}秒 | {datetime.now(JST).strftime('%Y-%m-%d %H:%M JST')}", "inline": False},
+        ]
         _nightly_url = DiscordReporter.NIGHTLY_WEBHOOK or DiscordReporter.LOG_WEBHOOK
         _payload = {
             "embeds": [{
-                "title": "🌙 Nightly Batch Report",
-                "description": summary,
-                "color": 0x9b59b6
+                "title": f"🌙 Nightly Batch Report — {today}",
+                "color": 0x9b59b6,
+                "fields": fields,
+                "footer": {"text": "Neo Trinity Council v3 | Paper Trading"},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }]
         }
-        _req.post(_nightly_url, json=_payload, timeout=10)
+        DiscordReporter._post(_nightly_url, _payload)
         logger.info(f"[Nightly] === バッチ完了 ({elapsed}秒) ===")
     except Exception as e:
         logger.error(f"[Nightly] サマリー送信失敗: {e}")
