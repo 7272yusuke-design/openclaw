@@ -183,6 +183,10 @@ def start_hybrid_radar():
     last_nightly_date = None  # 最後にNightly Batchを実行した日付
     last_council_time = 0     # 最後に評議会を開いた時刻
     cycle_count = 0
+    consecutive_errors = 0
+    last_trade_time = time.time()
+    NO_TRADE_ALERT_HOURS = 24
+    no_trade_alerted = False
 
     try:
         while True:
@@ -336,6 +340,10 @@ def start_hybrid_radar():
                     
                     verdict = result.get("verdict", "UNKNOWN")
                     logger.info(f"✅ Council完了: {verdict} | 冷却開始（{COUNCIL_COOLDOWN//60}分）")
+                    consecutive_errors = 0
+                    if verdict in ("BUY", "SELL"):
+                        last_trade_time = time.time()
+                        no_trade_alerted = False
                     # 取引後に勝率を即時更新
                     try:
                         evaluate_performance(send_dashboard=False)
@@ -345,12 +353,33 @@ def start_hybrid_radar():
                 except Exception as e:
                     logger.error(f"⚠️ Council Error: {e}", exc_info=True)
                     last_council_time = time.time()  # エラー時も冷却開始（連続エラー防止）
+                    consecutive_errors += 1
                     
                     DiscordReporter.send_log(
                         "❌ Council Error",
                         f"**Symbol:** {trigger_symbol}\n**Error:** {str(e)[:500]}",
                         0xe74c3c
                     )
+                    if consecutive_errors >= 5:
+                        DiscordReporter.send_log(
+                            "🚨 連続エラー警告",
+                            f"Councilが{consecutive_errors}回連続エラー。手動確認が必要です。",
+                            0xff0000
+                        )
+
+            # ============================================================
+            # 3b. 長時間無取引検知
+            # ============================================================
+            hours_since_trade = (time.time() - last_trade_time) / 3600
+            if hours_since_trade > NO_TRADE_ALERT_HOURS and not no_trade_alerted:
+                DiscordReporter.send_log(
+                    "⏰ 無取引アラート",
+                    f"直近の取引から {hours_since_trade:.1f} 時間経過。\n"
+                    f"BUYデッドロック再発や市場データ障害の可能性。",
+                    0xf39c12
+                )
+                no_trade_alerted = True
+                logger.warning(f"[Monitor] 無取引 {hours_since_trade:.1f}h")
 
             # ============================================================
             # 4. ステータス表示
