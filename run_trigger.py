@@ -410,6 +410,7 @@ def start_hybrid_radar():
                     _hb_lines.append("Learn: {}/{}".format(_hb_hist, LEARNING_TARGET_TRADES))
                     _hb_lines.append("Cycle: #{}".format(cycle_count))
                     DiscordReporter.send_log("Heartbeat", chr(10).join(_hb_lines), 0x3498db)
+                    logger.info("[Heartbeat] ✅ 送信完了 (cycle #{})".format(cycle_count))
                 except Exception as _hbe:
                     logger.error("[Heartbeat] error: {}".format(_hbe))
 
