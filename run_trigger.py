@@ -23,13 +23,15 @@ from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_T
 
 # --- TP/SLサイクルチェック（Council非依存・毎30秒） ---
 def check_tp_sl_all_positions():
-    """保有中ポジションの利確/損切を毎サイクルチェック（Council召集不要）"""
+    """保有中ポジションの利確/損切を毎サイクルチェック（Council召集不要）
+    Returns: True if any SELL was executed (triggers cooldown)"""
     from tools.paper_wallet import PaperWallet
     from core.memory_db import NeoMemoryDB
     pw = PaperWallet()
     holdings = pw.state.get("holdings", {})
     if not holdings:
-        return
+        return False
+    sell_executed = False
     memory = NeoMemoryDB()
     for clean_symbol, hdata in list(holdings.items()):
         amount = hdata.get("amount", 0)
@@ -63,8 +65,8 @@ def check_tp_sl_all_positions():
                 tp_label = "Full TP"
                 tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
                 logger.warning(f"[TP/SL] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
-            # 半量利確チェック（学習モードのみ）
-            elif LEARNING_MODE and pw.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
+            # 半量利確チェック（学習モードのみ・partial_tp_done済みはスキップ）
+            elif LEARNING_MODE and not hdata.get("partial_tp_done", False) and pw.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
                 sell_amount_usd = (amount * current_price) * 0.5
                 tp_label = "Partial TP (50%)"
                 tp_reason = f"Partial Take Profit at +{pnl['pnl_pct']:.1f}% (learning mode, target: +{partial_tp_pct}%)"
@@ -74,6 +76,7 @@ def check_tp_sl_all_positions():
                 result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=tp_reason)
                 if result.get("status") == "success":
                     logger.info(f"[TP/SL] ✅ 利確完了: {clean_symbol} ${sell_amount_usd:.2f} ({tp_label})")
+                    sell_executed = True
                     tp_memory = f"【{tp_label}利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} +{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})"
                     memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
                     try:
@@ -91,6 +94,7 @@ def check_tp_sl_all_positions():
                 result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%)")
                 if result.get("status") == "success":
                     logger.info(f"[TP/SL] ✅ 損切完了: {clean_symbol} ${sell_amount_usd:.2f}")
+                    sell_executed = True
                     # Gemini内省
                     _introspection = f"-{sl_pct}%到達。センチメント・クジラ動向の見直しが必要。"
                     try:
@@ -112,6 +116,7 @@ def check_tp_sl_all_positions():
                         logger.error(f"[TP/SL] Discord報告失敗: {_de}")
         except Exception as e:
             logger.error(f"[TP/SL] {clean_symbol} チェックエラー: {e}")
+    return sell_executed
 
 # --- 設定 ---
 CHECK_INTERVAL = 30           # 監視間隔（秒）
@@ -375,7 +380,9 @@ def start_hybrid_radar():
             # 0. TP/SLサイクルチェック（毎30秒・Council非依存）
             # ============================================================
             try:
-                check_tp_sl_all_positions()
+                if check_tp_sl_all_positions():
+                    last_council_time = time.time()
+                    logger.info("[TP/SL] 🧊 SELL発火 → 冷却開始（30分）")
             except Exception as _tpsl_e:
                 logger.error(f"[TP/SL] サイクルチェックエラー: {_tpsl_e}")
 
@@ -448,6 +455,14 @@ def start_hybrid_radar():
             # ============================================================
             # 3. Council召集（トリガー発火時のみ）
             # ============================================================
+            if trigger_type and trigger_symbol:
+                # 最終ガード: COUNCIL_ELIGIBLE_SYMBOLSに含まれない銘柄はブロック
+                _clean_sym = trigger_symbol.split('/')[0].strip()
+                if _clean_sym not in COUNCIL_ELIGIBLE_SYMBOLS:
+                    logger.warning(f"🚫 [GUARD] {trigger_symbol} はCOUNCIL_ELIGIBLE_SYMBOLS外 → Council召集ブロック")
+                    trigger_type = None
+                    trigger_symbol = None
+
             if trigger_type and trigger_symbol:
                 logger.info(f"🏛️ Council召集: [{trigger_type}] {trigger_symbol}")
                 

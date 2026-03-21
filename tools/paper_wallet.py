@@ -102,6 +102,10 @@ class PaperWallet:
             current_holding["amount"] -= token_amount
             if current_holding["amount"] < 1e-6: # Cleanup dust
                 del self.state["holdings"][symbol]
+            else:
+                # 半量売却後フラグ（TP連打防止）
+                if "Take Profit" in reason or "take_profit" in reason.lower():
+                    current_holding["partial_tp_done"] = True
 
         # Log Transaction
         tx = {

@@ -94,8 +94,8 @@ class TrinityCouncil(NeoBaseCrew):
                     sell_amount_usd = holding * current_price
                     tp_label = "Full TP"
                     tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
-                elif LEARNING_MODE and self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
-                    # +10%到達（学習モードのみ）: 半量売却
+                elif LEARNING_MODE and not self.portfolio.state.get("holdings", {}).get(clean_symbol, {}).get("partial_tp_done", False) and self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
+                    # +10%到達（学習モードのみ・半量利確済みはスキップ）: 半量売却
                     print(f"\n[Phase 1-TP] 🎯 半量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}% (学習モード)")
                     sell_amount_usd = (holding * current_price) * 0.5
                     tp_label = "Partial TP (50%)"
