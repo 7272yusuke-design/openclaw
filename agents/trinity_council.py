@@ -379,7 +379,7 @@ class TrinityCouncil(NeoBaseCrew):
         )
         agent_neo = Agent(
             role='最高司令官ネオ',
-            goal='全意見を総合し、明確にBUY/SELL/WAITのいずれか一語で判断を開始せよ',
+            goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUY", "confidence": 75, "key_factor": "理由1語"} で出力し、2行目以降に根拠を述べよ',
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
@@ -395,7 +395,7 @@ class TrinityCouncil(NeoBaseCrew):
                     f'2. 直近の損切内省に「同じパターン」への言及がある\n'
                     f'3. クジラが明確にAccumulating中である\n\n'
                     f'上記に該当しなければ、迷わずBUYと判断せよ。学習のためにはポジションを持つことが不可欠だ。\n'
-                    f'必ず回答の最初に「BUY」「SELL」「WAIT」のいずれかを明記し、その後に根拠を日本語で述べよ。'
+                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守）: ' + r'{"verdict": "BUY", "confidence": 75, "key_factor": "Sharpe高"}' + f' 2行目以降に根拠を日本語で述べよ。confidenceは0-100の確信度、key_factorは判断の最大要因1語。'
                     if LEARNING_MODE else
                     # === 通常モード: 従来のSOUL原則 ===
                     f'【判断の拒否権（SOUL原則）】\n'
@@ -409,7 +409,7 @@ class TrinityCouncil(NeoBaseCrew):
                     f'- センチメントスコアが+0.2以上\n'
                     f'- バックテスト信頼度がMED以上\n'
                     f'- 過去教訓に同銘柄のBUY成功記録がある\n\n'
-                    f'必ず回答の最初に「BUY」「SELL」「WAIT」のいずれかを明記し、その後に根拠を日本語で述べよ。'
+                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守）: ' + r'{"verdict": "BUY", "confidence": 75, "key_factor": "Sharpe高"}' + f' 2行目以降に根拠を日本語で述べよ。confidenceは0-100の確信度、key_factorは判断の最大要因1語。'
                 )
             ),
             llm=self.pro_model
@@ -437,7 +437,7 @@ class TrinityCouncil(NeoBaseCrew):
         t3 = Task(
             description=target_symbol + " への最終投資判断。必ずBUY/SELL/WAITで始めよ。\n" + _fb_instr + (btc_warning if btc_warning else ""),
             agent=agent_neo,
-            expected_output="最終判断と根拠"
+            expected_output="1行目にJSON: {verdict, confidence, key_factor}。2行目以降に根拠。"
         )
 
         crew = Crew(agents=[agent_bull, agent_bear, agent_neo], tasks=[t1, t2, t3], process=Process.sequential)
@@ -463,20 +463,43 @@ class TrinityCouncil(NeoBaseCrew):
 
         # 判定語の抽出: 根拠文より前の最後の判定語を採用
         # （CrewAIが途中経過でBUYを出力し、最終判断がWAITの場合に対応）
+        # v6.4: 構造化JSON優先パース + regexフォールバック
         import re as _re
-        _words = _re.findall(r'\b(BUY|SELL|WAIT)\b', verdict_text.upper())
-        # 「根拠」「理由」より前のワードのみを対象にする
-        _reasoning_pos = min(
-            verdict_text.upper().find('根拠') if '根拠' in verdict_text.upper() else len(verdict_text),
-            verdict_text.upper().find('理由') if '理由' in verdict_text.upper() else len(verdict_text),
-            verdict_text.upper().find('REASON') if 'REASON' in verdict_text.upper() else len(verdict_text),
-        )
-        _pre_reason = verdict_text[:_reasoning_pos].upper()
-        _pre_words = _re.findall(r'\b(BUY|SELL|WAIT)\b', _pre_reason)
-        # 根拠より前の最後の判定語を採用（なければ全体から最後を採用）
-        first_word = _pre_words[-1] if _pre_words else (_words[-1] if _words else "WAIT")
+        import json as _json
+        _structured_confidence = 0
+        _structured_key_factor = ""
+        first_word = None
 
-        print(f"\n[Phase 4] 判定: {first_word} | {verdict_text[:80]}...")
+        # Step 1: JSON行を探してパース（最初の5行以内）
+        for _line in verdict_text.split('\n')[:5]:
+            _line_stripped = _line.strip()
+            if _line_stripped.startswith('{') and 'verdict' in _line_stripped.lower():
+                try:
+                    _parsed = _json.loads(_line_stripped)
+                    _v = str(_parsed.get('verdict', '')).upper().strip()
+                    if _v in ('BUY', 'SELL', 'WAIT'):
+                        first_word = _v
+                        _structured_confidence = int(_parsed.get('confidence', 0))
+                        _structured_key_factor = str(_parsed.get('key_factor', ''))
+                        # verdict_textからJSON行を除去（Discord表示用に根拠テキストのみ残す）
+                        verdict_text = verdict_text.replace(_line_stripped, '', 1).strip()
+                        print(f"\n[Phase 4] JSON判定: {first_word} (confidence={_structured_confidence}, factor={_structured_key_factor})")
+                        break
+                except (_json.JSONDecodeError, ValueError, TypeError):
+                    pass
+
+        # Step 2: JSONパース失敗時 → 従来のregexフォールバック
+        if first_word is None:
+            _words = _re.findall(r'\b(BUY|SELL|WAIT)\b', verdict_text.upper())
+            _reasoning_pos = min(
+                verdict_text.upper().find('根拠') if '根拠' in verdict_text.upper() else len(verdict_text),
+                verdict_text.upper().find('理由') if '理由' in verdict_text.upper() else len(verdict_text),
+                verdict_text.upper().find('REASON') if 'REASON' in verdict_text.upper() else len(verdict_text),
+            )
+            _pre_reason = verdict_text[:_reasoning_pos].upper()
+            _pre_words = _re.findall(r'\b(BUY|SELL|WAIT)\b', _pre_reason)
+            first_word = _pre_words[-1] if _pre_words else (_words[-1] if _words else "WAIT")
+            print(f"\n[Phase 4] regex判定(フォールバック): {first_word} | {verdict_text[:80]}...")
 
         # ============================================================
         # Phase 3: 取引実行
@@ -643,7 +666,7 @@ class TrinityCouncil(NeoBaseCrew):
         discussion_data = {
             "bull": str(t1.output)[:1024] if t1.output else "N/A",
             "bear": str(t2.output)[:1024] if t2.output else "N/A",
-            "verdict": f"**{trade_action}**\n\n{verdict_text[:800]}",
+            "verdict": f"**{trade_action}**" + (f" (確信度: {_structured_confidence}%, 要因: {_structured_key_factor})" if _structured_confidence > 0 else "") + f"\n\n{verdict_text[:800]}",
             "trade": trade_text,
             "current_price": current_price,
             "btc_context": _btc_short,
