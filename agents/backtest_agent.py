@@ -90,7 +90,7 @@ class BacktestAgent:
 
             # 5. Council向けレポート生成
             lines = [
-                f"【4戦略バックテスト結果】{target_symbol}",
+                f"【8戦略バックテスト結果】{target_symbol}",
                 f"データ: {len(df)}本 4h足 → {len(feat)}行の特徴量",
                 "",
                 f"🏆 最良戦略: {best['strategy']}",

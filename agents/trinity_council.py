@@ -454,6 +454,12 @@ class TrinityCouncil(NeoBaseCrew):
         else:
             final_verdict = verdict_container[0]
         verdict_text = str(final_verdict)
+        # v6.3: verdict_textから過去記録の生データを除去（Phase 1d recall混入対策）
+        import re as _re_clean
+        verdict_text = _re_clean.sub(
+            r'[A-Z]+/USDT\s*@\s*\$[\d.]+:\s*(BUY|SELL|WAIT)\s*\([^)]*\)\s*',
+            '', verdict_text
+        ).strip()
 
         # 判定語の抽出: 根拠文より前の最後の判定語を採用
         # （CrewAIが途中経過でBUYを出力し、最終判断がWAITの場合に対応）
@@ -632,7 +638,7 @@ class TrinityCouncil(NeoBaseCrew):
             _fng = "N/A"
 
         # バックテストサマリー（コードブロック除去）
-        _bt_summary = f"**信頼度**: {bt_confidence}\n**精度**: {accuracy}% ({total_past_trades}件)\n{backtest_report[:400]}"
+        _bt_summary = f"**信頼度**: {bt_confidence}\n**精度**: {accuracy}% ({total_past_trades}件)\n{backtest_report[:800]}"
 
         discussion_data = {
             "bull": str(t1.output)[:1024] if t1.output else "N/A",
