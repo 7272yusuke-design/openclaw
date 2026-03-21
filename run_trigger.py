@@ -255,8 +255,19 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] Tearsheet生成失敗: {e}")
 
-    # 5. Discord日次サマリー
-    logger.info("[Nightly] Step 5/5: Discord日次サマリー送信")
+    # 5. WAIT品質検証
+    logger.info("[Nightly] Step 5/7: WAIT品質検証")
+    wait_quality_text = ""
+    try:
+        from research.wait_quality_analysis import run_nightly_summary
+        wq = run_nightly_summary()
+        wait_quality_text = "\n\n" + wq.get('discord_text', '')
+        logger.info(f"[Nightly] WAIT品質: {wq.get('status')} (正解率={wq.get('overall_correct_rate', 0):.1f}%)")
+    except Exception as e:
+        logger.error(f"[Nightly] WAIT品質検証失敗: {e}")
+
+    # 6. Discord日次サマリー
+    logger.info("[Nightly] Step 6/7: Discord日次サマリー送信")
     try:
         from core.blackboard import NeoBlackboard
         board = NeoBlackboard.load()
@@ -291,6 +302,7 @@ def _run_nightly_batch():
             f"✅ Sweep / Evaluator / Dashboard 完了"
             f"{moltbook_report}"
             f"{engage_report}"
+            f"{wait_quality_text}"
         )
         # Nightly専用チャンネルに送信
         import requests as _req

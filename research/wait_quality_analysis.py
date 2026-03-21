@@ -233,3 +233,125 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+def run_nightly_summary():
+    """
+    Nightly Batch用の軽量版。サマリーdictを返す。
+    Discord報告用のテキストも生成する。
+    """
+    import sqlite3
+    from core.memory_db import NeoMemoryDB
+
+    TARGET_SYMBOLS = ['VIRTUAL', 'AIXBT']
+
+    db = NeoMemoryDB()
+    col = db.collection
+    results = col.get(where={"category": "wait_record"}, limit=500)
+
+    waits = []
+    for i in range(len(results['ids'])):
+        meta = results['metadatas'][i]
+        if meta.get('symbol') in TARGET_SYMBOLS:
+            waits.append({
+                'symbol': meta['symbol'],
+                'price': float(meta['price']),
+                'timestamp': meta['timestamp'],
+                'sentiment': meta.get('sentiment', '?'),
+            })
+
+    if len(waits) < 5:
+        return {
+            'total': len(waits),
+            'status': 'insufficient_data',
+            'discord_text': f"📊 WAIT品質: データ不足（{len(waits)}件・5件未満）"
+        }
+
+    conn = sqlite3.connect('vault/market_db/prices.sqlite')
+
+    symbol_stats = {}
+    total_correct = 0
+    total_missed = 0
+    total_valid = 0
+
+    for sym in TARGET_SYMBOLS:
+        sym_waits = [w for w in waits if w['symbol'] == sym]
+        if not sym_waits:
+            continue
+
+        tp_count = 0
+        sl_count = 0
+        hold_count = 0
+        valid_count = 0
+        correct_count = 0
+
+        for w in sym_waits:
+            start_ms = iso_to_epoch_ms(w['timestamp'])
+            prices = get_prices_after(conn, w['symbol'], start_ms, 96)
+
+            if len(prices) < 10:
+                continue
+
+            sim = simulate_trade(prices, w['price'])
+            if not sim:
+                continue
+
+            valid_count += 1
+            if sim['outcome'] == 'TP':
+                tp_count += 1
+            elif sim['outcome'] == 'SL':
+                sl_count += 1
+                correct_count += 1
+            else:
+                hold_count += 1
+                if sim['final_pct'] < 0:
+                    correct_count += 1
+
+        if valid_count > 0:
+            correct = correct_count  # SLヒット or 最終マイナス = WAITが正しかった
+            missed = tp_count        # TPヒット = チャンス見逃し
+            correct_rate = correct / valid_count * 100
+
+            symbol_stats[sym] = {
+                'total': len(sym_waits),
+                'valid': valid_count,
+                'tp': tp_count,
+                'sl': sl_count,
+                'hold': hold_count,
+                'correct_rate': correct_rate,
+            }
+            total_correct += correct
+            total_missed += missed
+            total_valid += valid_count
+
+    conn.close()
+
+    # 全体正解率
+    overall_correct_rate = (total_correct / total_valid * 100) if total_valid > 0 else 0.0
+
+    # Discord報告テキスト生成
+    lines = [f"📊 **WAIT品質検証** ({len(waits)}件分析)"]
+    lines.append(f"全体WAIT正解率: **{overall_correct_rate:.1f}%** (SL={total_correct} / TP見逃し={total_missed})")
+
+    for sym, st in symbol_stats.items():
+        emoji = "✅" if st['correct_rate'] >= 50 else "⚠️"
+        lines.append(f"{emoji} {sym}: 正解率{st['correct_rate']:.0f}% (TP={st['tp']} SL={st['sl']} HOLD={st['hold']})")
+
+    # 自動調整の示唆（50件以上で表示）
+    if total_valid >= 50:
+        for sym, st in symbol_stats.items():
+            if st['correct_rate'] < 40 and st['valid'] >= 10:
+                lines.append(f"💡 {sym}: WAIT条件が厳しすぎる可能性（正解率{st['correct_rate']:.0f}%）")
+
+    discord_text = "\n".join(lines)
+
+    return {
+        'total': len(waits),
+        'valid': total_valid,
+        'overall_correct_rate': overall_correct_rate,
+        'total_correct': total_correct,
+        'total_missed': total_missed,
+        'symbol_stats': symbol_stats,
+        'status': 'ok',
+        'discord_text': discord_text,
+    }
