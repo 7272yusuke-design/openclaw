@@ -266,8 +266,22 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] WAIT品質検証失敗: {e}")
 
-    # 6. Discord日次サマリー
-    logger.info("[Nightly] Step 6/7: Discord日次サマリー送信")
+    # 6. H.2取引分析進捗
+    logger.info("[Nightly] Step 6/7: H.2取引分析進捗")
+    h2_progress_text = ""
+    try:
+        from research.h2_trade_analysis import get_progress_report
+        h2 = get_progress_report()
+        h2_progress_text = "\n\n" + h2.get('discord_text', '')
+        if h2.get('ready'):
+            logger.info("[Nightly] H.2分析: データ十分！次回セッションで完全分析を実行可能")
+        else:
+            logger.info(f"[Nightly] H.2分析: 完結ペア{h2.get('completed',0)}/{h2.get('remaining',20)+h2.get('completed',0)}件")
+    except Exception as e:
+        logger.error(f"[Nightly] H.2進捗取得失敗: {e}")
+
+    # 7. Discord日次サマリー
+    logger.info("[Nightly] Step 7/7: Discord日次サマリー送信")
     try:
         from core.blackboard import NeoBlackboard
         board = NeoBlackboard.load()
@@ -303,6 +317,7 @@ def _run_nightly_batch():
             f"{moltbook_report}"
             f"{engage_report}"
             f"{wait_quality_text}"
+            f"{h2_progress_text}"
         )
         # Nightly専用チャンネルに送信
         import requests as _req
