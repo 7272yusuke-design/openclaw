@@ -24,15 +24,41 @@ from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_T
 # --- TP/SLサイクルチェック（Council非依存・毎30秒） ---
 def check_tp_sl_all_positions():
     """保有中ポジションの利確/損切を毎サイクルチェック（Council召集不要）
+    売却4層: SL固定(-3%) → TP固定(+7%) → テクニカル出口(RSI>65+含み益) → 時間制約(96h)
     Returns: True if any SELL was executed (triggers cooldown)"""
     from tools.paper_wallet import PaperWallet
     from core.memory_db import NeoMemoryDB
+    import sqlite3
+    from datetime import datetime, timezone
     pw = PaperWallet()
     holdings = pw.state.get("holdings", {})
     if not holdings:
         return False
     sell_executed = False
     memory = NeoMemoryDB()
+
+    # RSI計算用ヘルパー（SQLiteの5分足から14期間RSI）
+    def _calc_rsi(symbol, period=14):
+        try:
+            conn = sqlite3.connect("vault/market_db/prices.sqlite")
+            cur = conn.cursor()
+            cur.execute("SELECT close FROM prices WHERE symbol=? ORDER BY timestamp DESC LIMIT ?", (symbol, period + 1))
+            rows = cur.fetchall()
+            conn.close()
+            if len(rows) < period + 1:
+                return None
+            closes = [r[0] for r in reversed(rows)]
+            gains = [max(closes[i] - closes[i-1], 0) for i in range(1, len(closes))]
+            losses_list = [max(closes[i-1] - closes[i], 0) for i in range(1, len(closes))]
+            avg_gain = sum(gains) / period
+            avg_loss = sum(losses_list) / period
+            if avg_loss == 0:
+                return 100.0
+            rs = avg_gain / avg_loss
+            return 100 - (100 / (1 + rs))
+        except Exception:
+            return None
+
     for clean_symbol, hdata in list(holdings.items()):
         amount = hdata.get("amount", 0)
         if amount <= 0:
@@ -52,68 +78,94 @@ def check_tp_sl_all_positions():
                 continue
 
             pnl = pw.get_unrealized_pnl(clean_symbol, current_price)
-            partial_tp_pct = 3.0 if LEARNING_MODE else 20.0
+            sl_pct = 3.0 if LEARNING_MODE else 10.0
             full_tp_pct = 7.0 if LEARNING_MODE else 20.0
 
-            sell_amount_usd = 0
-            tp_label = ""
-            tp_reason = ""
+            sell_reason = ""
+            sell_label = ""
 
-            # 全量利確チェック
-            if pw.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
-                sell_amount_usd = amount * current_price
-                tp_label = "Full TP"
-                tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
-                logger.warning(f"[TP/SL] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
-            # 半量利確チェック（学習モードのみ・partial_tp_done済みはスキップ）
-            elif LEARNING_MODE and not hdata.get("partial_tp_done", False) and pw.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
-                sell_amount_usd = (amount * current_price) * 0.5
-                tp_label = "Partial TP (50%)"
-                tp_reason = f"Partial Take Profit at +{pnl['pnl_pct']:.1f}% (learning mode, target: +{partial_tp_pct}%)"
-                logger.warning(f"[TP/SL] 🎯 半量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
-
-            if sell_amount_usd > 0:
-                result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=tp_reason)
-                if result.get("status") == "success":
-                    logger.info(f"[TP/SL] ✅ 利確完了: {clean_symbol} ${sell_amount_usd:.2f} ({tp_label})")
-                    sell_executed = True
-                    tp_memory = f"【{tp_label}利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} +{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})"
-                    memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
-                    try:
-                        _bal = pw.get_balance().get('USDC', 0)
-                        DiscordReporter.send_trade_alert(symbol=f"{clean_symbol} ({tp_label} +{pnl['pnl_pct']:.1f}%)", action="SELL", amount_usd=sell_amount_usd, price=current_price, status=f"success | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}", balance_after=_bal)
-                    except Exception as _de:
-                        logger.error(f"[TP/SL] Discord報告失敗: {_de}")
-                continue  # 利確したらこの銘柄は損切チェック不要
-
-            # 損切チェック
-            sl_pct = 3.0 if LEARNING_MODE else 10.0
+            # === 第1層: 固定SL ===
             if pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
+                sell_reason = f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%)"
+                sell_label = "SL"
                 logger.warning(f"[TP/SL] 🛑 損切トリガー: {clean_symbol} {pnl['pnl_pct']:.1f}%")
-                sell_amount_usd = amount * current_price
-                result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%)")
-                if result.get("status") == "success":
-                    logger.info(f"[TP/SL] ✅ 損切完了: {clean_symbol} ${sell_amount_usd:.2f}")
-                    sell_executed = True
-                    # Gemini内省
-                    _introspection = f"-{sl_pct}%到達。センチメント・クジラ動向の見直しが必要。"
+
+            # === 第2層: 固定TP ===
+            elif pw.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
+                sell_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
+                sell_label = "Full TP"
+                logger.warning(f"[TP/SL] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+
+            # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 0.5%） ===
+            elif pnl['pnl_pct'] > 0.5:
+                rsi_val = _calc_rsi(clean_symbol)
+                if rsi_val is not None and rsi_val > 65:
+                    sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit"
+                    sell_label = "RSI Exit"
+                    logger.warning(f"[TP/SL] 📊 テクニカル出口: {clean_symbol} RSI={rsi_val:.1f} +{pnl['pnl_pct']:.1f}%")
+
+            # === 第4層: 時間制約（96時間=4日超過） ===
+            if not sell_reason:
+                entry_time_str = hdata.get("entry_time", "")
+                if entry_time_str:
                     try:
-                        import google.generativeai as _genai
-                        import os as _os
-                        _genai.configure(api_key=_os.environ.get("GEMINI_API_KEY",""))
-                        _model = _genai.GenerativeModel("gemini-2.0-flash")
-                        _resp = _model.generate_content(f"あなたは自律取引AIエージェントNeoです。{clean_symbol}をエントリー${pnl['avg_price']:.4f}→損切${current_price:.4f}({pnl['pnl_pct']:.1f}%)で損切しました。なぜ負けたか、次回どう判断すべきか、合計100字以内で内省してください。")
-                        _introspection = _resp.text.strip()
-                    except Exception as _ie:
-                        logger.error(f"[TP/SL] 内省生成失敗: {_ie}")
-                    sl_memory = f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} {pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})\n内省: {_introspection}"
-                    logger.info(f"[TP/SL] 🧠 損切内省: {_introspection}")
-                    memory.store(sl_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "loss", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
+                        if entry_time_str.endswith('+00:00') or entry_time_str.endswith('Z'):
+                            entry_time = datetime.fromisoformat(entry_time_str.replace('Z', '+00:00'))
+                        else:
+                            entry_time = datetime.fromisoformat(entry_time_str).replace(tzinfo=timezone.utc)
+                        hours_held = (datetime.now(timezone.utc) - entry_time).total_seconds() / 3600
+                        if hours_held > 96:
+                            sell_reason = f"Time Exit after {hours_held:.0f}h (limit: 96h) with {pnl['pnl_pct']:+.1f}%"
+                            sell_label = "Time Exit"
+                            logger.warning(f"[TP/SL] ⏰ 時間制約: {clean_symbol} {hours_held:.0f}h保有 {pnl['pnl_pct']:+.1f}%")
+                    except Exception as _te:
+                        logger.error(f"[TP/SL] entry_time解析エラー: {_te}")
+
+            # === SELL実行 ===
+            if sell_reason:
+                sell_amount_usd = amount * current_price
+                result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=sell_reason)
+                if result.get("status") == "success":
+                    sell_executed = True
+                    is_win = pnl['pnl_pct'] > 0
+                    result_tag = "win" if is_win else "loss"
+                    logger.info(f"[TP/SL] ✅ {sell_label}完了: {clean_symbol} ${sell_amount_usd:.2f} ({pnl['pnl_pct']:+.1f}%)")
+
+                    # 損切時はGemini内省
+                    introspection = ""
+                    if not is_win:
+                        introspection = f"-{sl_pct}%到達。センチメント・クジラ動向の見直しが必要。"
+                        try:
+                            import google.generativeai as _genai
+                            import os as _os
+                            _genai.configure(api_key=_os.environ.get("GEMINI_API_KEY",""))
+                            _model = _genai.GenerativeModel("gemini-2.0-flash")
+                            _resp = _model.generate_content(f"あなたは自律取引AIエージェントNeoです。{clean_symbol}をエントリー${pnl['avg_price']:.4f}→決済${current_price:.4f}({pnl['pnl_pct']:.1f}%)で{sell_label}しました。なぜ負けたか、次回どう判断すべきか、合計100字以内で内省してください。")
+                            introspection = _resp.text.strip()
+                        except Exception as _ie:
+                            logger.error(f"[TP/SL] 内省生成失敗: {_ie}")
+
+                    # メモリ保存
+                    mem_text = f"【{sell_label}】{clean_symbol} エントリー${pnl['avg_price']:.4f}→決済${current_price:.4f} {pnl['pnl_pct']:+.1f}% (${pnl['pnl_usd']:+.2f})"
+                    if introspection:
+                        mem_text += "\n内省: " + introspection
+                        logger.info(f"[TP/SL] 🧠 内省: {introspection}")
+                    memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "tier": "2"})
+
+                    # Discord報告
                     try:
                         _bal = pw.get_balance().get('USDC', 0)
-                        DiscordReporter.send_trade_alert(symbol=f"{clean_symbol} (Stop Loss {pnl['pnl_pct']:.1f}%)", action="SELL", amount_usd=sell_amount_usd, price=current_price, status=f"stop_loss | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}", balance_after=_bal)
+                        DiscordReporter.send_trade_alert(
+                            symbol=f"{clean_symbol} ({sell_label} {pnl['pnl_pct']:+.1f}%)",
+                            action="SELL",
+                            amount_usd=sell_amount_usd,
+                            price=current_price,
+                            status=f"{sell_label} | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}",
+                            balance_after=_bal
+                        )
                     except Exception as _de:
                         logger.error(f"[TP/SL] Discord報告失敗: {_de}")
+
         except Exception as e:
             logger.error(f"[TP/SL] {clean_symbol} チェックエラー: {e}")
     return sell_executed

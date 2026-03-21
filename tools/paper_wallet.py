@@ -66,6 +66,13 @@ class PaperWallet:
         timestamp = datetime.now(timezone.utc).isoformat()
         token_amount = amount_usd / price
 
+        # DEXスリッページ+手数料の模擬差引（0.5%）
+        TRADE_FEE_PCT = 0.005
+        if action.upper() == "BUY":
+            token_amount *= (1 - TRADE_FEE_PCT)  # 手数料分トークン受取量を減少
+        elif action.upper() == "SELL":
+            amount_usd *= (1 - TRADE_FEE_PCT)  # 手数料分USD受取額を減少
+
         if action.upper() == "BUY":
             if self.state["usd_balance"] < amount_usd:
                 return {"status": "failed", "reason": "Insufficient USD funds"}

@@ -132,7 +132,7 @@ class DiscordReporter:
         }
         
         payload = {"embeds": [embed]}
-        return cls._post(cls.LOG_WEBHOOK, payload)
+        return cls._post(cls.REPORT_WEBHOOK, payload)
 
     @classmethod
     def send_log(cls, title, message, color=0x3498db):

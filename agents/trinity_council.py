@@ -83,130 +83,17 @@ class TrinityCouncil(NeoBaseCrew):
             if holding > 0:
                 pnl = self.portfolio.get_unrealized_pnl(clean_symbol, current_price)
                 print(f"  📈 含み損益: ${pnl['pnl_usd']:+.2f} ({pnl['pnl_pct']:+.2f}%)")
-                # J.3: 段階的利確（学習モード中は+10%で半量・+20%で全量）
+                # v6.3: TP/SL実行はrun_trigger.pyのcheck_tp_sl_all_positions()に委譲
+                # Council内では状態表示のみ（二重実行防止）
                 from core.config import LEARNING_MODE
-                partial_tp_pct = 3.0 if LEARNING_MODE else 20.0
                 full_tp_pct = 7.0 if LEARNING_MODE else 20.0
-
-                if self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
-                    # +20%到達: 全量売却
-                    print(f"\n[Phase 1-TP] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
-                    sell_amount_usd = holding * current_price
-                    tp_label = "Full TP"
-                    tp_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
-                elif LEARNING_MODE and not self.portfolio.state.get("holdings", {}).get(clean_symbol, {}).get("partial_tp_done", False) and self.portfolio.should_take_profit(clean_symbol, current_price, target_pct=partial_tp_pct):
-                    # +10%到達（学習モードのみ・半量利確済みはスキップ）: 半量売却
-                    print(f"\n[Phase 1-TP] 🎯 半量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}% (学習モード)")
-                    sell_amount_usd = (holding * current_price) * 0.5
-                    tp_label = "Partial TP (50%)"
-                    tp_reason = f"Partial Take Profit at +{pnl['pnl_pct']:.1f}% (learning mode, target: +{partial_tp_pct}%)"
+                sl_pct = 3.0 if LEARNING_MODE else 10.0
+                if pnl['pnl_pct'] >= full_tp_pct:
+                    print(f"  ⚠️ TP圏内（+{pnl['pnl_pct']:.1f}%） → 次サイクルでSELL予定")
+                elif pnl['pnl_pct'] <= -sl_pct:
+                    print(f"  ⚠️ SL圏内（{pnl['pnl_pct']:.1f}%） → 次サイクルでSELL予定")
                 else:
-                    sell_amount_usd = 0
-                    tp_label = ""
-                    tp_reason = ""
-
-                if sell_amount_usd > 0:
-                    tp_result = self.portfolio.execute_trade(
-                        symbol=clean_symbol,
-                        action="SELL",
-                        amount_usd=sell_amount_usd,
-                        price=current_price,
-                        reason=tp_reason
-                    )
-                    if tp_result.get("status") == "success":
-                        print(f"  ✅ 利確完了: ${sell_amount_usd:.2f} USDC回収 ({tp_label})")
-                        tp_memory = (
-                            f"【{tp_label}利確成功】{clean_symbol} エントリー${pnl['avg_price']:.4f}→利確${current_price:.4f} "
-                            f"+{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f}) "
-                            f"教訓: {tp_label}で利確実行"
-                        )
-                        self.memory.store(tp_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "win", "pnl_pct": str(pnl['pnl_pct']), "tp_type": tp_label, "tier": "2"})
-                        # Discord報告
-                        try:
-                            _bal = self.portfolio.get_balance().get('USDC', 0)
-                            DiscordReporter.send_trade_alert(
-                                symbol=f"{clean_symbol} ({tp_label} +{pnl['pnl_pct']:.1f}%)",
-                                action="SELL",
-                                amount_usd=sell_amount_usd,
-                                price=current_price,
-                                status=f"success | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}",
-                                balance_after=_bal
-                            )
-                        except Exception as _de:
-                            print(f"  ⚠️ Discord報告失敗: {_de}")
-                        if tp_label.startswith("Full"):
-                            return {"verdict": "SELL", "verdict_text": f"Full Take Profit: +{pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": tp_result}
-                        else:
-                            # 半量利確後はCouncilを継続（残りポジションの判断へ）
-                            print(f"  📊 半量利確完了 → 残りポジションはCouncilで判断継続")
-                elif self.portfolio.should_stop_loss(clean_symbol, current_price, stop_pct=3.0):
-                    print(f"\n[Phase 1-SL] 🛑 損切トリガー発動: {clean_symbol} {pnl['pnl_pct']:.1f}%")
-                    sell_amount_usd = holding * current_price
-                    sl_result = self.portfolio.execute_trade(
-                        symbol=clean_symbol,
-                        action="SELL",
-                        amount_usd=sell_amount_usd,
-                        price=current_price,
-                        reason=f"Stop Loss triggered at {pnl['pnl_pct']:.1f}% (limit: -3%)"
-                    )
-                    if sl_result.get("status") == "success":
-                        print(f"  ✅ 損切完了: ${sell_amount_usd:.2f} USDC回収")
-                        # Discord報告
-                        try:
-                            _bal = self.portfolio.get_balance().get('USDC', 0)
-                            DiscordReporter.send_trade_alert(
-                                symbol=f"{clean_symbol} (Stop Loss {pnl['pnl_pct']:.1f}%)",
-                                action="SELL",
-                                amount_usd=sell_amount_usd,
-                                price=current_price,
-                                status=f"stop_loss | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}",
-                                balance_after=_bal
-                            )
-                        except Exception as _de:
-                            print(f"  ⚠️ Discord報告失敗: {_de}")
-                        # 損切をtier=2記憶として保存（自己改善用・内省付き）
-                        try:
-                            _board = NeoBlackboard.load()
-                            _bb = _board.get("active_opportunities", {}).get(f"{clean_symbol}/USDT", {})
-                            _sentiment = _bb.get("sentiment", "不明")
-                            _sharpe = _bb.get("sharpe", "不明")
-                            _news = _bb.get("news_count", "不明")
-                            _whale = _bb.get("whale_signal", "不明")
-                            _bt = _bb.get("bt_confidence", "不明")
-                            import google.generativeai as _genai
-                            import os as _os
-                            _genai.configure(api_key=_os.environ.get("GEMINI_API_KEY",""))
-                            _model = _genai.GenerativeModel("gemini-2.0-flash")
-                            _introspect_prompt = (
-                                f"あなたは自律取引AIエージェントNeoです。\n"
-                                f"以下の状況で損切が発動しました。なぜ負けたのかを1-2文で内省してください。\n\n"
-                                f"銘柄: {clean_symbol}\n"
-                                f"エントリー価格: ${pnl['avg_price']:.4f}\n"
-                                f"損切価格: ${current_price:.4f}\n"
-                                f"損益: {pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})\n"
-                                f"センチメント: {_sentiment}\n"
-                                f"Sharpe: {_sharpe}\n"
-                                f"ニュース数: {_news}\n"
-                                f"クジラ動向: {_whale}\n"
-                                f"バックテスト信頼度: {_bt}\n\n"
-                                f"ルール:\n"
-                                f"- 「なぜ負けたか」「どのシグナルを見誤ったか」を具体的に\n"
-                                f"- 次回同じ状況でどう判断すべきかを1文で\n"
-                                f"- 合計100字以内"
-                            )
-                            _resp = _model.generate_content(_introspect_prompt)
-                            _introspection = _resp.text.strip()
-                        except Exception as _ie:
-                            _introspection = f"-3%到達。センチメント・クジラ動向の見直しが必要。"
-                            print(f"  ⚠️ 内省生成失敗: {_ie}")
-                        sl_memory = (
-                            f"【損切実行】{clean_symbol} エントリー${pnl['avg_price']:.4f}→損切${current_price:.4f} "
-                            f"{pnl['pnl_pct']:.1f}% (${pnl['pnl_usd']:+.2f})\n"
-                            f"内省: {_introspection}"
-                        )
-                        print(f"  🧠 損切内省: {_introspection}")
-                        self.memory.store(sl_memory, metadata={"symbol": clean_symbol, "category": "trade_result", "result": "loss", "pnl_pct": str(pnl['pnl_pct']), "tier": "2"})
-                        return {"verdict": "SELL", "verdict_text": f"Stop Loss: {pnl['pnl_pct']:.1f}%", "trade_action": "SELL", "trade_result": sl_result}
+                    _dummy = None  # TP/SLは30秒サイクルで自動チェック
 
         # 1c. スカウト偵察
         print(f"\n[Phase 1] スカウト部隊、{target_symbol} の戦域へ急行せよ。")
