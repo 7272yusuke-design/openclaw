@@ -58,6 +58,33 @@ def _parse_log(log_path):
     return buys, sells
 
 
+def _parse_wallet_history():
+    """PaperWalletのhistoryから直接BUY/SELLエントリを取得（最も正確なソース）"""
+    import json
+    wallet_path = BASE_DIR / "data" / "paper_wallet.json"
+    buys = defaultdict(list)
+    sells = defaultdict(list)
+    
+    try:
+        with open(wallet_path) as f:
+            data = json.load(f)
+        for h in data.get("history", []):
+            action = h.get("action", "").upper()
+            symbol = h.get("symbol", "").split("/")[0].strip().upper()
+            price = float(h.get("price", 0))
+            amount_usd = float(h.get("amount_usd", 0))
+            timestamp = h.get("timestamp", "")
+            
+            if action == "BUY" and amount_usd > 0:
+                buys[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd})
+            elif action == "SELL" and amount_usd > 0:
+                sells[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd})
+    except Exception as e:
+        print(f"⚠️ Wallet history parse error: {e}")
+    
+    return buys, sells
+
+
 def _calc_closed_trades(buys, sells):
     """
     決済済み取引のPnLを計算（FIFOマッチング）
@@ -104,11 +131,24 @@ def evaluate_performance(send_dashboard: bool = False):
         print("⚠️ Log file not found.")
         return
 
+    # PaperWallet historyを優先（最も正確なソース）
     try:
-        buys, sells = _parse_log(log_path)
-    except Exception as e:
-        print(f"⚠️ Log parse error: {e}")
-        return
+        buys, sells = _parse_wallet_history()
+        source = "PaperWallet"
+    except Exception:
+        buys, sells = {}, {}
+        source = "none"
+    
+    # フォールバック: wallet historyが空ならpaper_trade.logを使用
+    if not buys and not sells:
+        try:
+            buys, sells = _parse_log(log_path)
+            source = "paper_trade.log"
+        except Exception as e:
+            print(f"⚠️ Log parse error: {e}")
+            return
+    
+    print(f"  📂 データソース: {source}")
 
     # 決済済み取引の勝率
     closed, open_buys = _calc_closed_trades(buys, sells)

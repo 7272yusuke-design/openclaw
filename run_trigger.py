@@ -152,9 +152,26 @@ def check_tp_sl_all_positions():
                         logger.info(f"[TP/SL] 🧠 内省: {introspection}")
                     memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "tier": "2"})
 
+                    # paper_trade.logに記録（Evaluatorが参照）
+                    try:
+                        from datetime import datetime, timezone
+                        _now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                        _bal = pw.get_balance().get('USDC', 0)
+                        _acc = 0.0
+                        try:
+                            _bb = NeoBlackboard.read()
+                            _ps = _bb.get("performance_summary", {})
+                            _acc = _ps.get("accuracy_score", 0.0)
+                        except Exception:
+                            pass
+                        _log_line = f"[{_now}] {clean_symbol}/USDT: ${current_price:.6f} | Action: SELL | Amount: ${sell_amount_usd:.2f} | Status: {sell_label} | Accuracy: {_acc}% | BT_Confidence: LOW\n"
+                        with open("/docker/openclaw-taan/data/.openclaw/workspace/paper_trade.log", "a") as _lf:
+                            _lf.write(_log_line)
+                        logger.info(f"[TP/SL] 📝 paper_trade.log記録: {clean_symbol} SELL ${sell_amount_usd:.2f}")
+                    except Exception as _le:
+                        logger.error(f"[TP/SL] paper_trade.log記録失敗: {_le}")
                     # Discord報告
                     try:
-                        _bal = pw.get_balance().get('USDC', 0)
                         DiscordReporter.send_trade_alert(
                             symbol=f"{clean_symbol} ({sell_label} {pnl['pnl_pct']:+.1f}%)",
                             action="SELL",
