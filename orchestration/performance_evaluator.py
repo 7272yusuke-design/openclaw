@@ -59,7 +59,13 @@ def _parse_log(log_path):
 
 
 def _parse_wallet_history():
-    """PaperWalletのhistoryから直接BUY/SELLエントリを取得（最も正確なソース）"""
+    """PaperWalletのhistoryから直接BUY/SELLエントリを取得（最も正確なソース）
+    
+    ウォレットリセット後のゴーストBUY対策:
+    現在のholdingsに存在しないシンボルで、BUY数>SELL数の場合、
+    FIFOで決済されない余剰BUYはリセットにより無効化されたものとみなす。
+    → SELLでカバーされる分のBUYのみを残す。
+    """
     import json
     wallet_path = BASE_DIR / "data" / "paper_wallet.json"
     buys = defaultdict(list)
@@ -68,6 +74,14 @@ def _parse_wallet_history():
     try:
         with open(wallet_path) as f:
             data = json.load(f)
+        
+        # 現在のholdingsを取得（amount>0のシンボルのみ）
+        holdings = {}
+        for sym, info in data.get("holdings", {}).items():
+            amt = info.get("amount", 0) if isinstance(info, dict) else 0
+            if amt > 0:
+                holdings[sym.upper()] = amt
+        
         for h in data.get("history", []):
             action = h.get("action", "").upper()
             symbol = h.get("symbol", "").split("/")[0].strip().upper()
@@ -79,6 +93,30 @@ def _parse_wallet_history():
                 buys[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd})
             elif action == "SELL" and amount_usd > 0:
                 sells[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd})
+        
+        # ゴーストBUY除外: holdingsにないシンボルはSELL分だけBUYを残す
+        for symbol in list(buys.keys()):
+            if symbol not in holdings:
+                sell_total_usd = sum(s["amount_usd"] for s in sells.get(symbol, []))
+                if sell_total_usd == 0:
+                    # SELLもない → 全BUYがリセットで無効化
+                    removed = len(buys[symbol])
+                    del buys[symbol]
+                    print(f"  🧹 {symbol}: BUY {removed}件除外（holdings空・SELL履歴なし）")
+                else:
+                    # SELLがある → SELLでカバーされるBUYのみ残す（FIFO）
+                    trimmed_buys = []
+                    cumulative_usd = 0
+                    for b in buys[symbol]:
+                        cumulative_usd += b["amount_usd"]
+                        trimmed_buys.append(b)
+                        if cumulative_usd >= sell_total_usd:
+                            break
+                    removed = len(buys[symbol]) - len(trimmed_buys)
+                    if removed > 0:
+                        buys[symbol] = trimmed_buys
+                        print(f"  🧹 {symbol}: BUY {removed}件除外（リセットによるゴースト）")
+        
     except Exception as e:
         print(f"⚠️ Wallet history parse error: {e}")
     
