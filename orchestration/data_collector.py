@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0, "/docker/openclaw-taan/data/.openclaw/workspace")
 
 from tools.market_data import MarketData
+import requests
 
 logger = logging.getLogger("neo.collector")
 logger.setLevel(logging.INFO)
@@ -31,6 +32,13 @@ PURGE_INTERVAL = 86400          # 1日ごとにパージ
 
 # 収集対象銘柄（Tier1+2）
 COLLECT_SYMBOLS = ["VIRTUAL", "AIXBT", "LUNA"]
+
+OHLCV_INTERVAL = 3600           # 60分ごとにOHLCVキャンドル取得
+OHLCV_SYMBOLS = {
+    "VIRTUAL": "0x3f0296BF652e19bca772EC3dF08b32732F93014A",
+    "AIXBT":   "0xf1fdc83c3a336bdbdc9fb06e318b08eaddc82ff4",
+}
+GT_INTERVAL = 10  # GeckoTerminal Rate Limit: 10秒間隔
 
 
 def get_db():
@@ -81,12 +89,20 @@ def collect_once(conn):
                         continue
             except Exception:
                 pass  # 初回データ等はフィルターなしで通す
-            # open/high/low/close を現在価格で埋める（ティックデータとして蓄積）
+            # スナップショット価格（5分ティック）— open=high=low=closeだがvolume付き
+            vol_h1 = 0
+            try:
+                vol_raw = data.get("volume", {})
+                if isinstance(vol_raw, dict):
+                    vol_h1 = float(vol_raw.get("h1", 0) or 0)
+                else:
+                    vol_h1 = float(vol_raw or 0)
+            except (TypeError, ValueError):
+                vol_h1 = 0
             conn.execute(
                 "INSERT OR IGNORE INTO prices (symbol, timestamp, open, high, low, close, volume) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (symbol, now_ms, price, price, price, price,
-                 data.get("volume", {}).get("h1", 0))
+                (symbol, now_ms, price, price, price, price, vol_h1)
             )
             inserted += 1
             logger.info(f"  {symbol}: ${price:.6f}")
@@ -106,6 +122,41 @@ def purge_old(conn):
         logger.info(f"Purged {cur.rowcount} old rows (>{PURGE_DAYS}d)")
 
 
+def collect_ohlcv_candles(conn):
+    """GeckoTerminalから直近の4h足OHLCVキャンドルを取得してSQLiteに蓄積"""
+    total_inserted = 0
+    for symbol, pair_addr in OHLCV_SYMBOLS.items():
+        try:
+            url = f"https://api.geckoterminal.com/api/v2/networks/base/pools/{pair_addr}/ohlcv/hour"
+            resp = requests.get(url,
+                params={"aggregate": "4", "limit": 10},
+                headers={"Accept": "application/json"},
+                timeout=15)
+            resp.raise_for_status()
+            ohlcv_list = resp.json().get('data', {}).get('attributes', {}).get('ohlcv_list', [])
+            inserted = 0
+            for candle in ohlcv_list:
+                ts_s = candle[0]
+                o, h, l, c, v = float(candle[1]), float(candle[2]), float(candle[3]), float(candle[4]), float(candle[5])
+                ts_ms = ts_s * 1000
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO prices (symbol, timestamp, open, high, low, close, volume) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (symbol, ts_ms, o, h, l, c, v)
+                    )
+                    inserted += 1
+                except Exception:
+                    pass
+            conn.commit()
+            total_inserted += inserted
+            logger.info(f"  OHLCV candles {symbol}: {len(ohlcv_list)} fetched, {inserted} new")
+            time.sleep(GT_INTERVAL)
+        except Exception as e:
+            logger.warning(f"OHLCV candle fetch error {symbol}: {e}")
+    return total_inserted
+
+
 def get_ohlcv_from_db(symbol: str, limit: int = 180) -> list:
     """
     SQLiteからOHLCVデータを取得。market_data.pyから呼ばれる。
@@ -115,7 +166,8 @@ def get_ohlcv_from_db(symbol: str, limit: int = 180) -> list:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.execute(
             "SELECT timestamp, open, high, low, close FROM prices "
-            "WHERE symbol=? ORDER BY timestamp DESC LIMIT ?",
+            "WHERE symbol=? AND NOT (open=high AND high=low AND low=close) "
+            "ORDER BY timestamp DESC LIMIT ?",
             (symbol.upper(), limit)
         )
         rows = cur.fetchall()
@@ -182,11 +234,18 @@ def main():
 
     conn = get_db()
     last_purge = 0
+    last_ohlcv = 0
 
     while True:
         try:
             logger.info("--- Collecting ---")
             collect_once(conn)
+
+            # 60分ごとにGeckoTerminal OHLCVキャンドル取得
+            if time.time() - last_ohlcv > OHLCV_INTERVAL:
+                logger.info("--- OHLCV Candle Update ---")
+                collect_ohlcv_candles(conn)
+                last_ohlcv = time.time()
 
             # 1日ごとにパージ
             if time.time() - last_purge > PURGE_INTERVAL:
