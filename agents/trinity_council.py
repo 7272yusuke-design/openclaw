@@ -729,9 +729,10 @@ class TrinityCouncil(NeoBaseCrew):
 
         _fb_score_mem = finbert_score if "finbert_score" in locals() else 0.0
         _fb_label_mem = finbert_label if "finbert_label" in locals() else "neutral"
+        _conf_str = f", confidence={_structured_confidence}%, factor={_structured_key_factor}" if _structured_confidence > 0 else ""
         memory_entry = (
             f"{target_symbol} @ ${current_price:.6f}: {trade_action} "
-            f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f}, "
+            f"(accuracy={accuracy}%, bt={bt_confidence}, amount=${trade_amount_usd:.2f}{_conf_str}, "
             f"sentiment={sentiment_label}({sentiment_score:.2f}), "
             f"finbert={_fb_label_mem}({_fb_score_mem:+.3f}), "
             f"FearGreed={fng_value}, news={news_count}件, "
@@ -759,7 +760,9 @@ class TrinityCouncil(NeoBaseCrew):
             "amount_usd": str(trade_amount_usd),
             "category": _category,
             "tier": _tier,
-            "wait_reason": _wait_reason
+            "wait_reason": _wait_reason,
+            "confidence": str(_structured_confidence),
+            "key_factor": _structured_key_factor
         }
         self.memory.store(memory_entry, metadata=memory_metadata)
 
