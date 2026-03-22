@@ -53,10 +53,9 @@ class MarketTool(BaseTool):
             # 特徴量ビルド → バックテスト
             try:
                 feat_df = FeatureBuilder.build_from_memory(ohlcv_df)
-                portfolio = CoreBacktest.run_alpha_strategy(feat_df)
-                stats = portfolio.stats()
-                total_trades = stats.get('Total Trades', 0)
-                sharpe_raw = stats['Sharpe Ratio']
+                bt_result = CoreBacktest.run_alpha_strategy(feat_df)
+                total_trades = bt_result.get('trades', 0)
+                sharpe_raw = bt_result.get('sharpe_raw', bt_result.get('sharpe', 0.0))
                 
                 # 最低取引数ガード: 3回未満の取引ではSharpeを信頼しない
                 import math
@@ -70,8 +69,8 @@ class MarketTool(BaseTool):
                 quant_intel = {
                     "sharpe": sharpe_adjusted,
                     "sharpe_raw": round(sharpe_raw, 2) if not (math.isinf(sharpe_raw) or math.isnan(sharpe_raw)) else 0.0,
-                    "return": f"{stats['Total Return [%]']:.2f}%",
-                    "max_dd": f"{stats['Max Drawdown [%]']:.2f}%",
+                    "return": f"{bt_result.get('total_return', '0.00%')}",
+                    "max_dd": f"{bt_result.get('max_dd', '0.00%')}",
                     "total_trades": total_trades,
                     "confidence": confidence
                 }
