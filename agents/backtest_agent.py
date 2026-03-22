@@ -100,19 +100,34 @@ class BacktestAgent:
             if "description" in best:
                 lines.append(f"   説明: {best['description']}")
 
-            lines += ["", "📋 全戦略サマリー:"]
-            for name, r in all_r.items():
-                mark = "✅" if r["sharpe"] >= 5.0 else "🔶" if r["sharpe"] >= 2.0 else "⬜"
-                lines.append(
-                    f"  {mark} {name}: Sharpe={r['sharpe']}"
-                    f" Win={r.get('win_rate', 0)}%"
-                    f" Trades={r.get('trades', 0)}"
-                    f" [{r.get('confidence', 'LOW')}]"
-                )
+            # 戦略を有効/無効に分類
+            positive_strategies = {n: r for n, r in all_r.items() if r["sharpe"] > 0}
+            negative_strategies = {n: r for n, r in all_r.items() if r["sharpe"] <= 0}
 
-            verdict = ("Sharpe 5.0超え → アルファチャンスあり"
-                       if best["sharpe"] >= 5.0
-                       else "Sharpe 5.0未満 → WAIT推奨")
+            lines += ["", f"📋 有効戦略 ({len(positive_strategies)}/{len(all_r)}):"]
+            if positive_strategies:
+                for name, r in sorted(positive_strategies.items(), key=lambda x: x[1]["sharpe"], reverse=True):
+                    mark = "✅" if r["sharpe"] >= 5.0 else "🔶" if r["sharpe"] >= 2.0 else "🟢"
+                    lines.append(
+                        f"  {mark} {name}: Sharpe={r['sharpe']}"
+                        f" Win={r.get('win_rate', 0)}%"
+                        f" Trades={r.get('trades', 0)}"
+                        f" [{r.get('confidence', 'LOW')}]"
+                    )
+            else:
+                lines.append("  ⚠️ プラスSharpe戦略なし — 全戦略がマイナスリターン")
+
+            if negative_strategies:
+                neg_names = ", ".join(negative_strategies.keys())
+                lines.append(f"  ❌ 無効戦略({len(negative_strategies)}): {neg_names} （全てマイナスSharpe・判断材料から除外）")
+
+            # 判定ロジック: 有効戦略の最良Sharpeに基づく
+            if best["sharpe"] >= 5.0:
+                verdict = "Sharpe 5.0超え → アルファチャンスあり"
+            elif best["sharpe"] > 0:
+                verdict = f"最良Sharpe {best['sharpe']:.2f} — 弱いシグナル。慎重判断を推奨"
+            else:
+                verdict = "有効戦略なし → WAIT強く推奨"
             lines += ["", f"💡 Council推奨: {verdict}"]
             # モンテカルロ結果をレポートに追加
             mc_label    = best.get("mc_label", "N/A")
