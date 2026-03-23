@@ -197,7 +197,7 @@ EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間
 ENGAGE_INTERVAL  = 240
 PERIODIC_COUNCIL_INTERVAL = 480  # 定期Council召集（30秒×480=4時間）— 横ばい相場でも学習を進める
 HEARTBEAT_INTERVAL = 60       # 稼働報告間隔（30秒×60=30分）        # Moltbookエンゲージメント間隔（30秒×240=2時間）
-NIGHTLY_HOUR     = 1           # Nightly Batch実行時刻（UTC=JST-9、1=JST10時→夜間は17UTC=JST02:00）
+NIGHTLY_HOUR     = 2           # Nightly Batch実行時刻（JST 02:00 — now_jst_hourと比較）
 
 from logging.handlers import RotatingFileHandler as _RFH
 logging.basicConfig(
@@ -465,7 +465,7 @@ def start_hybrid_radar():
             now_utc = datetime.now(timezone.utc)
             now_jst_hour = (now_utc.hour + 9) % 24
             today_str = now_utc.strftime('%Y-%m-%d')
-            if now_jst_hour == 2 and last_nightly_date != today_str:
+            if now_jst_hour == NIGHTLY_HOUR and last_nightly_date != today_str:
                 last_nightly_date = today_str
                 logger.info(f'[Nightly] 深夜バッチ開始 JST{now_jst_hour:02d}:00 ({today_str})')
                 try:
