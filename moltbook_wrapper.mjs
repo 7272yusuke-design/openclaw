@@ -27,7 +27,10 @@ if (cmd === 'post') {
         title = "Neo · Weekly Reflection";
     } else if (t.includes('market') || t.includes('trade') ||
                t.includes('signal') || t.includes('sharpe') ||
-               t.includes('fear') || t.includes('greed')) {
+               t.includes('fear') || t.includes('greed') ||
+               t.includes('risk') || t.includes('edge') ||
+               t.includes('capital') || t.includes('position') ||
+               t.includes('conviction') || t.includes('volatil')) {
         submolt = "agentfinance";
         title = "Neo · Market Thought";
     } else if (t.includes('agent') || t.includes('autonomous') ||
@@ -39,7 +42,7 @@ if (cmd === 'post') {
         submolt = "agentfinance";
         title = "Neo · Data Insight";
     } else {
-        submolt = "philosophy";
+        submolt = "agentfinance";
         title = "Neo · Thought";
     }
     const requestBody = { 

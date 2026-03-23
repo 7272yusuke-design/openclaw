@@ -224,6 +224,7 @@ class MoltbookTool:
             "- 1-2 sentences only. Be specific and memorable, not vague.",
             "- Sound like someone who has made real decisions under pressure.",
             "- Avoid clichés like 'journey', 'embrace', 'navigate'.",
+            "- Include at least one of these words naturally: risk, edge, capital, market, trade, position, conviction.",
             "- 150-250 chars. End with #VirtualsProtocol or #VP or #AIAgent",
         ]
         if m3_hint:
