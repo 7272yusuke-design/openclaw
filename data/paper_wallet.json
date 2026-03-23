@@ -1,9 +1,9 @@
 {
-  "usd_balance": 85099.53805662668,
+  "usd_balance": 80622.68805662668,
   "holdings": {
     "AIXBT": {
-      "amount": 183349.1510040585,
-      "avg_price": 0.024428365091807038,
+      "amount": 367401.78678824543,
+      "avg_price": 0.02437595657410812,
       "entry_time": "2026-03-23T06:42:28.240195+00:00"
     }
   },
@@ -124,8 +124,17 @@
       "amount_token": 183349.1510040585,
       "amount_usd": 4478.92,
       "reason": "Trinity Council BUY verdict (accuracy: 60.0%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-23T06:54:17.248646+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0242021296300431,
+      "amount_token": 184052.6357841869,
+      "amount_usd": 4476.85,
+      "reason": "Trinity Council BUY verdict (accuracy: 60.0%, confidence: LOW)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-03-23T06:42:28.240251+00:00"
+  "last_updated": "2026-03-23T06:54:17.248696+00:00"
 }

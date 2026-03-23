@@ -379,7 +379,7 @@ class TrinityCouncil(NeoBaseCrew):
         )
         agent_neo = Agent(
             role='最高司令官ネオ',
-            goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUY", "confidence": 75, "key_factor": "理由1語"} で出力し、2行目以降に根拠を述べよ',
+            goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 0-100, "key_factor": "実際の根拠"} で1回のみ出力し、2行目以降に根拠を述べよ。例文の値をコピーするな。',
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
@@ -506,6 +506,20 @@ class TrinityCouncil(NeoBaseCrew):
             _pre_words = _re.findall(r'\b(BUY|SELL|WAIT)\b', _pre_reason)
             first_word = _pre_words[-1] if _pre_words else (_words[-1] if _words else "WAIT")
             print(f"\n[Phase 4] regex判定(フォールバック): {first_word} | {verdict_text[:80]}...")
+
+
+        # v6.5a-fix: verdict_textから残存JSON行・jsonプレフィックス行を全除去（Discord表示クリーンアップ）
+        _clean_lines = []
+        for _cl in verdict_text.split('\n'):
+            _cls = _cl.strip()
+            if _cls.startswith('{') and 'verdict' in _cls.lower():
+                continue
+            if _cls.lower().startswith('json'):
+                continue
+            if _cls.startswith('```'):
+                continue
+            _clean_lines.append(_cl)
+        verdict_text = '\n'.join(_clean_lines).strip()
 
         # ============================================================
         # Phase 3: 取引実行
