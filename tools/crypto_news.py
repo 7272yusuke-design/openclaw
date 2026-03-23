@@ -15,9 +15,10 @@ _cache = {}
 CACHE_TTL = 300  # 5分
 
 VP_KEYWORDS = [
-    "virtual", "virtuals", "aixbt", "ai agent", "ai agents",
-    "luna", "base chain", "defi agent", "autonomous agent",
-    "crypto agent", "trading agent", "on-chain ai",
+    "virtual", "virtuals", "virtual protocol", "aixbt", "ai agent", "ai agents",
+    "luna", "base chain", "base network", "defi agent", "autonomous agent",
+    "crypto agent", "trading agent", "on-chain ai", "aerodrome",
+    "moltbook", "sentient", "ai token", "ai coin", "agent token",
 ]
 
 MARKET_KEYWORDS = [
@@ -31,6 +32,8 @@ RSS_SOURCES = {
     "CoinTelegraph": "https://cointelegraph.com/rss",
     "TheBlock":      "https://www.theblock.co/rss.xml",
     "Decrypt":       "https://decrypt.co/feed",
+    "BlockworksDefi": "https://blockworks.co/feed",
+    "DLNews":         "https://www.dlnews.com/arc/outboundfeeds/rss/",
 }
 
 
