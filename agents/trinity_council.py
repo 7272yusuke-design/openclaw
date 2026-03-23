@@ -541,22 +541,35 @@ class TrinityCouncil(NeoBaseCrew):
                     trade_result = {"status": "skipped", "reason": f"{clean_symbol}ポジション上限超過 ({holding_ratio:.1%} > 30%)"}
                     print(f"\n[Phase 5] 🛑 BUY禁止: {clean_symbol}保有比率{holding_ratio:.1%}が上限30%超 (${holding_value:,.0f})")
                 else:
-                    # ③ BUY額: 総資産の5% と USDC残高の10% の小さい方
-                    trade_amount_usd = round(min(total_assets * 0.05, current_usdc * 0.10), 2)
-
-                    if trade_amount_usd >= 10.0:
-                        print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
-                        trade_result = self.portfolio.execute_trade(
-                            symbol=clean_symbol,
-                            action="BUY",
-                            amount_usd=trade_amount_usd,
-                            price=current_price,
-                            reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
-                        )
-                        logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
+                    # ②b 相関リスクガード: Tier1同時ポジション合計が総資産の50%超ならBUY禁止
+                    _tier1_exposure = 0.0
+                    for _t1sym in ["VIRTUAL", "AIXBT"]:
+                        _t1amount = balances.get(_t1sym, 0.0)
+                        if _t1amount > 0:
+                            _t1data = MarketData.fetch_token_data(_t1sym)
+                            _t1price = float(_t1data.get("priceUsd", 0.0)) if _t1data else 0.0
+                            _tier1_exposure += _t1amount * _t1price
+                    _tier1_ratio = _tier1_exposure / total_assets if total_assets > 0 else 0
+                    if _tier1_ratio > 0.50:
+                        trade_action = "WAIT"
+                        trade_result = {"status": "skipped", "reason": f"Tier1合計エクスポージャー上限超過 ({_tier1_ratio:.1%} > 50%) — 相関リスクガード"}
+                        print(f"\n[Phase 5] 🛑 BUY禁止: Tier1合計保有{_tier1_ratio:.1%}が上限50%超 (相関係数≈0.72)")
                     else:
-                        trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
-                        print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
+                        # ③ BUY額: 総資産の5% と USDC残高の10% の小さい方
+                        trade_amount_usd = round(min(total_assets * 0.05, current_usdc * 0.10), 2)
+                        if trade_amount_usd >= 10.0:
+                            print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
+                            trade_result = self.portfolio.execute_trade(
+                                symbol=clean_symbol,
+                                action="BUY",
+                                amount_usd=trade_amount_usd,
+                                price=current_price,
+                                reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
+                            )
+                            logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
+                        else:
+                            trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
+                            print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
         
         elif first_word == "SELL" and current_price > 0:
             trade_action = "SELL"
