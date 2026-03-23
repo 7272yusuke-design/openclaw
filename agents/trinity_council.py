@@ -395,7 +395,10 @@ class TrinityCouncil(NeoBaseCrew):
                     f'2. 直近の損切内省に「同じパターン」への言及がある\n'
                     f'3. クジラが明確にAccumulating中である\n\n'
                     f'上記に該当しなければ、迷わずBUYと判断せよ。学習のためにはポジションを持つことが不可欠だ。\n'
-                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守）: ' + r'{"verdict": "BUY", "confidence": 75, "key_factor": "Sharpe高"}' + f' 2行目以降に根拠を日本語で述べよ。confidenceは0-100の確信度、key_factorは判断の最大要因1語。'
+                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守・1回のみ出力・繰り返すな）:\n'
+                    f'{{"verdict": "BUYまたはWAIT", "confidence": 実際の確信度0-100, "key_factor": "実際の判断根拠1語"}}\n'
+                    f'2行目以降に根拠を日本語で述べよ。例文の値をコピーせず、実際のデータに基づいた値を入れること。\n'
+                    f'confidenceはバックテスト結果・センチメント・クジラ動向を総合した確信度。key_factorは最も重視した要因（例: 流動性, BTC下落, クジラ静穏, RSI反転 等）。'
                     if LEARNING_MODE else
                     # === 通常モード: 従来のSOUL原則 ===
                     f'【判断の拒否権（SOUL原則）】\n'
@@ -409,7 +412,10 @@ class TrinityCouncil(NeoBaseCrew):
                     f'- センチメントスコアが+0.2以上\n'
                     f'- バックテスト信頼度がMED以上\n'
                     f'- 過去教訓に同銘柄のBUY成功記録がある\n\n'
-                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守）: ' + r'{"verdict": "BUY", "confidence": 75, "key_factor": "Sharpe高"}' + f' 2行目以降に根拠を日本語で述べよ。confidenceは0-100の確信度、key_factorは判断の最大要因1語。'
+                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守・1回のみ出力・繰り返すな）:\n'
+                    f'{{"verdict": "BUYまたはWAIT", "confidence": 実際の確信度0-100, "key_factor": "実際の判断根拠1語"}}\n'
+                    f'2行目以降に根拠を日本語で述べよ。例文の値をコピーせず、実際のデータに基づいた値を入れること。\n'
+                    f'confidenceはバックテスト結果・センチメント・クジラ動向を総合した確信度。key_factorは最も重視した要因（例: 流動性, BTC下落, クジラ静穏, RSI反転 等）。'
                 )
             ),
             llm=self.pro_model

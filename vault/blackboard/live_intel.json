@@ -12,24 +12,58 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: VIRTUAL/USDT",
-    "success_probability": 0.85,
-    "strategy_id": "TEST_ANTI_NOISE",
-    "diplomatic_presets": {
-      "execution_priority": "CRITICAL"
-    },
+    "risk_mitigation_plan": "",
+    "success_probability": 0.0,
+    "strategy_id": "",
+    "diplomatic_presets": {},
     "active_opportunities": {},
-    "opportunity_count": 6,
-    "last_updated": "2026-03-19T01:34:18.167060+00:00"
+    "opportunity_count": 0,
+    "last_updated": "2026-03-20T11:27:53.577207+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 0.0,
-    "total_evaluated_trades": 0,
-    "recent_performance": [],
-    "last_evaluated": "2026-03-19T01:34:59.404816"
+    "accuracy_score": 60.0,
+    "total_evaluated_trades": 10,
+    "recent_performance": [
+      {
+        "symbol": "AIXBT",
+        "entry_price": 0.024263472030676,
+        "exit_price": 0.0251846541319902,
+        "amount_usd": 1164.558843175386,
+        "pnl_pct": 3.8
+      },
+      {
+        "symbol": "AIXBT",
+        "entry_price": 0.024263472030676,
+        "exit_price": 0.0251846541319902,
+        "amount_usd": 582.279421587693,
+        "pnl_pct": 3.8
+      },
+      {
+        "symbol": "AIXBT",
+        "entry_price": 0.024263472030676,
+        "exit_price": 0.0251846541319902,
+        "amount_usd": 291.1397107938465,
+        "pnl_pct": 3.8
+      },
+      {
+        "symbol": "AIXBT",
+        "entry_price": 0.024263472030676,
+        "exit_price": 0.024215168913585,
+        "amount_usd": 389.9789653907574,
+        "pnl_pct": -0.2
+      },
+      {
+        "symbol": "AIXBT",
+        "entry_price": 0.0251846541319902,
+        "exit_price": 0.024215168913585,
+        "amount_usd": 4205.110470361463,
+        "pnl_pct": -3.85
+      }
+    ],
+    "last_evaluated": "2026-03-23T06:42:38.300716"
   }
 }
