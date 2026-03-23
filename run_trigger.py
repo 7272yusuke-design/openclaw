@@ -352,6 +352,18 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] サマリー送信失敗: {e}")
 
+    # Step 8: radar_output.log 自動切り詰め（最新10000行を保持）
+    try:
+        import subprocess
+        _log_path = "radar_output.log"
+        _result = subprocess.run(["wc", "-l", _log_path], capture_output=True, text=True)
+        _lines = int(_result.stdout.strip().split()[0])
+        if _lines > 10000:
+            subprocess.run(f"tail -10000 {_log_path} > {_log_path}.tmp && mv {_log_path}.tmp {_log_path}", shell=True)
+            logger.info(f"[Nightly] ログ切り詰め: {_lines}行 → 10000行")
+    except Exception as e:
+        logger.error(f"[Nightly] ログ切り詰め失敗: {e}")
+
 
 def start_hybrid_radar():
     print("=" * 60)
