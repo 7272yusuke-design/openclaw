@@ -17,6 +17,7 @@ class MoltbookEngager:
     REPLIED_FILE = "data/moltbook_replied.json"
     # upvote済み投稿IDを記録するファイル
     UPVOTED_FILE = "data/moltbook_upvoted.json"
+    FOLLOWED_FILE = "data/moltbook_followed.json"
 
     @staticmethod
     def _run_moltbook_cmd(args: list) -> str:
@@ -194,7 +195,8 @@ class MoltbookEngager:
         Returns: {upvoted: int, commented: int, skipped: int}
         """
         upvoted_ids = cls._load_json_set(cls.UPVOTED_FILE)
-        stats = {"upvoted": 0, "commented": 0, "skipped": 0}
+        followed_authors = cls._load_json_set(cls.FOLLOWED_FILE)
+        stats = {"upvoted": 0, "commented": 0, "skipped": 0, "followed": 0}
 
         feed_json = cls._run_moltbook_cmd(["feed", str(max_posts)])
         if not feed_json:
@@ -243,6 +245,15 @@ class MoltbookEngager:
                 print(f"👍 Upvote: [{author_name}] {post.get('title', '')[:50]}")
             time.sleep(2)
 
+            # フォロー（未フォローの著者のみ・1回の巡回で最大3件）
+            if author_name and author_name.lower() not in followed_authors and stats.get("followed", 0) < 3:
+                follow_result = cls._run_moltbook_cmd(["follow", author_name])
+                if "成功" in follow_result or "✅" in follow_result:
+                    stats["followed"] = stats.get("followed", 0) + 1
+                    followed_authors.add(author_name.lower())
+                    print(f"➕ Follow: {author_name}")
+                time.sleep(2)
+
             # 高関連性ならコメントも（上限あり）
             if relevance >= 4 and stats["commented"] < max_comments:
                 post_content = post.get("content", "")
@@ -256,7 +267,8 @@ class MoltbookEngager:
                     time.sleep(3)
 
         cls._save_json_set(cls.UPVOTED_FILE, upvoted_ids)
-        print(f"📊 [Engager] Upvote: {stats['upvoted']}件 / コメント: {stats['commented']}件 / スキップ: {stats['skipped']}件")
+        cls._save_json_set(cls.FOLLOWED_FILE, followed_authors)
+        print(f"📊 [Engager] Upvote: {stats['upvoted']}件 / コメント: {stats['commented']}件 / フォロー: {stats.get('followed',0)}件 / スキップ: {stats['skipped']}件")
         return stats
 
     @classmethod
