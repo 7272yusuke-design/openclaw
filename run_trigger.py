@@ -573,7 +573,9 @@ def start_hybrid_radar():
                     # Tier1銘柄を交互に召集（永続トグル: Blackboardに最後の銘柄を記録）
                     _periodic_symbols = [s for s in COUNCIL_ELIGIBLE_SYMBOLS]
                     try:
-                        _bb_data = NeoBlackboard.read()
+                        import json as _json_toggle
+                        with open("vault/blackboard/live_intel.json", "r") as _f_bb:
+                            _bb_data = _json_toggle.load(_f_bb)
                         _last_periodic = _bb_data.get("last_periodic_symbol", "")
                     except Exception:
                         _last_periodic = ""
@@ -588,7 +590,12 @@ def start_hybrid_radar():
                     trigger_context = f"定期Council召集（4時間ごと・学習促進）: {_periodic_sym}"
                     # 永続トグル: Blackboardに今回の銘柄を記録
                     try:
-                        NeoBlackboard.update({"last_periodic_symbol": _periodic_sym})
+                        import json as _json_toggle
+                        with open("vault/blackboard/live_intel.json", "r") as _f_bb:
+                            _bb_write = _json_toggle.load(_f_bb)
+                        _bb_write["last_periodic_symbol"] = _periodic_sym
+                        with open("vault/blackboard/live_intel.json", "w") as _f_bb:
+                            _json_toggle.dump(_bb_write, _f_bb, indent=2, ensure_ascii=False)
                     except Exception as _bb_err:
                         logger.warning(f"[PERIODIC] Blackboard書き込み失敗: {_bb_err}")
                     logger.info(f"⏰ [PERIODIC] 定期Council召集: {_periodic_sym}（cycle={cycle_count}）")

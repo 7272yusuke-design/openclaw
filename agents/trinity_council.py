@@ -539,7 +539,47 @@ class TrinityCouncil(NeoBaseCrew):
             _clean_lines.append(_cl)
         verdict_text = '\n'.join(_clean_lines).strip()
 
+        
         # ============================================================
+        # Phase 4b: confidence=65フォールバック再計算（v6.5e）
+        # Geminiが65をデフォルト出力する問題への対策
+        # プロンプトでは効かないため、信号データからルールベースで再計算
+        # ============================================================
+        if _structured_confidence == 65:
+            _calc_conf = 50  # ニュートラル起点
+            # バックテスト信頼度
+            if bt_confidence == "HIGH":
+                _calc_conf += 15
+            elif bt_confidence == "MEDIUM":
+                _calc_conf += 5
+            elif bt_confidence == "LOW":
+                _calc_conf -= 5
+            elif bt_confidence == "NONE":
+                _calc_conf -= 10
+            # センチメント
+            if sentiment_score > 0.6:
+                _calc_conf += 10
+            elif sentiment_score > 0.3:
+                _calc_conf += 5
+            elif sentiment_score < -0.3:
+                _calc_conf -= 10
+            elif sentiment_score < 0:
+                _calc_conf -= 5
+            # 過去精度
+            if accuracy > 70:
+                _calc_conf += 10
+            elif accuracy > 50:
+                _calc_conf += 5
+            elif accuracy < 40:
+                _calc_conf -= 5
+            # BUY判定自体が+5（LLMがBUYと言ったなら少しポジティブ）
+            if first_word == "BUY":
+                _calc_conf += 5
+            _calc_conf = max(20, min(95, _calc_conf))
+            print(f"[Phase 4b] confidence=65検出 → 信号ベース再計算: {_calc_conf} (bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%)")
+            _structured_confidence = _calc_conf
+
+# ============================================================
         # Phase 3: 取引実行
         # ============================================================
         trade_result = None
