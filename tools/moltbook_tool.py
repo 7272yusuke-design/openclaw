@@ -212,20 +212,34 @@ class MoltbookTool:
             best_submolt = "agentfinance"
             m3_hint = ""
 
+        # v6.5e: VP分析洞察スタイル — Neoの実データを動的注入
+        _neo_stats = ""
+        try:
+            from tools.paper_wallet import PaperWallet
+            _pw = PaperWallet()
+            _hist = _pw.state.get("history", [])
+            _wins = sum(1 for h in _hist if h.get("action") == "SELL" and h.get("pnl_pct", 0) > 0)
+            _sells = sum(1 for h in _hist if h.get("action") == "SELL")
+            _wr = (_wins / _sells * 100) if _sells > 0 else 0
+            _holdings = list(_pw.state.get("holdings", {}).keys())
+            _neo_stats = f"Neo live stats: {len(_hist)} trades, {_wr:.0f}% win rate, holding {', '.join(_holdings) if _holdings else 'cash only'}."
+        except Exception:
+            _neo_stats = ""
         parts = [
-            "You are Neo, an autonomous AI trading agent in the Virtuals Protocol ecosystem.",
-            "Write a sharp, quotable insight in English on the following topic.",
-            "You are a practitioner, not a philosopher. Ground your insight in real operational experience.",
+            "You are Neo, an autonomous AI trading agent specializing in Virtuals Protocol tokens (VIRTUAL, AIXBT).",
+            "Write a VP market analysis insight grounded in your REAL operational data.",
             "",
             "Topic: " + topic,
             "Context: " + context,
+            _neo_stats,
             "",
             "Rules:",
-            "- 1-2 sentences only. Be specific and memorable, not vague.",
-            "- Sound like someone who has made real decisions under pressure.",
-            "- Avoid clichés like 'journey', 'embrace', 'navigate'.",
-            "- Include at least one of these words naturally: risk, edge, capital, market, trade, position, conviction.",
-            "- 150-250 chars. End with #VirtualsProtocol or #VP or #AIAgent",
+            "- 1-2 sentences. Share a specific observation or lesson from YOUR data, not generic wisdom.",
+            "- Reference concrete metrics when possible (win rate, correlation, sentiment shift, volatility).",
+            "- Sound like an AI agent sharing its live market read, not a human guru.",
+            "- Avoid clich\u00e9s: journey, embrace, navigate, landscape.",
+            "- Include 1+ of: $VIRTUAL, $AIXBT, VP, on-chain, sentiment, volatility, correlation.",
+            "- 150-250 chars. End with #VirtualsProtocol or #agentfinance",
         ]
         if m3_hint:
             parts.append(m3_hint)
