@@ -379,7 +379,7 @@ class TrinityCouncil(NeoBaseCrew):
         )
         agent_neo = Agent(
             role='最高司令官ネオ',
-            goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 0-100, "key_factor": "実際の根拠"} で1回のみ出力し、2行目以降に根拠を述べよ。例文の値をコピーするな。',
+            goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 20-95の確信度, "key_factor": "実際の根拠1語"} で1回のみ出力し、2行目以降に根拠を述べよ。65をデフォルトにするな。データに基づき正直に採点せよ。',
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
@@ -398,7 +398,7 @@ class TrinityCouncil(NeoBaseCrew):
                     f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守・1回のみ出力・繰り返すな）:\n'
                     f'{{"verdict": "BUYまたはWAIT", "confidence": 実際の確信度0-100, "key_factor": "実際の判断根拠1語"}}\n'
                     f'2行目以降に根拠を日本語で述べよ。例文の値をコピーせず、実際のデータに基づいた値を入れること。\n'
-                    f'confidenceはバックテスト結果・センチメント・クジラ動向を総合した確信度。key_factorは最も重視した要因（例: 流動性, BTC下落, クジラ静穏, RSI反転 等）。'
+                    f'【confidenceスケール（厳守）】20-35=非常に弱い（指標の大半が反対方向）, 40-55=弱い/混在（指標が割れている）, 60-70=中程度（過半数の指標が一致）, 75-85=強い（大半の指標が強く一致）, 90+=非常に強い（全指標が一致、稀）。65をデフォルトにするな。実際のデータを見て上記スケールから正直に選べ。key_factorは最も重視した要因1語（例: RSI反転, BTC下落, クジラ買集, Sharpe高, 出来高急増 等）。'
                     if LEARNING_MODE else
                     # === 通常モード: 従来のSOUL原則 ===
                     f'【判断の拒否権（SOUL原則）】\n'
@@ -415,7 +415,7 @@ class TrinityCouncil(NeoBaseCrew):
                     f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守・1回のみ出力・繰り返すな）:\n'
                     f'{{"verdict": "BUYまたはWAIT", "confidence": 実際の確信度0-100, "key_factor": "実際の判断根拠1語"}}\n'
                     f'2行目以降に根拠を日本語で述べよ。例文の値をコピーせず、実際のデータに基づいた値を入れること。\n'
-                    f'confidenceはバックテスト結果・センチメント・クジラ動向を総合した確信度。key_factorは最も重視した要因（例: 流動性, BTC下落, クジラ静穏, RSI反転 等）。'
+                    f'【confidenceスケール（厳守）】20-35=非常に弱い（指標の大半が反対方向）, 40-55=弱い/混在（指標が割れている）, 60-70=中程度（過半数の指標が一致）, 75-85=強い（大半の指標が強く一致）, 90+=非常に強い（全指標が一致、稀）。65をデフォルトにするな。実際のデータを見て上記スケールから正直に選べ。key_factorは最も重視した要因1語（例: RSI反転, BTC下落, クジラ買集, Sharpe高, 出来高急増 等）。'
                 )
             ),
             llm=self.pro_model
@@ -575,21 +575,28 @@ class TrinityCouncil(NeoBaseCrew):
                         trade_result = {"status": "skipped", "reason": f"Tier1合計エクスポージャー上限超過 ({_tier1_ratio:.1%} > 50%) — 相関リスクガード"}
                         print(f"\n[Phase 5] 🛑 BUY禁止: Tier1合計保有{_tier1_ratio:.1%}が上限50%超 (相関係数≈0.72)")
                     else:
-                        # ③ BUY額: 総資産の5% と USDC残高の10% の小さい方
-                        trade_amount_usd = round(min(total_assets * 0.05, current_usdc * 0.10), 2)
-                        if trade_amount_usd >= 10.0:
-                            print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
-                            trade_result = self.portfolio.execute_trade(
-                                symbol=clean_symbol,
-                                action="BUY",
-                                amount_usd=trade_amount_usd,
-                                price=current_price,
-                                reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
-                            )
-                            logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
+                        # ②c confidence閾値ガード: 確信度40未満ならBUY禁止
+                        MIN_CONFIDENCE_FOR_BUY = 40
+                        if _structured_confidence > 0 and _structured_confidence < MIN_CONFIDENCE_FOR_BUY:
+                            trade_action = "WAIT"
+                            trade_result = {"status": "skipped", "reason": f"confidence不足 ({_structured_confidence} < {MIN_CONFIDENCE_FOR_BUY}) — 低確信度ガード"}
+                            print(f"\n[Phase 5] 🛑 BUY禁止: confidence={_structured_confidence}が閾値{MIN_CONFIDENCE_FOR_BUY}未満")
                         else:
-                            trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
-                            print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
+                            # ③ BUY額: 総資産の5% と USDC残高の10% の小さい方
+                            trade_amount_usd = round(min(total_assets * 0.05, current_usdc * 0.10), 2)
+                            if trade_amount_usd >= 10.0:
+                                print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
+                                trade_result = self.portfolio.execute_trade(
+                                    symbol=clean_symbol,
+                                    action="BUY",
+                                    amount_usd=trade_amount_usd,
+                                    price=current_price,
+                                    reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
+                                )
+                                logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
+                            else:
+                                trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
+                                print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
         
         elif first_word == "SELL" and current_price > 0:
             trade_action = "SELL"
