@@ -21,9 +21,13 @@ class VolatilityAlpha:
         if _HAS_TA:
             _bb = ta.bbands(df["close"], length=window, std=2)
             if _bb is not None:
-                upper_band = _bb.get(f"BBU_{window}_2.0", df["close"])
-                lower_band = _bb.get(f"BBL_{window}_2.0", df["close"])
-                rolling_mean = _bb.get(f"BBM_{window}_2.0", df["close"].rolling(window).mean())
+                # pandas-ta BB列名はバージョンにより BBU_20_2.0 or BBU_20_2.0_2.0
+                _bbu_col = next((c for c in _bb.columns if c.startswith(f"BBU_{window}")), None)
+                _bbl_col = next((c for c in _bb.columns if c.startswith(f"BBL_{window}")), None)
+                _bbm_col = next((c for c in _bb.columns if c.startswith(f"BBM_{window}")), None)
+                upper_band = _bb[_bbu_col] if _bbu_col else df["close"]
+                lower_band = _bb[_bbl_col] if _bbl_col else df["close"]
+                rolling_mean = _bb[_bbm_col] if _bbm_col else df["close"].rolling(window).mean()
             else:
                 rolling_mean = df["close"].rolling(window=window).mean()
                 rolling_std = df["close"].rolling(window=window).std()

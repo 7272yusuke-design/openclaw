@@ -79,7 +79,7 @@ def vp_market_pulse():
         result = {}
         for sym in ["VIRTUAL", "AIXBT"]:
             try:
-                df = MarketData.fetch_ohlcv_custom(sym, days=7)
+                df = MarketData.fetch_ohlcv_custom(sym, days=30)
                 df = FeatureBuilder.build_from_memory(df)
                 last = df.iloc[-1]
                 result[sym] = {
@@ -92,16 +92,30 @@ def vp_market_pulse():
                 }
             except Exception as e:
                 result[sym] = {"error": str(e)}
-        # Sentiment
+        # Sentiment（複数ソースから直接取得）
         try:
-            from agents.sentiment_agent import SentimentAgent
-            sa = SentimentAgent()
-            sent = sa.analyze()
+            import urllib.request, json as _json
+            # Fear & Greed Index
+            _fg_resp = urllib.request.urlopen("https://api.alternative.me/fng/?limit=1", timeout=10)
+            _fg_data = _json.loads(_fg_resp.read())
+            _fg_val = _fg_data["data"][0]["value"]
+            _fg_class = _fg_data["data"][0]["value_classification"]
             result["sentiment"] = {
-                "composite_score": round(sent.get('composite_score', 0), 3),
-                "fear_greed": sent.get('fear_greed_value', 'N/A'),
-                "btc_trend": sent.get('btc_trend', 'N/A'),
+                "fear_greed_value": int(_fg_val),
+                "fear_greed_class": _fg_class,
             }
+            # BTC trend (simple: price vs 7d ago)
+            try:
+                _btc_resp = urllib.request.urlopen("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true", timeout=10)
+                _btc_data = _json.loads(_btc_resp.read())
+                _btc_change = _btc_data.get("bitcoin", {}).get("usd_24h_change", 0)
+                if _btc_change > 2: _trend = "BULLISH"
+                elif _btc_change < -2: _trend = "BEARISH"
+                else: _trend = "NEUTRAL"
+                result["sentiment"]["btc_24h_change"] = round(_btc_change, 2)
+                result["sentiment"]["btc_trend"] = _trend
+            except:
+                result["sentiment"]["btc_trend"] = "unknown"
         except:
             result["sentiment"] = {"error": "unavailable"}
         result["timestamp"] = __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()
