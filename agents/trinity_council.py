@@ -342,6 +342,24 @@ class TrinityCouncil(NeoBaseCrew):
         elif accuracy < 50:
             caution_note = f"⚠️ 現在の勝率は{accuracy}%と低迷中。リスク回避を最優先とせよ。"
 
+        # WAIT品質データ（銘柄別）をCouncilに注入
+        _wait_quality_note = ""
+        try:
+            _wait_records = self.memory.recall(query=f"{clean_symbol} wait_record", n_results=30)
+            _wait_metas = _wait_records.get("metadatas", [[]])[0] if _wait_records else []
+            _wait_prices = [(float(m.get("price", 0)), m.get("symbol", "")) for m in _wait_metas 
+                           if m.get("category") == "wait_record" and m.get("symbol") == clean_symbol and float(m.get("price", 0)) > 0]
+            if len(_wait_prices) >= 5 and current_price > 0:
+                _correct = sum(1 for p, _ in _wait_prices if current_price < p)
+                _total = len(_wait_prices)
+                _wait_acc = _correct / _total * 100
+                if _wait_acc < 30:
+                    _wait_quality_note = f"\n⚠️ 【WAIT品質警告】{clean_symbol}の過去WAIT判定は正解率{_wait_acc:.0f}%（{_correct}/{_total}件）。大半がチャンス見逃し。この銘柄では積極的にBUYすべき。"
+                elif _wait_acc > 80:
+                    _wait_quality_note = f"\n✅ 【WAIT品質良好】{clean_symbol}の過去WAIT判定は正解率{_wait_acc:.0f}%（{_correct}/{_total}件）。WAITの判断は概ね正しい。"
+        except Exception as _wq_err:
+            pass  # WAIT品質計算失敗は無視
+
         # ポートフォリオ状況をコンテキストに
         portfolio_context = (
             f"現在のポートフォリオ: USDC=${current_usdc:.2f}, "
@@ -381,7 +399,7 @@ class TrinityCouncil(NeoBaseCrew):
             role='最高司令官ネオ',
             goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 20-95の確信度, "key_factor": "実際の根拠1語"} で1回のみ出力し、2行目以降に根拠を述べよ。65をデフォルトにするな。データに基づき正直に採点せよ。',
             backstory=(
-                f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}\n'
+                f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}{_wait_quality_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
                 f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}'
                 + (
