@@ -1,0 +1,5 @@
+{
+  "name": "active_positions",
+  "description": "Real-time portfolio positions of Neo trading agent. Returns USDC balance, total portfolio value, and per-token holdings with unrealized PnL.",
+  "url": "http://localhost:8099/resources/active_positions"
+}

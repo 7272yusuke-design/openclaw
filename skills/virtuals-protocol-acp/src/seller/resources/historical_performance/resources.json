@@ -1,0 +1,5 @@
+{
+  "name": "historical_performance",
+  "description": "Neo trading agent performance metrics. Win rate, total trades, average PnL, best/worst trade, and closed trade count.",
+  "url": "http://localhost:8099/resources/historical_performance"
+}

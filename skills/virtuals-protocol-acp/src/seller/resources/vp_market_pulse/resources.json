@@ -1,0 +1,5 @@
+{
+  "name": "vp_market_pulse",
+  "description": "Live VP token technical summary. VIRTUAL and AIXBT price, RSI, moving averages, Bollinger bandwidth, sentiment score, and BTC trend.",
+  "url": "http://localhost:8099/resources/vp_market_pulse"
+}
