@@ -339,18 +339,18 @@ class CoreBacktest:
     # ── 戦略8: RSI Bounce（freqtrade-strategies参考）────────────────
     @staticmethod
     def run_rsi_bounce(df: pd.DataFrame) -> dict:
-        """RSI30割れからの反発BUY + RSI60超えでエグジット（トレンド順張り版）"""
+        """RSI反発BUY: RSI40割れからの反発 + RSI65超えでエグジット（VP銘柄向け緩和版）"""
         try:
             close = df["close"]
             rsi   = df["rsi_14"] if "rsi_14" in df.columns else _calc_rsi(close)
             ema50 = close.ewm(span=50, adjust=False).mean()
 
-            # RSIが30を下から上に抜けた瞬間 + EMA50上方（トレンド確認）
-            rsi_cross_up = (rsi > 30) & (rsi.shift(1) <= 30)
-            entries = rsi_cross_up & (close > ema50 * 0.99)  # EMA50の1%下まで許容
+            # RSIが40を下から上に抜けた瞬間（VP銘柄は30割れが稀なため緩和）
+            rsi_cross_up = (rsi > 40) & (rsi.shift(1) <= 40)
+            entries = rsi_cross_up & (close > ema50 * 0.95)  # EMA50の5%下まで許容
 
-            # RSI60超え or EMA50を価格が割り込んだらエグジット
-            exits = (rsi > 60) | (close < ema50)
+            # RSI65超え or EMA50を大幅に割り込んだらエグジット
+            exits = (rsi > 65) | (close < ema50 * 0.97)
 
             entries = entries.fillna(False)
             exits   = exits.fillna(False)
