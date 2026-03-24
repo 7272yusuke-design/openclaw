@@ -146,7 +146,7 @@ class TrinityCouncil(NeoBaseCrew):
 
         # 1c-2. センチメント分析
         sentiment_label = "neutral"
-        sentiment_risk_factors = []
+        sentiment_risk_factors = "特になし"
         try:
             from agents.sentiment_agent import SentimentCrew
             print(f"\n[Phase 1-S] センチメント分析中...")
@@ -247,12 +247,13 @@ class TrinityCouncil(NeoBaseCrew):
                 s_data = {}
             sentiment_score = float(s_data.get("market_sentiment_score", sentiment_score))
             sentiment_label = s_data.get("sentiment_label", "neutral")
-            sentiment_risk_factors = s_data.get("risk_factors", [])
+            _raw_risk_factors = s_data.get("risk_factors", [])
+            sentiment_risk_factors = " / ".join(_raw_risk_factors) if _raw_risk_factors else "特になし"
             print(f"  🧠 センチメント: {sentiment_label} (score={sentiment_score:.2f})")
         except Exception as se:
             print(f"  ⚠️ SentimentCrew失敗（フォールバック）: {str(se)[:60]}")
             sentiment_label = "neutral"
-            sentiment_risk_factors = []
+            sentiment_risk_factors = "特になし"
             if "finbert_score" not in locals():
                 finbert_score = 0.0
                 finbert_label = "neutral"
