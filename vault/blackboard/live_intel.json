@@ -25,45 +25,45 @@
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 60.0,
-    "total_evaluated_trades": 10,
+    "accuracy_score": 76.19,
+    "total_evaluated_trades": 21,
     "recent_performance": [
       {
         "symbol": "AIXBT",
-        "entry_price": 0.024263472030676,
-        "exit_price": 0.0251846541319902,
-        "amount_usd": 1164.558843175386,
-        "pnl_pct": 3.8
+        "entry_price": 0.0246103878993133,
+        "exit_price": 0.0250044771290697,
+        "amount_usd": 4505.54,
+        "pnl_pct": 1.6
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.024263472030676,
-        "exit_price": 0.0251846541319902,
-        "amount_usd": 582.279421587693,
-        "pnl_pct": 3.8
+        "symbol": "VIRTUAL",
+        "entry_price": 0.720984287836482,
+        "exit_price": 0.706884759066778,
+        "amount_usd": 4488.02,
+        "pnl_pct": -1.96
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.024263472030676,
-        "exit_price": 0.0251846541319902,
-        "amount_usd": 291.1397107938465,
-        "pnl_pct": 3.8
+        "symbol": "VIRTUAL",
+        "entry_price": 0.696889699595323,
+        "exit_price": 0.706884759066778,
+        "amount_usd": 4508.11,
+        "pnl_pct": 1.43
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.024263472030676,
-        "exit_price": 0.024215168913585,
-        "amount_usd": 389.9789653907574,
-        "pnl_pct": -0.2
+        "symbol": "VIRTUAL",
+        "entry_price": 0.696055861107784,
+        "exit_price": 0.706884759066778,
+        "amount_usd": 4506.91,
+        "pnl_pct": 1.56
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.0251846541319902,
-        "exit_price": 0.024215168913585,
-        "amount_usd": 4205.110470361463,
-        "pnl_pct": -3.85
+        "symbol": "VIRTUAL",
+        "entry_price": 0.696965093420599,
+        "exit_price": 0.706884759066778,
+        "amount_usd": 3911.6775862652103,
+        "pnl_pct": 1.42
       }
     ],
-    "last_evaluated": "2026-03-23T06:54:37.284846"
+    "last_evaluated": "2026-03-24T01:03:46.910207"
   }
 }

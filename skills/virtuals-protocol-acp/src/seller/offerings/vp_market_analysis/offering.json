@@ -1,0 +1,24 @@
+{
+  "name": "vp_market_analysis",
+  "description": "VP token market analysis report powered by TrinityCouncil 3-agent deliberation. Covers VIRTUAL and AIXBT with technical indicators (RSI, Bollinger, MACD), 8-strategy backtest results, FinBERT sentiment from 6 news sources, Base chain whale activity, and BTC trend correlation. Includes buy/wait verdict with confidence score.",
+  "jobFee": 0.5,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "enum": ["VIRTUAL", "AIXBT"],
+        "description": "VP token to analyze"
+      },
+      "depth": {
+        "type": "string",
+        "enum": ["summary", "full"],
+        "default": "summary",
+        "description": "Report depth: summary (key metrics) or full (detailed analysis)"
+      }
+    },
+    "required": ["symbol"]
+  }
+}
