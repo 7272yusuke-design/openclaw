@@ -570,13 +570,27 @@ def start_hybrid_radar():
                 logger.info(f"🔍 [PERIODIC-DBG] cycle={cycle_count} trigger_type={trigger_type} cooled={is_cooled_down}")
             if trigger_type is None and cycle_count % PERIODIC_COUNCIL_INTERVAL == 0 and cycle_count > 0:
                 if is_cooled_down:
-                    # Tier1銘柄を交互に召集
+                    # Tier1銘柄を交互に召集（永続トグル: Blackboardに最後の銘柄を記録）
                     _periodic_symbols = [s for s in COUNCIL_ELIGIBLE_SYMBOLS]
-                    _periodic_idx = (cycle_count // PERIODIC_COUNCIL_INTERVAL) % len(_periodic_symbols)
+                    try:
+                        _bb_data = NeoBlackboard.read()
+                        _last_periodic = _bb_data.get("last_periodic_symbol", "")
+                    except Exception:
+                        _last_periodic = ""
+                    # 前回と異なる銘柄を選択（初回はリスト先頭）
+                    if _last_periodic and _last_periodic in _periodic_symbols:
+                        _periodic_idx = (_periodic_symbols.index(_last_periodic) + 1) % len(_periodic_symbols)
+                    else:
+                        _periodic_idx = 0
                     _periodic_sym = _periodic_symbols[_periodic_idx]
                     trigger_type = "PERIODIC"
                     trigger_symbol = _periodic_sym
                     trigger_context = f"定期Council召集（4時間ごと・学習促進）: {_periodic_sym}"
+                    # 永続トグル: Blackboardに今回の銘柄を記録
+                    try:
+                        NeoBlackboard.update({"last_periodic_symbol": _periodic_sym})
+                    except Exception as _bb_err:
+                        logger.warning(f"[PERIODIC] Blackboard書き込み失敗: {_bb_err}")
                     logger.info(f"⏰ [PERIODIC] 定期Council召集: {_periodic_sym}（cycle={cycle_count}）")
                 else:
                     logger.info(f"⏰ [PERIODIC] 定期Council時刻だが冷却中（残り{int(cooldown_remaining/60)}分）— スキップ")
