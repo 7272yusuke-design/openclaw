@@ -9,7 +9,20 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 import json
 
-app = FastAPI(title="Neo Resource API", version="1.0")
+app = FastAPI(title="Neo Resource API", version="1.1")
+
+# --- v1 versioned routes (canonical) ---
+@app.get("/v1/resources/active_positions")
+def active_positions_v1():
+    return active_positions()
+
+@app.get("/v1/resources/historical_performance")
+def historical_performance_v1():
+    return historical_performance()
+
+@app.get("/v1/resources/vp_market_pulse")
+def vp_market_pulse_v1():
+    return vp_market_pulse()
 
 @app.get("/health")
 def health():
