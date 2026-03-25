@@ -25,8 +25,8 @@
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 77.78,
-    "total_evaluated_trades": 36,
+    "accuracy_score": 75.68,
+    "total_evaluated_trades": 37,
     "recent_performance": [
       {
         "symbol": "AIXBT",
@@ -64,7 +64,7 @@
         "pnl_pct": 0.75
       }
     ],
-    "last_evaluated": "2026-03-25T02:41:41.514506"
+    "last_evaluated": "2026-03-25T07:22:31.164835"
   },
-  "last_periodic_symbol": "AIXBT"
+  "last_periodic_symbol": "VIRTUAL"
 }
