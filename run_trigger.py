@@ -222,7 +222,7 @@ def _run_nightly_batch():
     logger.info(f"[Nightly] === {today} バッチ開始 ===")
 
     # 1. Alpha Sweep フルスキャン
-    logger.info("[Nightly] Step 1/3: Alpha Sweep フルスキャン")
+    logger.info("[Nightly] Step 1/8: Alpha Sweep フルスキャン")
     try:
         run_sweep(nightly=True)
         logger.info("[Nightly] Sweep完了（全Tier）")
@@ -230,7 +230,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] Sweep失敗: {e}")
 
     # 2. Performance Evaluator
-    logger.info("[Nightly] Step 2/3: Performance Evaluator")
+    logger.info("[Nightly] Step 2/8: Performance Evaluator")
     try:
         evaluate_performance()
         logger.info("[Nightly] Evaluator完了（Discordダッシュボード送信済み）")
@@ -253,14 +253,14 @@ def _run_nightly_batch():
             logger.error(f"[Nightly] VP Discovery失敗: {e}")
 
     # 3. Nightly Research（洞察投稿・学習報告）
-    logger.info("[Nightly] Step 3/4: Nightly Research")
+    logger.info("[Nightly] Step 3/8: Nightly Research")
     try:
         run_nightly_research()
     except Exception as e:
         logger.error(f"[Nightly] Nightly Research失敗: {e}")
 
     # 4. Tearsheetレポート生成（M.2）
-    logger.info("[Nightly] Step 4/5: quantstats HTMLティアシート生成")
+    logger.info("[Nightly] Step 4/8: quantstats HTMLティアシート生成")
     try:
         from orchestration.tearsheet_generator import generate_tearsheet
         tearsheet_path = generate_tearsheet()
@@ -274,7 +274,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] Tearsheet生成失敗: {e}")
 
     # 5. WAIT品質検証
-    logger.info("[Nightly] Step 5/7: WAIT品質検証")
+    logger.info("[Nightly] Step 5/8: WAIT品質検証")
     wait_quality_text = ""
     try:
         from research.wait_quality_analysis import run_nightly_summary
@@ -285,7 +285,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] WAIT品質検証失敗: {e}")
 
     # 6. H.2取引分析進捗
-    logger.info("[Nightly] Step 6/7: H.2取引分析進捗")
+    logger.info("[Nightly] Step 6/8: H.2取引分析進捗")
     h2_progress_text = ""
     try:
         from research.h2_trade_analysis import get_progress_report
@@ -299,7 +299,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] H.2進捗取得失敗: {e}")
 
     # 7. Discord日次サマリー
-    logger.info("[Nightly] Step 7/7: Discord日次サマリー送信")
+    logger.info("[Nightly] Step 7/8: Discord日次サマリー送信")
     try:
         from core.blackboard import NeoBlackboard
         board = NeoBlackboard.load()
@@ -353,6 +353,7 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] サマリー送信失敗: {e}")
 
     # Step 8: radar_output.log 自動切り詰め（最新10000行を保持）
+    logger.info("[Nightly] Step 8/8: ログ自動切り詰め")
     try:
         import subprocess
         _log_path = "radar_output.log"
