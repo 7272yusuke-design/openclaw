@@ -156,7 +156,7 @@ def check_tp_sl_all_positions():
                     try:
                         from datetime import datetime, timezone
                         _now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                        _bal = pw.get_balance().get('USDC', 0)
+                        _bal = pw.get_balance()  # PaperWallet returns float directly
                         _acc = 0.0
                         try:
                             _bb = NeoBlackboard.read()
