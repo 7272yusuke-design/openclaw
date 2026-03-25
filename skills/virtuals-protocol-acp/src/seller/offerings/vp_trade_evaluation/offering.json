@@ -1,0 +1,49 @@
+{
+  "name": "vp_trade_evaluation",
+  "description": "Independent evaluation of VP token trading strategies. Submit your trade history or strategy parameters for VIRTUAL/AIXBT, and receive a verified quality report: independent win-rate calculation, Sharpe ratio verification, risk-adjusted metrics, max drawdown analysis, and improvement recommendations. Powered by Neo's 8-strategy backtest engine and 2500+ datapoints of real OHLCV data per token.",
+  "jobFee": 0.5,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "enum": ["VIRTUAL", "AIXBT"],
+        "description": "VP token the strategy trades"
+      },
+      "evaluation_type": {
+        "type": "string",
+        "enum": ["strategy_audit", "trade_history_verify", "signal_quality"],
+        "description": "Type of evaluation: strategy_audit (backtest your strategy params), trade_history_verify (verify claimed P&L against real prices), signal_quality (evaluate buy/sell signal accuracy)"
+      },
+      "trades": {
+        "type": "array",
+        "description": "Array of trade objects: {action: BUY|SELL, price: number, timestamp: ISO8601, amount_usd: number}. Required for trade_history_verify and signal_quality.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": {"type": "string", "enum": ["BUY", "SELL"]},
+            "price": {"type": "number"},
+            "timestamp": {"type": "string"},
+            "amount_usd": {"type": "number"}
+          }
+        }
+      },
+      "claimed_metrics": {
+        "type": "object",
+        "description": "Optional: metrics the agent claims (win_rate, sharpe, total_return). Neo will verify independently.",
+        "properties": {
+          "win_rate": {"type": "number"},
+          "sharpe": {"type": "number"},
+          "total_return": {"type": "number"}
+        }
+      },
+      "strategy_params": {
+        "type": "object",
+        "description": "For strategy_audit: strategy parameters to backtest (e.g. {name: 'ema_trend', params: {fast: 12, slow: 26}})"
+      }
+    },
+    "required": ["symbol", "evaluation_type"]
+  }
+}
