@@ -345,6 +345,11 @@ class MarketData:
             logger.warning(f"GeckoTerminal failed for {symbol}: {e}")
 
         # --- Step 2: CoinGecko API（フォールバック） ---
+        # CoinGecko IDマップにない銘柄（ROBO, TIBBIR等）はスキップ（404回避）
+        if symbol not in COINGECKO_ID_MAP:
+            logger.info(f"No CoinGecko ID for {symbol} — skipping CoinGecko OHLCV fallback")
+            return pd.DataFrame(columns=["datetime", "open", "high", "low", "close"])
+
         # キャッシュ確認（1時間以内のキャッシュがあれば再利用）
         cache_file = f"data/ohlcv_cache_{symbol}.json"
         cache_path = os.path.join("/docker/openclaw-taan/data/.openclaw/workspace", cache_file)
