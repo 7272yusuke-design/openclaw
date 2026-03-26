@@ -90,11 +90,28 @@ def check_tp_sl_all_positions():
                 sell_label = "SL"
                 logger.warning(f"[TP/SL] 🛑 損切トリガー: {clean_symbol} {pnl['pnl_pct']:.1f}%")
 
-            # === 第2層: 固定TP ===
-            elif pw.should_take_profit(clean_symbol, current_price, target_pct=full_tp_pct):
-                sell_reason = f"Full Take Profit at +{pnl['pnl_pct']:.1f}% (target: +{full_tp_pct}%)"
-                sell_label = "Full TP"
-                logger.warning(f"[TP/SL] 🎯 全量利確トリガー: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+            # === 第2層: トレーリングストップ（+5%からトレール開始、高値から-2.5%で利確）===
+            elif pnl['pnl_pct'] >= 5.0 or hdata.get("high_water_pnl", 0) >= 5.0:
+                # 高値更新チェック
+                prev_hw = hdata.get("high_water_pnl", pnl['pnl_pct'])
+                if pnl['pnl_pct'] > prev_hw:
+                    # 高値更新 → 記録
+                    hdata["high_water_pnl"] = pnl['pnl_pct']
+                    pw.state["holdings"][clean_symbol]["high_water_pnl"] = pnl['pnl_pct']
+                    pw._save()
+                    logger.info(f"[TP/SL] 📈 高値更新: {clean_symbol} +{pnl['pnl_pct']:.1f}% (HWM)")
+                    prev_hw = pnl['pnl_pct']
+                # 高値から2.5%以上下落 → 利確
+                drawdown_from_hw = prev_hw - pnl['pnl_pct']
+                if drawdown_from_hw >= 2.5:
+                    sell_reason = f"Trailing Stop at +{pnl['pnl_pct']:.1f}% (HWM: +{prev_hw:.1f}%, drawdown: -{drawdown_from_hw:.1f}%)"
+                    sell_label = "Trail TP"
+                    logger.warning(f"[TP/SL] 🎯 トレーリング利確: {clean_symbol} +{pnl['pnl_pct']:.1f}% (HWM: +{prev_hw:.1f}%)")
+            # === 第2層b: 固定TP上限（安全装置: +15%で強制利確）===
+            elif pnl['pnl_pct'] >= full_tp_pct * 2:
+                sell_reason = f"Hard TP Ceiling at +{pnl['pnl_pct']:.1f}% (ceiling: +{full_tp_pct * 2:.0f}%)"
+                sell_label = "Hard TP"
+                logger.warning(f"[TP/SL] 🎯 固定上限利確: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
 
             # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 0.5%） ===
             elif pnl['pnl_pct'] > 0.5:
