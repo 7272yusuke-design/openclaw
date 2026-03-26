@@ -640,10 +640,18 @@ class TrinityCouncil(NeoBaseCrew):
                             trade_result = {"status": "skipped", "reason": f"confidence不足 ({_structured_confidence} < {MIN_CONFIDENCE_FOR_BUY}) — 低確信度ガード"}
                             print(f"\n[Phase 5] 🛑 BUY禁止: confidence={_structured_confidence}が閾値{MIN_CONFIDENCE_FOR_BUY}未満")
                         else:
-                            # ③ BUY額: 総資産の5% と USDC残高の10% の小さい方
-                            trade_amount_usd = round(min(total_assets * 0.05, current_usdc * 0.10), 2)
+                            # ③ BUY額: confidenceに応じた可変ポジションサイズ
+                            if _structured_confidence >= 85:
+                                _size_pct = 0.10   # 非常に高い確信度 → 総資産10%
+                            elif _structured_confidence >= 70:
+                                _size_pct = 0.07   # 高い確信度 → 総資産7%
+                            elif _structured_confidence >= 55:
+                                _size_pct = 0.05   # 中程度 → 総資産5%（従来と同じ）
+                            else:
+                                _size_pct = 0.03   # 低い確信度 → 総資産3%（最小限）
+                            trade_amount_usd = round(min(total_assets * _size_pct, current_usdc * 0.10), 2)
                             if trade_amount_usd >= 10.0:
-                                print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
+                                print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (conf={_structured_confidence} → {_size_pct:.0%} / USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
                                 trade_result = self.portfolio.execute_trade(
                                     symbol=clean_symbol,
                                     action="BUY",
