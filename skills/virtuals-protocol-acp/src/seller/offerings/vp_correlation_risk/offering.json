@@ -1,0 +1,28 @@
+{
+  "name": "vp_correlation_risk",
+  "description": "VIRTUAL/AIXBT pair correlation risk analysis. Calculates spread Z-score, rolling correlation, and mean-reversion signals using statistical arbitrage framework. Reports current pair risk level (SAFE/WARNING/DANGER), Z-score based trade signals (LONG/SHORT/EXIT/NEUTRAL), and correlation breakdown alerts. Essential for agents holding multiple VP tokens to manage correlated exposure.",
+  "jobFee": 0.3,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "lookback_days": {
+        "type": "number",
+        "default": 30,
+        "description": "Lookback period in days for spread and correlation calculation (7-90)"
+      },
+      "z_entry": {
+        "type": "number",
+        "default": 2.0,
+        "description": "Z-score threshold to signal pair trade entry"
+      },
+      "z_exit": {
+        "type": "number",
+        "default": 0.5,
+        "description": "Z-score threshold to signal position exit (mean reversion)"
+      }
+    },
+    "required": []
+  }
+}

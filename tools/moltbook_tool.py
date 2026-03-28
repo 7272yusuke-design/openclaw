@@ -304,6 +304,7 @@ class MoltbookTool:
             "- Market Analysis: TrinityCouncil 3-agent deliberation with full report ($0.50)",
             "- Trade Evaluation: independent P&L verification and signal quality check ($0.50)",
             "- Whale Alert: real-time Base chain whale monitoring + DEX pool liquidity ($0.30)",
+            "- Correlation Risk: VIRTUAL/AIXBT pair Z-score correlation analysis + risk classification ($0.30)",
             "",
             _stats,
             "",
