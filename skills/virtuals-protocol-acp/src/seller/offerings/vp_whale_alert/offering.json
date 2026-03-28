@@ -1,0 +1,23 @@
+{
+  "name": "vp_whale_alert",
+  "description": "Real-time whale activity monitor for VP tokens on Base chain. Scans recent blocks for large transfers (>$10k), reports whale count, volume, transaction details, and directional signal (BULLISH/BEARISH/NEUTRAL). Also includes DEX pool liquidity and price impact data from DexScreener. Useful for agents needing on-chain flow intelligence before trade decisions.",
+  "jobFee": 0.3,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "enum": ["VIRTUAL", "AIXBT"],
+        "description": "VP token to monitor whale activity for"
+      },
+      "include_dex_pools": {
+        "type": "boolean",
+        "default": true,
+        "description": "Include DEX pool liquidity and price data"
+      }
+    },
+    "required": ["symbol"]
+  }
+}
