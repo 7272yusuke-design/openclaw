@@ -1,10 +1,10 @@
 {
-  "train_accuracy": 51.07,
-  "test_accuracy": 39.04,
-  "buy_recall": 100.0,
-  "buy_predictions": 186,
-  "threshold": -0.7706,
-  "program": "min(min(X2, min(X2, sub(min(X2, sub(X2, X6)), X2))), min(max(X2, max(X2, sub(X3, -0.067))), sub(sub(X2, sub(X2, X6)), X6)))",
+  "train_accuracy": 44.04,
+  "test_accuracy": 50.27,
+  "buy_recall": 98.82,
+  "buy_predictions": 176,
+  "threshold": -0.9818,
+  "program": "min(min(min(min(min(min(X11, mul(X6, -0.857)), min(X12, min(0.584, -0.559))), X2), X2), X12), max(X9, X10))",
   "method": "SymbolicRegressor+percentile",
   "horizon": 4,
   "target_pct": 0.01,
@@ -48,6 +48,6 @@
     "p_point_mutation": 0.1,
     "n_jobs": 1
   },
-  "symbol": "VIRTUAL",
-  "updated": "2026-03-28T04:51:30.998717+00:00"
+  "symbol": "AIXBT",
+  "updated": "2026-03-28T05:25:26.940632+00:00"
 }

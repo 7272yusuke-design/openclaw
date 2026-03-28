@@ -1,12 +1,12 @@
 {
-  "whale_VIRTUAL": {
-    "symbol": "VIRTUAL",
+  "whale_AIXBT": {
+    "symbol": "AIXBT",
     "whale_count": 0,
     "whale_volume_usd": 0,
     "large_txs": [],
     "signal": "NEUTRAL",
     "scanned_blocks": 300,
-    "fetched_at": "2026-03-25T07:21:03.420237+00:00"
+    "fetched_at": "2026-03-28T01:03:25.350611+00:00"
   },
-  "_ts": 1774423263.420332
+  "_ts": 1774659805.3506784
 }

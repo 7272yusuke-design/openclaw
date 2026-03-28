@@ -54,7 +54,7 @@ try:
     report['best_win_rate'] = best.get('win_rate', 0)
     report['best_trades'] = best.get('trades', 0)
     positive = sum(1 for v in bt['all_results'].values() if v.get('sharpe', 0) > 0)
-    report['positive_strategies'] = f'{positive}/8'
+    report['positive_strategies'] = f'{positive}/{len(bt["all_results"])}'
 except Exception as e:
     report['backtest_error'] = str(e)
 

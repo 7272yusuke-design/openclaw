@@ -1,0 +1,24 @@
+{
+  "name": "vp_backtest_on_demand",
+  "description": "Run Neo's full 9-strategy parallel backtest on any VP token. Returns Sharpe ratio, win rate, max drawdown, and trade count for all 9 strategies (EMA trend, RSI bounce, MACD cross, BB reversal, Mean reversion, Momentum breakout, VP momentum, Alpha strategy, gplearn evolved). Identifies the best-performing strategy with ranking. Powered by 166+ days of real 4h OHLCV data from GeckoTerminal.",
+  "jobFee": 1.0,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "enum": ["VIRTUAL", "AIXBT"],
+        "description": "VP token to backtest"
+      },
+      "timeframe_days": {
+        "type": "integer",
+        "enum": [30, 60, 90, 166],
+        "default": 30,
+        "description": "Backtest lookback period in days"
+      }
+    },
+    "required": ["symbol"]
+  }
+}

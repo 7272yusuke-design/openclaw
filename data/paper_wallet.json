@@ -1,12 +1,6 @@
 {
-  "usd_balance": 85772.60256936513,
-  "holdings": {
-    "AIXBT": {
-      "amount": 181849.86376551818,
-      "avg_price": 0.02482107990919417,
-      "entry_time": "2026-03-25T00:06:40.454879+00:00"
-    }
-  },
+  "usd_balance": 88494.27703942766,
+  "holdings": {},
   "history": [
     {
       "timestamp": "2026-03-17T20:19:19.159910",
@@ -376,8 +370,296 @@
       "amount_token": 6175.666530520841,
       "amount_usd": 4523.521042055287,
       "reason": "RSI Exit at RSI=65.8 with +0.8% profit"
+    },
+    {
+      "timestamp": "2026-03-25T08:21:36.013208+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0249750065409956,
+      "amount_token": 181849.86376551818,
+      "amount_usd": 4518.993029337861,
+      "reason": "RSI Exit at RSI=71.2 with +0.6% profit"
+    },
+    {
+      "timestamp": "2026-03-25T08:56:50.665075+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.025632975121753,
+      "amount_token": 175243.29808239592,
+      "amount_usd": 4514.58,
+      "reason": "Trinity Council BUY verdict (accuracy: 75.68%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-25T09:45:59.811123+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0259187520979307,
+      "amount_token": 175243.2980823959,
+      "amount_usd": 4519.377161822287,
+      "reason": "RSI Exit at RSI=76.4 with +0.6% profit"
+    },
+    {
+      "timestamp": "2026-03-25T14:42:52.504180+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.752792555691301,
+      "amount_token": 5967.441981243692,
+      "amount_usd": 4514.82,
+      "reason": "Trinity Council BUY verdict (accuracy: 75.0%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-25T15:18:21.662636+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.733464570341364,
+      "amount_token": 5967.441981243692,
+      "amount_usd": 4355.022732465873,
+      "reason": "Stop Loss at -3.0% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-25T15:19:09.762749+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.733464570341364,
+      "amount_token": 6113.854753628999,
+      "amount_usd": 4506.83,
+      "reason": "Trinity Council BUY verdict (accuracy: 71.43%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-25T17:04:12.038139+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0267483932301249,
+      "amount_token": 167703.4676964428,
+      "amount_usd": 4508.34,
+      "reason": "Trinity Council BUY verdict (accuracy: 70.45%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-25T19:52:19.647831+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0261892219688571,
+      "amount_token": 170963.47899621827,
+      "amount_usd": 4499.9,
+      "reason": "Trinity Council BUY verdict (accuracy: 68.89%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-25T20:34:18.275388+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.719375459877327,
+      "amount_token": 6209.08649116511,
+      "amount_usd": 4489.11,
+      "reason": "Trinity Council BUY verdict (accuracy: 68.89%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-25T21:25:42.748223+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0257389089911591,
+      "amount_token": 338666.94669266103,
+      "amount_usd": 8673.333130639952,
+      "reason": "Stop Loss at -3.2% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-25T22:39:33.973649+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0262427120072271,
+      "amount_token": 170065.61474175836,
+      "amount_usd": 4485.41,
+      "reason": "Trinity Council BUY verdict (accuracy: 70.21%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T00:12:02.040751+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0255646325628045,
+      "amount_token": 170065.61474175836,
+      "amount_usd": 4325.926627678318,
+      "reason": "Stop Loss at -3.1% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-26T03:27:02.640525+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.710096559010379,
+      "amount_token": 6263.219760138275,
+      "amount_usd": 4469.84,
+      "reason": "Trinity Council BUY verdict (accuracy: 64.71%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T05:47:36.256183+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.702473342830841,
+      "amount_token": 18586.161004932383,
+      "amount_usd": 12991.001238269439,
+      "reason": "Stop Loss at -3.0% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-26T09:16:41.704506+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.700488346393398,
+      "amount_token": 3799.6990438227876,
+      "amount_usd": 2675.02,
+      "reason": "Trinity Council BUY verdict (accuracy: 65.38%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T10:40:45.661284+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0241102574671358,
+      "amount_token": 110342.2994808874,
+      "amount_usd": 2673.75,
+      "reason": "Trinity Council BUY verdict (accuracy: 64.81%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T13:54:30.854918+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.701323160899733,
+      "amount_token": 3796.3110994143326,
+      "amount_usd": 2675.82,
+      "reason": "Trinity Council BUY verdict (accuracy: 64.81%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T16:04:54.058031+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.686255568280902,
+      "amount_token": 3871.819877040907,
+      "amount_usd": 2670.41,
+      "reason": "Trinity Council BUY verdict (accuracy: 65.45%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T18:28:37.572333+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.677838767587002,
+      "amount_token": 11467.830020278026,
+      "amount_usd": 7734.473069003269,
+      "reason": "Stop Loss at -3.1% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-26T19:35:24.661811+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0238744541048391,
+      "amount_token": 111077.46331517104,
+      "amount_usd": 2665.24,
+      "reason": "Trinity Council BUY verdict (accuracy: 66.07%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-26T20:19:16.952191+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0242859424765783,
+      "amount_token": 221419.76279605844,
+      "amount_usd": 5350.500684330474,
+      "reason": "RSI Exit at RSI=81.2 with +0.7% profit"
+    },
+    {
+      "timestamp": "2026-03-27T03:51:00.212825+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.68656281668884,
+      "amount_token": 3864.7974162028795,
+      "amount_usd": 2666.76,
+      "reason": "Trinity Council BUY verdict (accuracy: 66.1%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-27T05:44:16.616994+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0236762495275436,
+      "amount_token": 112038.86185242499,
+      "amount_usd": 2665.99,
+      "reason": "Trinity Council BUY verdict (accuracy: 66.67%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-27T06:51:17.051765+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.023934708616736,
+      "amount_token": 112038.86185242499,
+      "amount_usd": 2668.2094246275883,
+      "reason": "RSI Exit at RSI=69.3 with +0.6% profit"
+    },
+    {
+      "timestamp": "2026-03-27T07:44:03.117431+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0242633785025549,
+      "amount_token": 109335.5197719336,
+      "amount_usd": 2666.18,
+      "reason": "Trinity Council BUY verdict (accuracy: 66.67%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-27T07:53:39.074263+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0245272375799205,
+      "amount_token": 109335.5197719336,
+      "amount_usd": 2668.2897780234593,
+      "reason": "RSI Exit at RSI=82.9 with +0.6% profit"
+    },
+    {
+      "timestamp": "2026-03-27T09:52:25.621150+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.666686714572995,
+      "amount_token": 3864.7974162028795,
+      "amount_usd": 2563.726046439005,
+      "reason": "Stop Loss at -3.4% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-27T16:26:12.617798+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0242709343299013,
+      "amount_token": 109203.91295915877,
+      "amount_usd": 2663.8,
+      "reason": "Trinity Council BUY verdict (accuracy: 68.75%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-27T22:01:36.776208+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0234950678061984,
+      "amount_token": 109203.91295915877,
+      "amount_usd": 2552.924572979235,
+      "reason": "Stop Loss at -3.7% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-27T23:24:33.015029+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0236585097177747,
+      "amount_token": 111891.13902686647,
+      "amount_usd": 2660.48,
+      "reason": "Trinity Council BUY verdict (accuracy: 68.75%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-28T01:04:01.664506+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0239400130612713,
+      "amount_token": 110597.88869887096,
+      "amount_usd": 2661.02,
+      "reason": "Trinity Council BUY verdict (accuracy: 66.67%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-28T01:35:13.981541+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0231876240678073,
+      "amount_token": 222489.0277257374,
+      "amount_usd": 5133.196974445772,
+      "reason": "Stop Loss at -3.0% (limit: -3.0%)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-03-25T07:38:36.179351+00:00"
+  "last_updated": "2026-03-28T01:35:13.981598+00:00"
 }

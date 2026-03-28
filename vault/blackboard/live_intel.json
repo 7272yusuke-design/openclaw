@@ -25,46 +25,46 @@
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 75.68,
-    "total_evaluated_trades": 37,
+    "accuracy_score": 63.77,
+    "total_evaluated_trades": 69,
     "recent_performance": [
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.0246103878993133,
-        "exit_price": 0.0250044771290697,
-        "amount_usd": 4505.54,
-        "pnl_pct": 1.6
+        "symbol": "VIRTUAL",
+        "entry_price": 0.710096559010379,
+        "exit_price": 0.702473342830841,
+        "amount_usd": 605.937846720034,
+        "pnl_pct": -1.07
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.0244770466856545,
-        "exit_price": 0.0250044771290697,
-        "amount_usd": 300.907430495492,
-        "pnl_pct": 2.15
+        "symbol": "VIRTUAL",
+        "entry_price": 0.700488346393398,
+        "exit_price": 0.702473342830841,
+        "amount_usd": 2675.02,
+        "pnl_pct": 0.28
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.0244770466856545,
-        "exit_price": 0.0248832669496135,
-        "amount_usd": 4210.552569504508,
-        "pnl_pct": 1.66
+        "symbol": "VIRTUAL",
+        "entry_price": 0.701323160899733,
+        "exit_price": 0.702473342830841,
+        "amount_usd": 2675.82,
+        "pnl_pct": 0.16
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.0246237477056039,
-        "exit_price": 0.0248832669496135,
-        "amount_usd": 4512.36,
-        "pnl_pct": 1.05
+        "symbol": "VIRTUAL",
+        "entry_price": 0.686255568280902,
+        "exit_price": 0.702473342830841,
+        "amount_usd": 2670.41,
+        "pnl_pct": 2.36
       },
       {
-        "symbol": "AIXBT",
-        "entry_price": 0.0246969745096482,
-        "exit_price": 0.0248832669496135,
-        "amount_usd": 332.10314855108663,
-        "pnl_pct": 0.75
+        "symbol": "VIRTUAL",
+        "entry_price": 0.68656281668884,
+        "exit_price": 0.702473342830841,
+        "amount_usd": 2666.76,
+        "pnl_pct": 2.32
       }
     ],
-    "last_evaluated": "2026-03-25T07:22:31.164835"
+    "last_evaluated": "2026-03-28T04:59:26.660549"
   },
-  "last_periodic_symbol": "VIRTUAL"
+  "last_periodic_symbol": "AIXBT"
 }

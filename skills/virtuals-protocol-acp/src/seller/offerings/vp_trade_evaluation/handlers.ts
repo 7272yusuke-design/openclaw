@@ -61,7 +61,7 @@ except Exception as e:
     sys.exit(0)
 
 if eval_type == 'strategy_audit':
-    # Run all 8 strategies + compare
+    # Run all 9 strategies + compare
     try:
         bt = CoreBacktest.run_all_strategies(df, symbol=sym, use_optuna=False)
         all_results = {}
@@ -77,7 +77,7 @@ if eval_type == 'strategy_audit':
         report['details']['best_strategy'] = best.get('strategy', 'N/A')
         report['details']['best_sharpe'] = round(best.get('sharpe_raw', 0), 3)
         positive = sum(1 for v in bt['all_results'].values() if v.get('sharpe', 0) > 0)
-        report['scores']['strategy_diversity'] = f'{positive}/8 positive Sharpe'
+        report['scores']['strategy_diversity'] = f'{positive}/{len(bt["all_results"])} positive Sharpe'
 
         # If client provided strategy params, evaluate specifically
         if strat_params.get('name'):
@@ -257,7 +257,7 @@ try:
         'neo_total_trades': len(hist),
         'neo_closed_trades': total_closed,
         'neo_win_rate': neo_wr,
-        'methodology': '8-strategy parallel backtest, FIFO P&L matching, 4h OHLCV real data from GeckoTerminal'
+        'methodology': '9-strategy parallel backtest (incl. gplearn), FIFO P&L matching, 4h OHLCV real data from GeckoTerminal'
     }
 except:
     report['evaluator_credentials'] = {'note': 'Credentials unavailable'}
