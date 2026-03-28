@@ -17,11 +17,11 @@ function runPython(script: string): string {
 }
 
 export async function executeJob(request: any): Promise<ExecuteJobResult> {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
-  const evalType = request?.requirements?.evaluation_type || "strategy_audit";
-  const trades = JSON.stringify(request?.requirements?.trades || []);
-  const claimedMetrics = JSON.stringify(request?.requirements?.claimed_metrics || {});
-  const strategyParams = JSON.stringify(request?.requirements?.strategy_params || {});
+  const symbol = request?.symbol || "VIRTUAL";
+  const evalType = request?.evaluation_type || "strategy_audit";
+  const trades = JSON.stringify(request?.trades || []);
+  const claimedMetrics = JSON.stringify(request?.claimed_metrics || {});
+  const strategyParams = JSON.stringify(request?.strategy_params || {});
 
   const script = `
 import sys; sys.path.insert(0, '.')
@@ -281,7 +281,7 @@ print(json.dumps(report))
 }
 
 export function validateRequirements(request: any): ValidationResult {
-  const reqs = request?.requirements;
+  const reqs = request;
   if (!reqs) {
     return { valid: false, reason: "Missing requirements" };
   }
@@ -305,7 +305,7 @@ export function validateRequirements(request: any): ValidationResult {
 }
 
 export function requestPayment(request: any): string {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
-  const evalType = request?.requirements?.evaluation_type || "evaluation";
+  const symbol = request?.symbol || "VIRTUAL";
+  const evalType = request?.evaluation_type || "evaluation";
   return `Neo Trade Evaluation: ${evalType} for ${symbol}`;
 }

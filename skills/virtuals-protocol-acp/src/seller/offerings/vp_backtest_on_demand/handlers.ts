@@ -17,8 +17,8 @@ function runPython(script: string): string {
 }
 
 export async function executeJob(request: any): Promise<ExecuteJobResult> {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
-  const days = request?.requirements?.timeframe_days || 30;
+  const symbol = request?.symbol || "VIRTUAL";
+  const days = request?.timeframe_days || 30;
 
   const script = `
 import sys; sys.path.insert(0, '.')
@@ -126,11 +126,11 @@ print(json.dumps(report))
 }
 
 export function validateRequirements(request: any): ValidationResult {
-  const symbol = request?.requirements?.symbol;
+  const symbol = request?.symbol;
   if (!symbol || !["VIRTUAL", "AIXBT"].includes(symbol)) {
     return { valid: false, reason: "symbol must be VIRTUAL or AIXBT" };
   }
-  const days = request?.requirements?.timeframe_days;
+  const days = request?.timeframe_days;
   if (days && ![30, 60, 90, 166].includes(days)) {
     return { valid: false, reason: "timeframe_days must be 30, 60, 90, or 166" };
   }
@@ -138,7 +138,7 @@ export function validateRequirements(request: any): ValidationResult {
 }
 
 export function requestPayment(request: any): string {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
-  const days = request?.requirements?.timeframe_days || 30;
+  const symbol = request?.symbol || "VIRTUAL";
+  const days = request?.timeframe_days || 30;
   return `VP 9-Strategy Backtest for ${symbol} (${days}d) — powered by Neo`;
 }

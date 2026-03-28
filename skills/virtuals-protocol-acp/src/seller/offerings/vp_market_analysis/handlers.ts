@@ -17,8 +17,8 @@ function runPython(script: string): string {
 }
 
 export async function executeJob(request: any): Promise<ExecuteJobResult> {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
-  const depth = request?.requirements?.depth || "summary";
+  const symbol = request?.symbol || "VIRTUAL";
+  const depth = request?.depth || "summary";
 
   // Generate report via Neo's existing modules
   const script = `
@@ -106,11 +106,11 @@ print(json.dumps(report))
 }
 
 export function validateRequirements(request: any): ValidationResult {
-  const symbol = request?.requirements?.symbol;
+  const symbol = request?.symbol;
   if (!symbol || !["VIRTUAL", "AIXBT"].includes(symbol)) {
     return { valid: false, reason: "symbol must be VIRTUAL or AIXBT" };
   }
-  const depth = request?.requirements?.depth;
+  const depth = request?.depth;
   if (depth && !["summary", "full"].includes(depth)) {
     return { valid: false, reason: "depth must be summary or full" };
   }
@@ -118,6 +118,6 @@ export function validateRequirements(request: any): ValidationResult {
 }
 
 export function requestPayment(request: any): string {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
+  const symbol = request?.symbol || "VIRTUAL";
   return `VP Market Analysis Report for ${symbol} — powered by TrinityCouncil`;
 }

@@ -17,8 +17,8 @@ function runPython(script: string): string {
 }
 
 export async function executeJob(request: any): Promise<ExecuteJobResult> {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
-  const includeHeadlines = request?.requirements?.include_headlines || false;
+  const symbol = request?.symbol || "VIRTUAL";
+  const includeHeadlines = request?.include_headlines || false;
 
   const script = `
 import sys; sys.path.insert(0, '.')
@@ -108,7 +108,7 @@ print(json.dumps(report))
 }
 
 export function validateRequirements(request: any): ValidationResult {
-  const symbol = request?.requirements?.symbol;
+  const symbol = request?.symbol;
   if (!symbol || !["VIRTUAL", "AIXBT"].includes(symbol)) {
     return { valid: false, reason: "symbol must be VIRTUAL or AIXBT" };
   }
@@ -116,6 +116,6 @@ export function validateRequirements(request: any): ValidationResult {
 }
 
 export function requestPayment(request: any): string {
-  const symbol = request?.requirements?.symbol || "VIRTUAL";
+  const symbol = request?.symbol || "VIRTUAL";
   return `VP Sentiment Scan for ${symbol} — FinBERT + Fear&Greed + BTC trend`;
 }
