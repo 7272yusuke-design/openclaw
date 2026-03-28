@@ -310,6 +310,38 @@ class TrinityCouncil(NeoBaseCrew):
                 print(f"  ⚠️ [Reflexion] 自己評価失敗: {str(_re)[:60]}")
                 reflexion_insight = ""
 
+        # 1-P. N.1 ペアトレードシグナル（参考情報注入）
+        pair_trade_context = ""
+        if clean_symbol in ("VIRTUAL", "AIXBT"):
+            try:
+                from research.n1_pair_trade import calc_pair_signal
+                print(f"\n[Phase 1-P] ペアトレードシグナル計算中...")
+                _pt = calc_pair_signal()
+                _pt_signal = _pt.get("signal", "NO_DATA")
+                _pt_z = _pt.get("z_score", 0)
+                _pt_corr = _pt.get("recent_corr", 0)
+                _pt_rec = _pt.get("recommendation", "")
+                print(f"  📐 N.1: signal={_pt_signal}, Z={_pt_z}, corr={_pt_corr:.3f}")
+
+                if _pt_signal not in ("NEUTRAL", "NO_DATA", "EXIT"):
+                    pair_trade_context = (
+                        f"\n📐 [N.1 ペアトレード分析] VIRTUAL/AIXBT"
+                        f"\n  シグナル: {_pt_signal} (Zスコア={_pt_z})"
+                        f"\n  直近相関: {_pt_corr:.3f}"
+                        f"\n  推奨: {_pt_rec}"
+                    )
+                    # シグナルが現銘柄と矛盾する場合は警告
+                    if clean_symbol == "VIRTUAL" and "SHORT_VIRTUAL" in _pt_signal:
+                        pair_trade_context += "\n  ⚠️ ペアトレードはVIRTUAL売りを示唆。BUY判断は慎重に。"
+                    elif clean_symbol == "AIXBT" and "SHORT_AIXBT" in _pt_signal:
+                        pair_trade_context += "\n  ⚠️ ペアトレードはAIXBT売りを示唆。BUY判断は慎重に。"
+                    elif clean_symbol == "VIRTUAL" and "LONG_VIRTUAL" in _pt_signal:
+                        pair_trade_context += "\n  ✅ ペアトレードもVIRTUAL買いを支持。"
+                    elif clean_symbol == "AIXBT" and "LONG_AIXBT" in _pt_signal:
+                        pair_trade_context += "\n  ✅ ペアトレードもAIXBT買いを支持。"
+            except Exception as _pt_err:
+                print(f"  ⚠️ [Phase 1-P] ペアトレード計算失敗: {str(_pt_err)[:60]}")
+
         # 1e. 実データバックテスト (v2)
         print(f"\n[Phase 2] バックテスト実行中...")
         test_logic = 'ema_cross' if "Accumulating" in whale_sig else 'bb_reversal'
@@ -367,6 +399,7 @@ class TrinityCouncil(NeoBaseCrew):
             f"バックテスト結果: {backtest_report}\n"
             f"{onchain_context}\n"
             f"{acp_intel}"
+            f"{pair_trade_context}"
         )
 
         agent_bull = Agent(
@@ -840,6 +873,7 @@ class TrinityCouncil(NeoBaseCrew):
             "unrealized_pnl_pct": _pnl_data.get("pnl_pct", 0),
             "unrealized_pnl_usd": _pnl_data.get("pnl_usd", 0),
             "backtest_summary": _bt_summary,
+            "pair_trade": pair_trade_context if pair_trade_context else "",
         }
         
         if trade_action in ("BUY", "SELL"):

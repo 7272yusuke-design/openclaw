@@ -76,6 +76,14 @@ class DiscordReporter:
             {"name": "🤖 Neoの最終判断", "value": cls._truncate(d.get("verdict", "Pending"), 800), "inline": False},
         ]
         
+        # N.1ペアトレードフィールド（存在する場合のみ追加）
+        if d.get("pair_trade"):
+            fields.append({
+                "name": "📐 N.1 ペアトレード",
+                "value": cls._truncate(d["pair_trade"], 400),
+                "inline": False
+            })
+
         # 取引結果フィールド（存在する場合のみ追加）
         trade_info = d.get("trade")
         if trade_info:
