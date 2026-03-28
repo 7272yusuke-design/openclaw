@@ -298,3 +298,29 @@ if __name__ == "__main__":
     print("📊 マルチシード最良結果:")
     for sym, r in all_results.items():
         print(f"  {sym}: acc={r['test_accuracy']}% recall={r['buy_recall']}% 数式={r['program'][:60]}...")
+
+
+def run_nightly_evolution():
+    """
+    G4 Nightly進化: 毎晩1回、VIRTUAL/AIXBTで1シードずつ進化。
+    軽量版（1シード×2銘柄）で毎晩少しずつ改善を積み重ねる。
+    """
+    import random
+    seed = random.randint(1, 9999)
+    GP_PARAMS["random_state"] = seed
+    results = {}
+    for sym in ["VIRTUAL", "AIXBT"]:
+        try:
+            print(f"\n🧬 [G4 Nightly] {sym} seed={seed}")
+            result = run_gplearn_strategy(sym, days=30)
+            results[sym] = {
+                "acc": result.get("test_accuracy", 0),
+                "recall": result.get("buy_recall", 0),
+                "program": result.get("program", "")[:80],
+                "saved": "新記録" if result.get("test_accuracy", 0) > 0 else "スキップ",
+            }
+        except Exception as e:
+            print(f"  ⚠️ {sym} 進化失敗: {str(e)[:60]}")
+            results[sym] = {"acc": 0, "recall": 0, "program": "ERROR", "saved": "失敗"}
+    GP_PARAMS["random_state"] = 42  # デフォルトに戻す
+    return results

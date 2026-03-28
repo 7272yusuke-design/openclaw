@@ -346,6 +346,20 @@ def _run_nightly_batch():
     except Exception as _ve:
         logger.error(f"[Nightly] EvolveR更新失敗: {_ve}")
 
+    # 6d. gplearn Nightly進化（G4: 毎晩1シード×2銘柄）
+    gplearn_nightly_text = ""
+    try:
+        from research.gplearn_strategy import run_nightly_evolution
+        logger.info("[Nightly] Step 6d: gplearn Nightly進化")
+        _gp_results = run_nightly_evolution()
+        _gp_lines = []
+        for _sym, _r in _gp_results.items():
+            _gp_lines.append(f"{_sym}: acc={_r['acc']}% recall={_r['recall']}% [{_r['saved']}]")
+        gplearn_nightly_text = "\n\n🧬 **gplearn G4**: " + " / ".join(_gp_lines)
+        logger.info(f"[Nightly] gplearn G4完了: {' / '.join(_gp_lines)}")
+    except Exception as _gpe:
+        logger.error(f"[Nightly] gplearn G4失敗: {_gpe}")
+
     # 7. Discord日次サマリー
     logger.info("[Nightly] Step 7/8: Discord日次サマリー送信")
     try:
@@ -384,6 +398,7 @@ def _run_nightly_batch():
             f"{engage_report}"
             f"{wait_quality_text}"
             f"{h2_progress_text}"
+            f"{gplearn_nightly_text}"
         )
         # Nightly専用チャンネルに送信
         import requests as _req
