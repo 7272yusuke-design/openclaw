@@ -102,87 +102,127 @@ def prepare_data(symbol: str, days: int = 30) -> tuple:
 
 
 def train_and_evaluate(X_train, X_test, y_train, y_test, y_reg_train, y_reg_test) -> dict:
-    """gplearn SymbolicRegressor で将来リターンを回帰 → 閾値でBUY/WAIT分類"""
+    """二段アプローチ: SymbolicClassifier(直接分類) + SymbolicRegressor(回帰→パーセンタイル閾値)"""
     print(f"  🧬 gplearn開始: {GP_PARAMS['population_size']}個体 x {GP_PARAMS['generations']}世代")
 
-    # SymbolicRegressorはclass_weightを受け取らないので除外
-    reg_params = {k: v for k, v in GP_PARAMS.items() if k != "class_weight"}
-    reg = SymbolicRegressor(**reg_params)
+    results_candidates = []
 
-    # 回帰ターゲット: 将来リターン（連続値）を予測
-    reg.fit(X_train, y_reg_train)
+    # === アプローチ1: SymbolicClassifier（直接BUY/WAIT分類） ===
+    print(f"  [A1] SymbolicClassifier...")
+    try:
+        cls_params = {k: v for k, v in GP_PARAMS.items()}
+        # transformer_set is not valid for classifier — remove if present
+        cls = SymbolicClassifier(**cls_params)
+        cls.fit(X_train, y_train)
+        y_pred_train_cls = cls.predict(X_train)
+        y_pred_test_cls = cls.predict(X_test)
+        train_acc_cls = accuracy_score(y_train, y_pred_train_cls)
+        test_acc_cls = accuracy_score(y_test, y_pred_test_cls)
+        buy_pred_count_cls = int(y_pred_test_cls.sum())
+        buy_recall_cls = 0.0
+        if y_test.sum() > 0:
+            buy_recall_cls = ((y_pred_test_cls == 1) & (y_test == 1)).sum() / y_test.sum()
+        program_cls = str(cls._program)
+        print(f"    acc={test_acc_cls:.1%} recall={buy_recall_cls:.1%} buys={buy_pred_count_cls} prog={program_cls[:60]}")
+        results_candidates.append({
+            "train_accuracy": round(train_acc_cls * 100, 2),
+            "test_accuracy": round(test_acc_cls * 100, 2),
+            "buy_recall": round(buy_recall_cls * 100, 2),
+            "buy_predictions": buy_pred_count_cls,
+            "threshold": "N/A (classifier)",
+            "program": program_cls,
+            "method": "SymbolicClassifier",
+            "y_pred_test": y_pred_test_cls,
+        })
+    except Exception as e:
+        print(f"    ⚠️ Classifier失敗: {e}")
 
-    y_pred_train_raw = reg.predict(X_train)
-    y_pred_test_raw = reg.predict(X_test)
+    # === アプローチ2: SymbolicRegressor → パーセンタイル閾値 ===
+    print(f"  [A2] SymbolicRegressor + percentile threshold...")
+    try:
+        reg_params = {k: v for k, v in GP_PARAMS.items() if k != "class_weight"}
+        reg = SymbolicRegressor(**reg_params)
+        reg.fit(X_train, y_reg_train)
+        y_pred_train_raw = reg.predict(X_train)
+        y_pred_test_raw = reg.predict(X_test)
 
-    # 最適閾値を訓練データの予測値分布から探索
-    best_threshold = 0.5
-    best_f1 = 0.0
-    # 予測値の実際の範囲でグリッドサーチ
-    pred_min, pred_max = y_pred_train_raw.min(), y_pred_train_raw.max()
-    if pred_max > pred_min:
-        thresholds = np.linspace(pred_min, pred_max, 50)
-    else:
-        thresholds = [pred_min]
-    for threshold in thresholds:
-        y_pred_t = (y_pred_train_raw > threshold).astype(int)
-        tp = ((y_pred_t == 1) & (y_train == 1)).sum()
-        fp = ((y_pred_t == 1) & (y_train == 0)).sum()
-        fn = ((y_pred_t == 0) & (y_train == 1)).sum()
-        n_buy = int(y_pred_t.sum())
-        buy_ratio = n_buy / len(y_pred_t) if len(y_pred_t) > 0 else 0
-        # 全BUY(>90%)や全WAIT(<10%)は除外
-        if buy_ratio < 0.10 or buy_ratio > 0.90:
-            continue
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
-        if f1 > best_f1:
-            best_f1 = f1
-            best_threshold = threshold
+        # パーセンタイル閾値: 訓練データのBUY比率に合わせる
+        buy_ratio_train = y_train.mean()
+        # 上位buy_ratio_train分をBUYとする閾値
+        best_threshold = 0.0
+        best_f1 = 0.0
+        for pct in range(20, 80, 2):
+            thr = np.percentile(y_pred_train_raw, pct)
+            y_t = (y_pred_train_raw > thr).astype(int)
+            buy_r = y_t.mean()
+            if buy_r < 0.15 or buy_r > 0.70:
+                continue
+            tp = ((y_t == 1) & (y_train == 1)).sum()
+            fp = ((y_t == 1) & (y_train == 0)).sum()
+            fn = ((y_t == 0) & (y_train == 1)).sum()
+            prec = tp / (tp + fp) if (tp + fp) > 0 else 0
+            rec = tp / (tp + fn) if (tp + fn) > 0 else 0
+            f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
+            if f1 > best_f1:
+                best_f1 = f1
+                best_threshold = thr
 
-    if best_f1 == 0.0:
-        # フォールバック: 中央値を閾値に
-        best_threshold = float(np.median(y_pred_train_raw))
-        print(f"  ⚠️ F1=0のため中央値を閾値に: {best_threshold:.4f}")
-    else:
-        print(f"  🔧 最適閾値: {best_threshold:.4f} (訓練F1={best_f1:.3f})")
+        if best_f1 == 0.0:
+            best_threshold = float(np.percentile(y_pred_train_raw, 100 * (1 - buy_ratio_train)))
+            print(f"    ⚠️ F1=0 → BUY比率ベースの閾値: {best_threshold:.4f}")
+        else:
+            print(f"    閾値: {best_threshold:.4f} (F1={best_f1:.3f})")
 
-    y_pred_train = (y_pred_train_raw > best_threshold).astype(int)
-    y_pred_test = (y_pred_test_raw > best_threshold).astype(int)
+        y_pred_train_reg = (y_pred_train_raw > best_threshold).astype(int)
+        y_pred_test_reg = (y_pred_test_raw > best_threshold).astype(int)
+        train_acc_reg = accuracy_score(y_train, y_pred_train_reg)
+        test_acc_reg = accuracy_score(y_test, y_pred_test_reg)
+        buy_pred_count_reg = int(y_pred_test_reg.sum())
+        buy_recall_reg = 0.0
+        if y_test.sum() > 0:
+            buy_recall_reg = ((y_pred_test_reg == 1) & (y_test == 1)).sum() / y_test.sum()
+        program_reg = str(reg._program)
+        print(f"    acc={test_acc_reg:.1%} recall={buy_recall_reg:.1%} buys={buy_pred_count_reg} prog={program_reg[:60]}")
+        results_candidates.append({
+            "train_accuracy": round(train_acc_reg * 100, 2),
+            "test_accuracy": round(test_acc_reg * 100, 2),
+            "buy_recall": round(buy_recall_reg * 100, 2),
+            "buy_predictions": buy_pred_count_reg,
+            "threshold": round(best_threshold, 4),
+            "program": program_reg,
+            "method": "SymbolicRegressor+percentile",
+            "y_pred_test": y_pred_test_reg,
+        })
+    except Exception as e:
+        print(f"    ⚠️ Regressor失敗: {e}")
 
-    train_acc = accuracy_score(y_train, y_pred_train)
-    test_acc = accuracy_score(y_test, y_pred_test)
+    # === 最良候補を選択 ===
+    # スコア: accuracy + buy_recall*0.5 (BUY recallにボーナス) + BUYが出ているかの大ボーナス
+    if not results_candidates:
+        return {"train_accuracy": 0, "test_accuracy": 0, "buy_recall": 0,
+                "buy_predictions": 0, "program": "NONE", "method": "FAILED",
+                "horizon": HORIZON, "target_pct": TARGET_PCT, "features": FEATURE_COLS,
+                "gp_params": {}}
 
-    best_program = str(reg._program)
+    for c in results_candidates:
+        has_buys = 1 if 5 <= c["buy_predictions"] <= 150 else 0
+        c["_score"] = c["test_accuracy"] + c["buy_recall"] * 0.5 + has_buys * 10
 
-    print(f"  ✅ 訓練精度: {train_acc:.1%}")
-    print(f"  ✅ テスト精度: {test_acc:.1%}")
-    print(f"  📝 発見された数式: {best_program}")
+    best = max(results_candidates, key=lambda x: x["_score"])
+    y_pred_test_best = best.pop("y_pred_test")
+
+    print(f"  ✅ 最良: {best['method']} acc={best['test_accuracy']}% recall={best['buy_recall']}%")
+    print(f"  📝 数式: {best['program']}")
     print(f"  📊 テスト詳細:")
-    print(classification_report(y_test, y_pred_test, target_names=["WAIT", "BUY"], zero_division=0))
+    print(classification_report(y_test, y_pred_test_best, target_names=["WAIT", "BUY"], zero_division=0))
 
-    # BUY recall
-    buy_recall = 0.0
-    buy_count_pred = int(y_pred_test.sum())
-    if y_test.sum() > 0:
-        buy_correct = int(((y_pred_test == 1) & (y_test == 1)).sum())
-        buy_recall = buy_correct / int(y_test.sum())
-    print(f"  🎯 BUY recall: {buy_recall:.1%} ({buy_count_pred}件予測)")
-
-    return {
-        "train_accuracy": round(train_acc * 100, 2),
-        "test_accuracy": round(test_acc * 100, 2),
-        "buy_recall": round(buy_recall * 100, 2),
-        "buy_predictions": buy_count_pred,
-        "threshold": round(best_threshold, 3),
-        "program": best_program,
-        "method": "SymbolicRegressor+threshold",
-        "horizon": HORIZON,
-        "target_pct": TARGET_PCT,
-        "features": FEATURE_COLS,
-        "gp_params": {k: v for k, v in reg_params.items() if k != "random_state"},
-    }
+    # 不要キー削除
+    best.pop("_score", None)
+    best["horizon"] = HORIZON
+    best["target_pct"] = TARGET_PCT
+    best["features"] = FEATURE_COLS
+    best["gp_params"] = {k: v for k, v in GP_PARAMS.items() if k not in ("random_state", "class_weight")}
+    return best
 
 
 def save_best_program(result: dict):
@@ -215,11 +255,19 @@ def run_gplearn_strategy(symbol: str = "VIRTUAL", days: int = 30) -> dict:
         with open(sym_path) as f:
             existing = json.load(f)
         old_acc = existing.get("test_accuracy", 0)
-        if result["test_accuracy"] > old_acc or (result["test_accuracy"] == old_acc and result["buy_recall"] > existing.get("buy_recall", 0)):
-            print(f"  🆕 新記録! acc={old_acc}% → {result['test_accuracy']}% recall={result['buy_recall']}%")
+        old_recall = existing.get("buy_recall", 0)
+        new_acc = result["test_accuracy"]
+        new_recall = result["buy_recall"]
+        # スコア: accuracy + recall*0.5 + BUYが出ているボーナス(+10)
+        old_has_buy = 10 if old_recall > 5 else 0
+        new_has_buy = 10 if new_recall > 5 else 0
+        old_score = old_acc + old_recall * 0.5 + old_has_buy
+        new_score = new_acc + new_recall * 0.5 + new_has_buy
+        if new_score > old_score:
+            print(f"  🆕 新記録! score={old_score:.1f}→{new_score:.1f} acc={new_acc}% recall={new_recall}%")
             save_best_program(result)
         else:
-            print(f"  📌 既存が上: acc={old_acc}% >= {result['test_accuracy']}%（保存スキップ）")
+            print(f"  📌 既存が上: score={old_score:.1f} >= {new_score:.1f}（保存スキップ）")
     else:
         save_best_program(result)
 

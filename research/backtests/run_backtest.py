@@ -336,6 +336,93 @@ class CoreBacktest:
             return {"strategy": "ema_trend", "sharpe": 0.0, "trades": 0,
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
 
+    # ── 戦略9: gplearn Evolved（遺伝的プログラミング自動発見）──────────
+    @staticmethod
+    def run_gplearn_evolved(df: pd.DataFrame) -> dict:
+        """gplearnで発見された数式をバックテスト。
+        data/gplearn/best_{symbol}.json から最良プログラムをロード。
+        数式が特徴量を使ってBUYスコアを算出 → 閾値でエントリ/エグジット。"""
+        import json
+        from pathlib import Path
+        from sklearn.preprocessing import StandardScaler
+        try:
+            # 使用する特徴量（gplearn_strategy.pyと同じ）
+            FEATURE_COLS = [
+                "ma20", "ma50", "bb_bandwidth_20", "returns", "acceleration",
+                "rsi_14", "ma_short", "ma_mid", "ma_long",
+                "macd", "macd_signal", "macd_hist", "atr_14",
+            ]
+            # 特徴量の存在確認
+            missing = [c for c in FEATURE_COLS if c not in df.columns]
+            if missing:
+                return {"strategy": "gplearn_evolved", "sharpe": 0.0, "trades": 0,
+                        "confidence": "LOW", "win_rate": 0.0, "note": f"missing: {missing[:3]}"}
+
+            # 最良プログラムをロード（銘柄別 → 汎用の順にフォールバック）
+            program_data = None
+            for path in [Path("data/gplearn/gplearn_best_program.json"),
+                         Path("data/gplearn_best_program.json")]:
+                if path.exists():
+                    with open(path) as f:
+                        program_data = json.load(f)
+                    break
+            if not program_data or not program_data.get("program"):
+                return {"strategy": "gplearn_evolved", "sharpe": 0.0, "trades": 0,
+                        "confidence": "LOW", "win_rate": 0.0, "note": "no program found"}
+
+            program_str = program_data["program"]
+            method = program_data.get("method", "unknown")
+            threshold = program_data.get("threshold", 0)
+
+            # 特徴量を正規化
+            X_raw = df[FEATURE_COLS].dropna().values
+            valid_idx = df[FEATURE_COLS].dropna().index
+            if len(X_raw) < 50:
+                return {"strategy": "gplearn_evolved", "sharpe": 0.0, "trades": 0,
+                        "confidence": "LOW", "win_rate": 0.0, "note": "insufficient data"}
+            scaler = StandardScaler()
+            X = scaler.fit_transform(X_raw)
+
+            # 数式を評価してスコア算出
+            # X0=ma20, X1=ma50, X2=bb_bandwidth_20, ...
+            local_vars = {f"X{i}": X[:, i] for i in range(X.shape[1])}
+            # gplearn演算子をnumpy関数にマッピング
+            safe_funcs = {
+                "add": np.add, "sub": np.subtract, "mul": np.multiply,
+                "div": lambda a, b: np.where(np.abs(b) > 1e-6, a / b, 0.0),
+                "max": np.maximum, "min": np.minimum, "abs": np.abs,
+            }
+            local_vars.update(safe_funcs)
+            scores = eval(program_str, {"__builtins__": {}, "np": np}, local_vars)
+            if isinstance(scores, (int, float)):
+                scores = np.full(len(X), float(scores))
+            scores = np.array(scores, dtype=float)
+
+            # BUYシグナル生成
+            if method == "SymbolicClassifier":
+                # Classifierの出力は直接0/1的 — 0超をBUYとする
+                buy_signals = scores > 0
+            else:
+                # Regressor — 保存された閾値を使用
+                thr = float(threshold) if threshold != "N/A (classifier)" else 0.0
+                buy_signals = scores > thr
+
+            # エントリ/エグジット: BUY信号ON→エントリ、OFF→エグジット
+            entries = pd.Series(False, index=df.index)
+            exits = pd.Series(False, index=df.index)
+            entries.iloc[valid_idx] = buy_signals
+            exits.iloc[valid_idx] = ~buy_signals
+
+            close = df["close"]
+            result = _manual_backtest(close, entries, exits, "gplearn_evolved")
+            result["note"] = f"{method} | {program_str[:50]}..."
+            return result
+
+        except Exception as e:
+            logger.error(f"[gplearn_evolved] {e}")
+            return {"strategy": "gplearn_evolved", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
     # ── 戦略8: RSI Bounce（freqtrade-strategies参考）────────────────
     @staticmethod
     def run_rsi_bounce(df: pd.DataFrame) -> dict:
@@ -393,6 +480,7 @@ class CoreBacktest:
             "vp_momentum":       CoreBacktest.run_vp_momentum,
             "ema_trend":         CoreBacktest.run_ema_trend,
             "rsi_bounce":        CoreBacktest.run_rsi_bounce,
+            "gplearn_evolved":   CoreBacktest.run_gplearn_evolved,
         }
 
         results = {}
