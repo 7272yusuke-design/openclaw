@@ -26,6 +26,7 @@ from tools.deepwiki_tool import DeepWikiTool
 from tools.moltbook_tool import MoltbookTool
 from core.blackboard import NeoBlackboard
 from langchain_google_genai import ChatGoogleGenerativeAI
+from core.model_factory import ModelFactory
 
 logger = logging.getLogger("neo.trinity_council")
 
@@ -291,9 +292,7 @@ class TrinityCouncil(NeoBaseCrew):
         reflexion_insight = ""
         if unique_precedents:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-                _ref_model = genai.GenerativeModel("gemini-2.0-flash")
+                _ref_model = ModelFactory.get_genai_model("fast")
                 _ref_prompt = (
                     f"あなたは自律取引AIエージェントNeoだ。{clean_symbol}について判断を下す前に、"
                     f"以下の過去記録を読み、自己評価せよ。\n\n"
@@ -575,8 +574,46 @@ class TrinityCouncil(NeoBaseCrew):
         # BUY判定自体が+5（LLMがBUYと言ったなら少しポジティブ）
         if first_word == "BUY":
             _calc_conf += 5
+        # === v6.5i H.2ベース スコアリングテーブル拡張 ===
+        # 時間帯スコア（H.2分析: 欧州82%勝率 vs アジア40%）
+        from datetime import datetime, timezone
+        _utc_hour = datetime.now(timezone.utc).hour
+        if 8 <= _utc_hour < 16:   # 欧州時間(17-01 JST)
+            _calc_conf += 10
+            _tz_label = "EU+10"
+        elif 0 <= _utc_hour < 8:  # アジア時間(09-17 JST)
+            _calc_conf -= 10
+            _tz_label = "Asia-10"
+        else:                      # 米国時間
+            _tz_label = "US+0"
+        # ナンピン数ペナルティ（H.2分析: 20回ナンピン集中問題）
+        _npin_count = 0
+        _hist = self.portfolio.state.get("history", [])
+        for _h in reversed(_hist):
+            if _h.get("symbol") == clean_symbol:
+                if _h.get("action") == "BUY":
+                    _npin_count += 1
+                elif _h.get("action") == "SELL":
+                    break
+        if _npin_count >= 2:
+            _calc_conf -= 10
+            _npin_label = f"npin{_npin_count}:-10"
+        else:
+            _npin_label = f"npin{_npin_count}:0"
+        # 直近連敗ペナルティ（H.2分析: 6連敗あり）
+        _recent_sells = [h for h in _hist if h.get("action") == "SELL"][-3:]
+        _recent_losses = sum(1 for _rs in _recent_sells if "Stop Loss" in _rs.get("reason", ""))
+        if _recent_losses >= 3:
+            _calc_conf -= 10
+            _streak_label = "streak-10"
+        elif _recent_losses >= 2:
+            _calc_conf -= 5
+            _streak_label = "streak-5"
+        else:
+            _streak_label = "streak0"
+        # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%)")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label})")
         _structured_confidence = _calc_conf
 
 # ============================================================

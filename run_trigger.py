@@ -309,11 +309,40 @@ def _run_nightly_batch():
         h2 = get_progress_report()
         h2_progress_text = "\n\n" + h2.get('discord_text', '')
         if h2.get('ready'):
-            logger.info("[Nightly] H.2分析: データ十分！次回セッションで完全分析を実行可能")
+            logger.info("[Nightly] H.2分析: データ十分 → v2完全分析を自動実行")
+            try:
+                from research.h2_trade_analysis import run_full_analysis
+                run_full_analysis()
+                # ダッシュボードに週次レポート送信（日曜のみ）
+                import datetime as _dt
+                if _dt.datetime.now(_dt.timezone.utc).weekday() == 6:  # 日曜
+                    _h2_webhook = DiscordReporter.DASHBOARD_WEBHOOK or DiscordReporter.REPORT_WEBHOOK
+                    _h2_payload = {"embeds": [{"title": "📊 H.2 週次分析レポート", "description": h2_progress_text.strip(), "color": 0x9b59b6}]}
+                    import requests as _req
+                    _req.post(_h2_webhook, json=_h2_payload, timeout=10)
+                    logger.info("[Nightly] H.2週次レポートをダッシュボードに送信")
+            except Exception as _h2e:
+                logger.error(f"[Nightly] H.2完全分析エラー: {_h2e}")
         else:
             logger.info(f"[Nightly] H.2分析: 完結ペア{h2.get('completed',0)}/{h2.get('remaining',20)+h2.get('completed',0)}件")
     except Exception as e:
         logger.error(f"[Nightly] H.2進捗取得失敗: {e}")
+
+    # 6b. Voyagerスキル更新
+    try:
+        from research.voyager_skills import run_voyager_update
+        run_voyager_update()
+        logger.info("[Nightly] Voyager: スキル更新完了")
+    except Exception as _ve:
+        logger.error(f"[Nightly] Voyager更新失敗: {_ve}")
+
+    # 6c. EvolveRルール更新
+    try:
+        from research.evolver_rules import run_evolver_update
+        run_evolver_update()
+        logger.info("[Nightly] EvolveR: ルール更新完了")
+    except Exception as _ve:
+        logger.error(f"[Nightly] EvolveR更新失敗: {_ve}")
 
     # 7. Discord日次サマリー
     logger.info("[Nightly] Step 7/8: Discord日次サマリー送信")
