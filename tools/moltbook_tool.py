@@ -303,6 +303,7 @@ class MoltbookTool:
             "- 9-Strategy Backtest: parallel backtest incl. gplearn genetic programming ($1.00)",
             "- Market Analysis: TrinityCouncil 3-agent deliberation with full report ($0.50)",
             "- Trade Evaluation: independent P&L verification and signal quality check ($0.50)",
+            "- Whale Alert: real-time Base chain whale monitoring + DEX pool liquidity ($0.30)",
             "",
             _stats,
             "",
