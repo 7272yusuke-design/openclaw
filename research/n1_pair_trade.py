@@ -112,3 +112,198 @@ def print_pair_status():
 
 if __name__ == '__main__':
     print_pair_status()
+
+
+# ================================================================
+# N.1 ペアトレード実行マネージャー（v6.5l）
+# ================================================================
+import json
+from pathlib import Path
+
+PAIR_STATE_FILE = Path("vault/n1_pair_state.json")
+
+class PairTradeManager:
+    """
+    VIRTUAL/AIXBTペアトレードの実行管理。
+    
+    PaperWalletはSHORT非対応のため、ロング側のみBUYで実行。
+    ショート側は「BUYしない」ことで疑似的に表現。
+    
+    エントリー条件:
+      - |Z| > z_entry(2.0) → 割安側をBUY
+      - 相関 > 0.4（相関崩壊時はエントリーしない）
+      - 既存ペアポジションがないこと
+    
+    エグジット条件:
+      - |Z| < z_exit(0.5) → ポジションクローズ（mean reversion完了）
+      - |Z| > z_stop(3.0) → 損切り（相関崩壊）
+    
+    5層売却との共存:
+      - ペアトレードポジションにはreason="N1_PAIR"タグ付与
+      - 5層売却も通常通り発火する（安全装置として維持）
+    """
+
+    # ペアBUY額（USDC）— confidence固定で小さめ
+    PAIR_BUY_USD = 2000.0
+    MIN_CORRELATION = 0.4
+
+    def __init__(self):
+        self._load_state()
+
+    def _load_state(self):
+        if PAIR_STATE_FILE.exists():
+            try:
+                self.state = json.loads(PAIR_STATE_FILE.read_text())
+            except Exception:
+                self.state = {}
+        else:
+            self.state = {}
+
+    def _save_state(self):
+        PAIR_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        PAIR_STATE_FILE.write_text(json.dumps(self.state, indent=2))
+
+    @property
+    def has_position(self) -> bool:
+        return self.state.get("active", False)
+
+    def check_and_execute(self) -> dict:
+        """
+        ペアトレードシグナルをチェックし、必要に応じてエントリー/エグジット。
+        
+        Returns:
+            dict with action taken and details
+        """
+        from tools.paper_wallet import PaperWallet
+        from tools.market_data import MarketData
+        
+        sig = calc_pair_signal()
+        result = {"action": "NONE", "signal": sig.get("signal", "ERROR"), "z_score": sig.get("z_score", 0)}
+
+        if sig.get("signal") == "NO_DATA":
+            result["reason"] = sig.get("error", "データ不足")
+            return result
+
+        z = sig["z_score"]
+        corr = sig.get("recent_corr", 0)
+
+        # === エグジット判定（ポジション保有中） ===
+        if self.has_position:
+            long_sym = self.state.get("long_symbol", "")
+            entry_z = self.state.get("entry_z", 0)
+
+            should_exit = False
+            exit_reason = ""
+
+            if abs(z) < 0.5:
+                should_exit = True
+                exit_reason = f"Mean reversion完了 (Z: {entry_z:.2f} → {z:.2f})"
+            elif abs(z) > 3.0:
+                should_exit = True
+                exit_reason = f"相関崩壊損切り (Z={z:.2f} > 3.0)"
+
+            if should_exit and long_sym:
+                pw = PaperWallet()
+                holding = pw.state.get("holdings", {}).get(long_sym)
+                if holding and holding.get("amount", 0) > 0:
+                    current_price = _get_current_price(long_sym)
+                    if current_price > 0:
+                        sell_usd = holding["amount"] * current_price
+                        sell_result = pw.execute_trade(
+                            symbol=long_sym, action="SELL",
+                            amount_usd=sell_usd, price=current_price,
+                            reason=f"N1_PAIR_EXIT: {exit_reason}"
+                        )
+                        if sell_result.get("status") == "success":
+                            result["action"] = "EXIT"
+                            result["symbol"] = long_sym
+                            result["reason"] = exit_reason
+                            result["sell_usd"] = round(sell_usd, 2)
+                            # ペア状態クリア
+                            self.state = {"active": False}
+                            self._save_state()
+                            return result
+
+            result["action"] = "HOLD"
+            result["reason"] = f"ペアポジション保有中: {long_sym} (entry_Z={entry_z:.2f}, now_Z={z:.2f})"
+            return result
+
+        # === エントリー判定（ポジションなし） ===
+        if corr < self.MIN_CORRELATION:
+            result["reason"] = f"相関不足 ({corr:.2f} < {self.MIN_CORRELATION})"
+            return result
+
+        long_sym = ""
+        if z > 2.0:
+            # VIRTUAL割高 → AIXBT買い
+            long_sym = "AIXBT"
+        elif z < -2.0:
+            # VIRTUAL割安 → VIRTUAL買い
+            long_sym = "VIRTUAL"
+
+        if not long_sym:
+            result["reason"] = f"エントリー閾値未達 (Z={z:.2f})"
+            return result
+
+        # ポジションサイズ確認
+        pw = PaperWallet()
+        if pw.state["usd_balance"] < self.PAIR_BUY_USD:
+            result["reason"] = f"USDC不足 (${pw.state['usd_balance']:,.0f} < ${self.PAIR_BUY_USD:,.0f})"
+            return result
+
+        # USDC下限15%ガード
+        total_assets = pw.state["usd_balance"]
+        for sym, h in pw.state.get("holdings", {}).items():
+            p = _get_current_price(sym)
+            if p > 0:
+                total_assets += h.get("amount", 0) * p
+        if (pw.state["usd_balance"] - self.PAIR_BUY_USD) / total_assets < 0.15:
+            result["reason"] = "USDC下限15%ガード"
+            return result
+
+        current_price = _get_current_price(long_sym)
+        if current_price <= 0:
+            result["reason"] = f"{long_sym}の価格取得失敗"
+            return result
+
+        buy_result = pw.execute_trade(
+            symbol=long_sym, action="BUY",
+            amount_usd=self.PAIR_BUY_USD, price=current_price,
+            reason=f"N1_PAIR_ENTRY: Z={z:.2f}, corr={corr:.2f}"
+        )
+
+        if buy_result.get("status") == "success":
+            self.state = {
+                "active": True,
+                "long_symbol": long_sym,
+                "entry_z": z,
+                "entry_corr": corr,
+                "entry_price": current_price,
+                "entry_time": datetime.now(timezone.utc).isoformat(),
+                "buy_usd": self.PAIR_BUY_USD,
+            }
+            self._save_state()
+            result["action"] = "ENTRY"
+            result["symbol"] = long_sym
+            result["reason"] = f"Z={z:.2f} → {long_sym}買い (corr={corr:.2f})"
+            result["buy_usd"] = self.PAIR_BUY_USD
+        else:
+            result["reason"] = f"BUY失敗: {buy_result.get('reason', 'unknown')}"
+
+        return result
+
+
+def _get_current_price(symbol: str) -> float:
+    """現在価格を取得（collector DB → fallback DexScreener）"""
+    try:
+        from orchestration.data_collector import get_latest_price_from_db
+        p = get_latest_price_from_db(symbol)
+        if p and p > 0:
+            return p
+    except Exception:
+        pass
+    try:
+        md = MarketData()
+        return md.get_price(symbol) or 0.0
+    except Exception:
+        return 0.0
