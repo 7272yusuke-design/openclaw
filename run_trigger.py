@@ -113,8 +113,8 @@ def check_tp_sl_all_positions():
                 sell_label = "Hard TP"
                 logger.warning(f"[TP/SL] 🎯 固定上限利確: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
 
-            # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 0.5%） ===
-            elif pnl['pnl_pct'] > 0.5:
+            # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 1.5%） === [v6.5i H.2分析: 手数料後でも+0.5%確保]
+            elif pnl['pnl_pct'] > 1.5:
                 rsi_val = _calc_rsi(clean_symbol)
                 if rsi_val is not None and rsi_val > 65:
                     sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit"

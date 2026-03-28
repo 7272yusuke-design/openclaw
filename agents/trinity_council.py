@@ -634,36 +634,51 @@ class TrinityCouncil(NeoBaseCrew):
                         print(f"\n[Phase 5] 🛑 BUY禁止: Tier1合計保有{_tier1_ratio:.1%}が上限50%超 (相関係数≈0.72)")
                     else:
                         # ②c confidence閾値ガード: 確信度40未満ならBUY禁止
-                        MIN_CONFIDENCE_FOR_BUY = 40
+                        MIN_CONFIDENCE_FOR_BUY = 50  # v6.5i H.2分析: 40→50引き上げ（低confidence BUY抑制）
                         if _structured_confidence > 0 and _structured_confidence < MIN_CONFIDENCE_FOR_BUY:
                             trade_action = "WAIT"
                             trade_result = {"status": "skipped", "reason": f"confidence不足 ({_structured_confidence} < {MIN_CONFIDENCE_FOR_BUY}) — 低確信度ガード"}
                             print(f"\n[Phase 5] 🛑 BUY禁止: confidence={_structured_confidence}が閾値{MIN_CONFIDENCE_FOR_BUY}未満")
                         else:
-                            # ③ BUY額: confidenceに応じた可変ポジションサイズ
-                            if _structured_confidence >= 85:
-                                _size_pct = 0.10   # 非常に高い確信度 → 総資産10%
-                            elif _structured_confidence >= 70:
-                                _size_pct = 0.07   # 高い確信度 → 総資産7%
-                            elif _structured_confidence >= 55:
-                                _size_pct = 0.05   # 中程度 → 総資産5%（従来と同じ）
+                            # ③d ナンピン回数制限: 同一銘柄の未決済BUY回数がMAXを超えたらBUY禁止
+                            MAX_OPEN_BUYS_PER_SYMBOL = 3
+                            _open_buy_count = 0
+                            _history = self.portfolio.state.get("history", [])
+                            for _h in reversed(_history):
+                                if _h.get("symbol") == clean_symbol:
+                                    if _h.get("action") == "BUY":
+                                        _open_buy_count += 1
+                                    elif _h.get("action") == "SELL":
+                                        break
+                            if _open_buy_count >= MAX_OPEN_BUYS_PER_SYMBOL:
+                                trade_action = "WAIT"
+                                trade_result = {"status": "skipped", "reason": f"ナンピン上限到達 ({_open_buy_count}/{MAX_OPEN_BUYS_PER_SYMBOL}回)"}
+                                print(f"\n[Phase 5] 🛑 BUY禁止: {clean_symbol}ナンピン{_open_buy_count}回（上限{MAX_OPEN_BUYS_PER_SYMBOL}回）")
                             else:
-                                _size_pct = 0.03   # 低い確信度 → 総資産3%（最小限）
-                            trade_amount_usd = round(min(total_assets * _size_pct, current_usdc * 0.10), 2)
-                            if trade_amount_usd >= 10.0:
-                                print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (conf={_structured_confidence} → {_size_pct:.0%} / USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
-                                trade_result = self.portfolio.execute_trade(
-                                    symbol=clean_symbol,
-                                    action="BUY",
-                                    amount_usd=trade_amount_usd,
-                                    price=current_price,
-                                    reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
-                                )
-                                logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
-                            else:
-                                trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
-                                print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
-        
+                                # ③ BUY額: confidenceに応じた可変ポジションサイズ
+                                if _structured_confidence >= 85:
+                                    _size_pct = 0.10   # 非常に高い確信度 → 総資産10%
+                                elif _structured_confidence >= 70:
+                                    _size_pct = 0.07   # 高い確信度 → 総資産7%
+                                elif _structured_confidence >= 55:
+                                    _size_pct = 0.05   # 中程度 → 総資産5%（従来と同じ）
+                                else:
+                                    _size_pct = 0.03   # 低い確信度 → 総資産3%（最小限）
+                                trade_amount_usd = round(min(total_assets * _size_pct, current_usdc * 0.10), 2)
+                                if trade_amount_usd >= 10.0:
+                                    print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (conf={_structured_confidence} → {_size_pct:.0%} / USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")
+                                    trade_result = self.portfolio.execute_trade(
+                                        symbol=clean_symbol,
+                                        action="BUY",
+                                        amount_usd=trade_amount_usd,
+                                        price=current_price,
+                                        reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
+                                    )
+                                    logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
+                                else:
+                                    trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
+                                    print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
+            
         elif first_word == "SELL" and current_price > 0:
             trade_action = "SELL"
             # 保有量の10%を売却
