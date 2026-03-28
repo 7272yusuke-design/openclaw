@@ -21,6 +21,7 @@ from orchestration.nightly_research import run_nightly_research
 from tools.arbitrage_monitor import check_arbitrage_spreads, send_arbitrage_discord_alert, get_spread_summary
 from orchestration.vp_discovery import run_vp_discovery
 from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_THRESHOLD
+from core.cost_guard import CostGuard
 
 # --- TP/SLサイクルチェック（Council非依存・毎30秒） ---
 def check_tp_sl_all_positions():
@@ -147,6 +148,16 @@ def check_tp_sl_all_positions():
                     sell_executed = True
                     is_win = pnl['pnl_pct'] > 0
                     result_tag = "win" if is_win else "loss"
+                    # サーキットブレーカー: SL記録
+                    try:
+                        _cg = CostGuard()
+                        if sell_label == "SL":
+                            _cg.record_sl_fire()
+                            logger.info(f"[CFO] SL発火記録: {clean_symbol}")
+                        else:
+                            _cg.record_non_sl_exit()
+                    except Exception as _cg_err:
+                        logger.error(f"[CFO] SL記録エラー: {_cg_err}")
                     logger.info(f"[TP/SL] ✅ {sell_label}完了: {clean_symbol} ${sell_amount_usd:.2f} ({pnl['pnl_pct']:+.1f}%)")
 
                     # 損切時はGemini内省
@@ -703,6 +714,23 @@ def start_hybrid_radar():
                     logger.warning(f"🚫 [GUARD] {trigger_symbol} はCOUNCIL_ELIGIBLE_SYMBOLS外 → Council召集ブロック")
                     trigger_type = None
                     trigger_symbol = None
+
+            if trigger_type and trigger_symbol:
+                # サーキットブレーカー: 全レイヤーチェック
+                try:
+                    _cg = CostGuard()
+                    _cg_ok, _cg_reason = _cg.approve_council()
+                    if not _cg_ok:
+                        logger.warning(f"🚫 [CFO] Council召集ブロック: {_cg_reason}")
+                        DiscordReporter.send_log(
+                            "🚫 サーキットブレーカー発動",
+                            f"**Trigger:** {trigger_type} {trigger_symbol}\n**Reason:** {_cg_reason}",
+                            0xff6600
+                        )
+                        trigger_type = None
+                        trigger_symbol = None
+                except Exception as _cg_err:
+                    logger.error(f"[CFO] サーキットブレーカーチェックエラー: {_cg_err}")
 
             if trigger_type and trigger_symbol:
                 logger.info(f"🏛️ Council召集: [{trigger_type}] {trigger_symbol}")
