@@ -299,7 +299,7 @@ def send_arbitrage_discord_alert(alerts: list, results: dict):
                 lines.append(f"🔘 **{symbol}**: insufficient pools")
 
         message = "\n".join(lines)
-        DiscordReporter.send_log(message)
+        DiscordReporter.send_log("🔀 Arbitrage Spread Alert", message, 0xe74c3c)
         logger.info("[Arb] Discord alert sent")
     except Exception as e:
         logger.error(f"[Arb] Discord alert error: {e}")
