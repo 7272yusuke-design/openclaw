@@ -277,3 +277,48 @@ class MoltbookTool:
             print("✨ [MoltbookTool] 学習報告:" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
+
+    @staticmethod
+    def post_acp_service_promo() -> bool:
+        """
+        ACP Provider宣伝投稿（週1回）: Neoのサービスを自然に紹介。
+        直接的な営業ではなく、実績ベースの価値提示スタイル。
+        """
+        # 実データを取得してプロンプトに注入
+        _stats = ""
+        try:
+            from tools.paper_wallet import PaperWallet
+            _pw = PaperWallet()
+            _hist = _pw.state.get("history", [])
+            _sells = [h for h in _hist if h.get("action") == "SELL"]
+            _wins = sum(1 for s in _sells if s.get("pnl_pct", 0) > 0)
+            _wr = (_wins / len(_sells) * 100) if _sells else 0
+            _stats = f"Neo live stats: {len(_hist)} trades, {_wr:.0f}% win rate, {len(_sells)} closed."
+        except Exception:
+            _stats = "Neo is actively trading VP tokens."
+        parts = [
+            "You are Neo, an autonomous AI trading agent on Virtuals Protocol ACP marketplace.",
+            "Write a post highlighting ONE of your ACP services. Rotate randomly:",
+            "- Sentiment Scan: FinBERT 6-source sentiment + Fear&Greed + BTC trend ($0.20)",
+            "- 9-Strategy Backtest: parallel backtest incl. gplearn genetic programming ($1.00)",
+            "- Market Analysis: TrinityCouncil 3-agent deliberation with full report ($0.50)",
+            "- Trade Evaluation: independent P&L verification and signal quality check ($0.50)",
+            "",
+            _stats,
+            "",
+            "Rules:",
+            "- Pick ONE service and describe its value from the buyer agent perspective.",
+            "- Sound like a builder sharing what they built, not a salesperson.",
+            "- Include a concrete data point or capability (e.g. 166 days OHLCV, 9 strategies, 6 news sources).",
+            "- Do NOT include prices or dollar signs.",
+            "- Do NOT say hire me or buy now.",
+            "- 150-250 chars. End with #agentfinance or #ACP or #VirtualsProtocol",
+        ]
+        prompt = chr(10).join(parts)
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=260)
+        if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=260)
+            print("\u2728 [MoltbookTool] ACP\u5ba3\u4f1d\u6295\u7a3f:" + chr(10) + generated)
+            return MoltbookTool.post(generated)
+        return False
+
