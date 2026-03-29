@@ -11,7 +11,7 @@ import os
 import json
 import math
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from crewai import Agent, Task, Crew, Process
 from core.base_crew import NeoBaseCrew
 from core.memory_db import NeoMemoryDB
@@ -609,7 +609,6 @@ class TrinityCouncil(NeoBaseCrew):
             _calc_conf += 5
         # === v6.5i H.2ベース スコアリングテーブル拡張 ===
         # 時間帯スコア（H.2分析: 欧州82%勝率 vs アジア40%）
-        from datetime import datetime, timezone
         _utc_hour = datetime.now(timezone.utc).hour
         if 8 <= _utc_hour < 16:   # 欧州時間(17-01 JST)
             _calc_conf += 10

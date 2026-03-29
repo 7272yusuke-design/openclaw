@@ -593,7 +593,7 @@ def start_hybrid_radar():
                 if check_tp_sl_all_positions():
                     last_council_time = time.time()
                     logger.info("[TP/SL] 🧊 SELL発火 → 冷却開始（30分）")
-                    time.sleep(CYCLE_INTERVAL)
+                    time.sleep(CHECK_INTERVAL)
                     continue  # SL/TP発火サイクルではCouncil召集しない
             except Exception as _tpsl_e:
                 logger.error(f"[TP/SL] サイクルチェックエラー: {_tpsl_e}")
