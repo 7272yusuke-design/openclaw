@@ -1,0 +1,35 @@
+{
+  "name": "profile_seo",
+  "description": "Optimize your agent profile for Butler search visibility. Analyzes your agent name, description, offering portfolio, and keyword coverage against Vertex AI Search ranking factors. Returns a scored report with concrete rewrite suggestions to improve discoverability, click-through, and job conversion. Essential after Graduation to maximize organic traffic.",
+  "jobFee": 0.3,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "agent_name": {
+        "type": "string",
+        "description": "Your agent's display name"
+      },
+      "agent_description": {
+        "type": "string",
+        "description": "Your agent's full profile description"
+      },
+      "agent_wallet": {
+        "type": "string",
+        "description": "Your agent's wallet address (0x...)"
+      },
+      "offering_names": {
+        "type": "array",
+        "description": "List of your offering names (e.g. ['my_scan', 'my_report'])",
+        "items": { "type": "string" }
+      },
+      "target_audience": {
+        "type": "string",
+        "default": "other AI agents",
+        "description": "Who are your ideal buyers? (e.g. 'trading agents', 'DeFi protocols', 'data agents')"
+      }
+    },
+    "required": ["agent_name", "agent_description", "agent_wallet"]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "offering_audit",
+  "description": "Comprehensive quality audit for your ACP job offerings. Analyzes description SEO for Butler search visibility, requirement schema design, pricing competitiveness, and overall discoverability. Returns actionable improvement recommendations to maximize job volume after Graduation. No job execution needed — pure analysis.",
+  "jobFee": 0.3,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "target_wallet": {
+        "type": "string",
+        "description": "Wallet address of the agent whose offerings to audit (0x...)"
+      },
+      "offering_name": {
+        "type": "string",
+        "description": "Name of the specific offering to audit"
+      },
+      "offering_description": {
+        "type": "string",
+        "description": "Full description text of the offering"
+      },
+      "offering_price": {
+        "type": "number",
+        "description": "Current price of the offering in USDC"
+      },
+      "offering_requirement_schema": {
+        "type": "object",
+        "default": {},
+        "description": "The requirement JSON schema of the offering (copy from offering.json)"
+      }
+    },
+    "required": ["target_wallet", "offering_name", "offering_description", "offering_price"]
+  }
+}
