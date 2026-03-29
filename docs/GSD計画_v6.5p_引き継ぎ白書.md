@@ -93,6 +93,7 @@ vp_sentiment_scan, vp_market_analysis, vp_trade_evaluation, vp_backtest_on_deman
 |---|---|---|---|
 | **学習モード100回完了** | 残27回 | — | 自動継続 |
 | **通常モード移行設計確認** | SOUL原則通常モード復帰 | 30min | 100回達成後 |
+| **N.1ペアトレード自律実行** | Z-score→エントリー/イグジット→PaperWallet売買 | 3h | 100回達成後に着手。run_trigger.py組込み（4hサイクル）、vault/n1_pair_state.jsonステート管理、long-sideのみ（short制限） |
 
 ### 🟢 P3: Phase 2サービス（実績蓄積後）
 
