@@ -773,7 +773,7 @@ def start_hybrid_radar():
                         f"**Symbol:** {trigger_symbol}\n**Error:** {str(e)[:500]}",
                         0xe74c3c
                     )
-                    if consecutive_errors >= 5:
+                    if consecutive_errors >= 3:
                         DiscordReporter.send_log(
                             "🚨 連続エラー警告",
                             f"Councilが{consecutive_errors}回連続エラー。手動確認が必要です。",

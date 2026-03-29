@@ -30,12 +30,8 @@ def _manual_sharpe(close, entries, exits, fees=0.001):
     if len(returns) < 2:
         return 0.0, len(returns)
     r = np.array(returns)
-    if r.std() < 1e-6:  # 全勝or全敗でstd≈0 → Sharpe爆発防止（v6.5q）
-        return 0.0, len(returns)
-    sharpe = (r.mean() / r.std()) * np.sqrt(252)
-    if not np.isfinite(sharpe) or abs(sharpe) > 100:  # 異常値ガード（v6.5q）
-        return 0.0, len(returns)
-    return round(float(sharpe), 3), len(returns)
+    sharpe = (r.mean() / (r.std() + 1e-9)) * np.sqrt(252)
+    return round(float(sharpe) if np.isfinite(sharpe) else 0.0, 3), len(returns)
 
 
 
