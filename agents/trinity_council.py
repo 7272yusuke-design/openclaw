@@ -620,7 +620,7 @@ class TrinityCouncil(NeoBaseCrew):
             _tz_label = "US+0"
         # ナンピン数ペナルティ（H.2分析: 20回ナンピン集中問題）
         _npin_count = 0
-        _hist = self.portfolio.state.get("history", [])
+        _hist = self.portfolio.get_full_state().get("history", [])
         for _h in reversed(_hist):
             if _h.get("symbol") == clean_symbol:
                 if _h.get("action") == "BUY":
@@ -712,7 +712,7 @@ class TrinityCouncil(NeoBaseCrew):
                             # ③d ナンピン回数制限: 同一銘柄の未決済BUY回数がMAXを超えたらBUY禁止
                             MAX_OPEN_BUYS_PER_SYMBOL = 3
                             _open_buy_count = 0
-                            _history = self.portfolio.state.get("history", [])
+                            _history = self.portfolio.get_full_state().get("history", [])
                             for _h in reversed(_history):
                                 if _h.get("symbol") == clean_symbol:
                                     if _h.get("action") == "BUY":
