@@ -582,7 +582,7 @@ class TrinityCouncil(NeoBaseCrew):
         # バックテスト信頼度
         if bt_confidence == "HIGH":
             _calc_conf += 15
-        elif bt_confidence == "MEDIUM":
+        elif bt_confidence in ("MEDIUM", "MED"):
             _calc_conf += 5
         elif bt_confidence == "LOW":
             _calc_conf -= 5
@@ -632,15 +632,35 @@ class TrinityCouncil(NeoBaseCrew):
             _npin_label = f"npin{_npin_count}:-10"
         else:
             _npin_label = f"npin{_npin_count}:0"
-        # 直近連敗ペナルティ（H.2分析: 6連敗あり）
+        # 直近連敗ペナルティ（H.2分析: 6連敗あり）+ 時間減衰（v6.5q）
         _recent_sells = [h for h in _hist if h.get("action") == "SELL"][-3:]
         _recent_losses = sum(1 for _rs in _recent_sells if "Stop Loss" in _rs.get("reason", ""))
+        # 時間減衰: 最後のSLから48h以上経過でペナルティ半減（デッドロック防止）
+        _streak_decay = 1.0
+        if _recent_losses >= 2 and _recent_sells:
+            try:
+                _last_sl_time = None
+                for _rs in reversed(_recent_sells):
+                    if "Stop Loss" in _rs.get("reason", ""):
+                        _last_sl_ts = _rs.get("timestamp", "")
+                        if _last_sl_ts:
+                            from datetime import datetime as _dt
+                            _last_sl_time = _dt.fromisoformat(_last_sl_ts.replace("Z", "+00:00")) if isinstance(_last_sl_ts, str) else None
+                        break
+                if _last_sl_time:
+                    _hours_since = (datetime.now(timezone.utc) - _last_sl_time.replace(tzinfo=timezone.utc if _last_sl_time.tzinfo is None else _last_sl_time.tzinfo)).total_seconds() / 3600
+                    if _hours_since > 48:
+                        _streak_decay = 0.5
+            except Exception:
+                pass
         if _recent_losses >= 3:
-            _calc_conf -= 10
-            _streak_label = "streak-10"
+            _penalty = int(10 * _streak_decay)
+            _calc_conf -= _penalty
+            _streak_label = f"streak-{_penalty}"
         elif _recent_losses >= 2:
-            _calc_conf -= 5
-            _streak_label = "streak-5"
+            _penalty = int(5 * _streak_decay)
+            _calc_conf -= _penalty
+            _streak_label = f"streak-{_penalty}"
         else:
             _streak_label = "streak0"
         # === スコアリングテーブル拡張ここまで ===
