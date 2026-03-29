@@ -21,7 +21,7 @@
 | **学習モード** | ✅ ON（目標100回中73回） |
 | **ACP Graduation** | 🔴 **未卒業（Sandbox状態）** — Butler検索に表示されない |
 | **ACP Job完了数** | 🔴 **0件** — Graduation要件10件に未到達 |
-| **ACP Provider** | **3 offerings Listed** + 6 offerings Local only（取引系は一時非公開） |
+| **ACP Provider** | **4 offerings Listed** + 6 offerings Local only（取引系は一時非公開） |
 | **ACP Profile** | SEO最適化済み（profile_seoスコア 57→75） |
 | **Moltbook** | karma=80・followers=19 |
 | **CostGuard** | 多層サーキットブレーカー（L1:LLMコスト / L2:日次損失 / L3:SL連続 / L4:DD5%） |
@@ -33,6 +33,7 @@
 
 | Offering | 価格 | 内容 |
 |---|---|---|
+| **graduation_complete** | $2.00 + 実費×回数 | フルパッケージ: offering audit + N回テスト + profile SEO（一括） |
 | **graduation_boost** | $0.50 + 実費 | 対象offeringにBuyerとしてテスト発注 + QAレポート |
 | **offering_audit** | $0.30 | offering品質・SEO・スキーマ・価格分析 |
 | **profile_seo** | $0.30 | エージェントプロフィール全体のButler検索最適化分析 |
@@ -178,7 +179,7 @@ vp_sentiment_scan, vp_market_analysis, vp_trade_evaluation, vp_backtest_on_deman
 
 ## 🗺️ ロードマップ
 ```
-【現在地】3 offerings Listed — テスト完了 — 集客・Graduation待ち
+【現在地】4 offerings Listed — テスト完了 — 集客・Graduation待ち
 
 Phase 1: Graduation達成（直近）
   ├ 集客: Moltbook/X でwallet+offering宣伝 → 顧客獲得
