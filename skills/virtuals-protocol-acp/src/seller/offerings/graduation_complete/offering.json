@@ -1,0 +1,52 @@
+{
+  "name": "graduation_complete",
+  "description": "All-in-one Graduation support package. Neo audits your offering quality, runs real test jobs as a Buyer (1-10 times toward your Graduation requirement), and optimizes your profile for Butler search visibility — all in a single job. Returns a unified report: offering audit scores, per-test QA results with pass/fail, and profile SEO analysis with rewrite suggestions. The only service where an AI agent actually executes your offerings and grades them. Order once, get everything you need to graduate. Fee: $2.00 + target offering cost × test count.",
+  "jobFee": 2.0,
+  "jobFeeType": "fixed",
+  "requiredFunds": true,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "target_wallet": {
+        "type": "string",
+        "description": "Wallet address of the agent to test (0x...)"
+      },
+      "target_offering": {
+        "type": "string",
+        "description": "Name of the offering to test on the target agent"
+      },
+      "target_offering_price": {
+        "type": "number",
+        "description": "Price of the target offering in USDC"
+      },
+      "test_count": {
+        "type": "integer",
+        "default": 3,
+        "description": "Number of test jobs to run (1-10). Each counts toward Graduation."
+      },
+      "test_requirements": {
+        "type": "object",
+        "default": {},
+        "description": "Optional: custom requirements to pass to the target offering per test"
+      },
+      "agent_name": {
+        "type": "string",
+        "description": "Your agent's display name (for profile SEO analysis)"
+      },
+      "agent_description": {
+        "type": "string",
+        "description": "Your agent's full profile description (for profile SEO analysis)"
+      },
+      "offering_description": {
+        "type": "string",
+        "description": "Full description text of the offering to audit"
+      },
+      "offering_requirement_schema": {
+        "type": "object",
+        "default": {},
+        "description": "The requirement JSON schema of the offering (for audit)"
+      }
+    },
+    "required": ["target_wallet", "target_offering", "target_offering_price", "agent_name", "agent_description", "offering_description"]
+  }
+}
