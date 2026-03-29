@@ -107,11 +107,47 @@ def run_weekly_lesson():
         logger.error(f"[Nightly] 学習報告エラー: {e}")
 
 
+def run_vp_guide_post():
+    """
+    VP実用ガイド投稿（毎日）: ビルダー向けハウツーコンテンツ。
+    教育コンテンツ → Graduation Boost受注のファネル入口。
+    """
+    try:
+        logger.info("[Nightly] VP Guide投稿開始")
+        result = MoltbookTool.post_vp_guide()
+        if result:
+            logger.info("[Nightly] VP Guide投稿完了")
+        else:
+            logger.warning("[Nightly] VP Guide投稿失敗")
+    except Exception as e:
+        logger.error(f"[Nightly] VP Guide投稿エラー: {e}")
+
+
+def run_graduation_boost_promo():
+    """
+    Graduation Boost宣伝（週1回: 土曜日）
+    """
+    if date.today().weekday() != 5:  # 5=土曜
+        logger.info("[Nightly] Graduation Boost宣伝: 本日は非対象日 (土曜のみ)")
+        return
+    try:
+        logger.info("[Nightly] Graduation Boost宣伝投稿開始")
+        result = MoltbookTool.post_graduation_boost_promo()
+        if result:
+            logger.info("[Nightly] Graduation Boost宣伝完了")
+        else:
+            logger.warning("[Nightly] Graduation Boost宣伝失敗")
+    except Exception as e:
+        logger.error(f"[Nightly] Graduation Boost宣伝エラー: {e}")
+
+
 def run_nightly_research():
     """Nightly Batchから呼ばれるメインエントリポイント。"""
     logger.info("=== 🌙 Nightly Research 開始 ===")
-    run_insight_post()
-    run_weekly_lesson()
+    run_vp_guide_post()       # 毎日: VP実用ガイド
+    run_insight_post()         # 月水金: データ付き市場分析
+    run_weekly_lesson()        # 日曜: 学習報告
+    run_graduation_boost_promo()  # 土曜: サービス宣伝
     logger.info("=== 🌙 Nightly Research 完了 ===")
 
 

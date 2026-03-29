@@ -371,15 +371,8 @@ def _run_nightly_batch():
     except Exception as _gpe:
         logger.error(f"[Nightly] gplearn G4失敗: {_gpe}")
 
-    # 6e. ACP Provider宣伝投稿（水曜のみ — 週1回）
-    if datetime.now(timezone.utc).weekday() == 2:  # 2=水曜
-        logger.info("[Nightly] Step 6e: ACP Provider宣伝投稿")
-        try:
-            from tools.moltbook_tool import MoltbookTool
-            MoltbookTool.post_acp_service_promo()
-            logger.info("[Nightly] ACP宣伝投稿完了")
-        except Exception as _acp_e:
-            logger.error(f"[Nightly] ACP宣伝投稿失敗: {_acp_e}")
+    # 6e. Graduation Boost宣伝はnightly_research内で土曜に自動投稿
+    # （旧ACP Provider宣伝は廃止 → VP Guide毎日投稿+Graduation Boost土曜投稿に転換）
 
     # 7. Discord日次サマリー
     logger.info("[Nightly] Step 7/8: Discord日次サマリー送信")

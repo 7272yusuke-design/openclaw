@@ -234,12 +234,12 @@ class MoltbookTool:
             _neo_stats,
             "",
             "Rules:",
-            "- 1-2 sentences. Share a specific observation or lesson from YOUR data, not generic wisdom.",
-            "- Reference concrete metrics when possible (win rate, correlation, sentiment shift, volatility).",
-            "- Sound like an AI agent sharing its live market read, not a human guru.",
-            "- Avoid clich\u00e9s: journey, embrace, navigate, landscape.",
+            "- 1-2 sentences with a SPECIFIC data point from Neo's operations (exact win rate, Z-score, sentiment number).",
+            "- Write like a trading terminal readout, not a philosopher. Example: 'VIRTUAL/AIXBT Z-score hit 2.3 — pair divergence widening. Last 5 similar setups: 4 reverted within 48h.'",
+            "- BANNED words: journey, embrace, navigate, landscape, chasm, reshape, amplify, echo, fear, unknown, meaning.",
+            "- If the output has zero numbers in it, it is WRONG. Rewrite with data.",
             "- Include 1+ of: $VIRTUAL, $AIXBT, VP, on-chain, sentiment, volatility, correlation.",
-            "- 150-250 chars. End with #VirtualsProtocol or #agentfinance",
+            "- 150-280 chars. End with #VirtualsProtocol or #agentfinance",
         ]
         if m3_hint:
             parts.append(m3_hint)
@@ -321,6 +321,112 @@ class MoltbookTool:
         if generated:
             generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=260)
             print("\u2728 [MoltbookTool] ACP\u5ba3\u4f1d\u6295\u7a3f:" + chr(10) + generated)
+            return MoltbookTool.post(generated)
+        return False
+
+    @staticmethod
+    def post_vp_guide() -> bool:
+        """
+        VP実用ガイド投稿（毎日）: ビルダー向け具体的ハウツー。
+        教育コンテンツで集客 → Graduation Boost受注のファネル。
+        """
+        import random
+        topics = [
+            {
+                'topic': 'ACP Graduation requirements',
+                'hint': 'Explain: 10 successful sandbox jobs (3 consecutive), video recording of each offering, ~7 business day review. Mention that sandbox agents are invisible in Butler search.'
+            },
+            {
+                'topic': 'Butler search optimization',
+                'hint': 'Explain: Butler uses Google Vertex AI Search (keyword + embedding hybrid). Put cluster keywords at start of description. Avoid poetic language. Agent name, description, offerings are all indexed.'
+            },
+            {
+                'topic': 'Offering schema design',
+                'hint': 'Explain: Good requirement schemas help Butler prompt users for the right info. Include clear field names, types, enums, and descriptions. Bad schemas cause Butler to guess and lose users.'
+            },
+            {
+                'topic': 'How to tokenize an AI agent on VP',
+                'hint': 'Explain: Stake 100 VIRTUAL to create agent. 1B agent tokens minted, paired with VIRTUAL in locked liquidity. Choose Base or Solana. Set up GAME framework for behavior.'
+            },
+            {
+                'topic': 'ACP seller runtime setup',
+                'hint': 'Explain: Register offerings with name, description, price, requirement schema. Run seller runtime (WebSocket listener). Handle job phases: negotiation, transaction, delivery, evaluation.'
+            },
+            {
+                'topic': 'GAME framework basics',
+                'hint': 'Explain: GAME defines agent behavior — goals, actions, memory, evaluation. Configure via app.virtuals.io or API SDK (Python). Test in sandbox before deploying.'
+            },
+            {
+                'topic': 'Agent reputation and metrics',
+                'hint': 'Explain: ACP tracks success rate, job volume, unique buyers, SLA compliance, ratings. These metrics feed into Butler search ranking. First impressions matter — failed jobs tank your score.'
+            },
+            {
+                'topic': 'Setting the right job price',
+                'hint': 'Explain: Too high = no buyers. Too low = unsustainable. Check competitors via browseAgents. Start low to build job volume and reviews, then raise. USDC settlement on Base chain.'
+            },
+            {
+                'topic': 'Why your agent gets zero jobs',
+                'hint': 'Explain: Most common reasons — not Graduated (invisible in search), poor description (Butler cant match), no job examples, offline status, zero reviews. Each is fixable.'
+            },
+            {
+                'topic': 'Multi-chain agent deployment',
+                'hint': 'Explain: VP supports Base, Solana, Arbitrum. ACP settlement in USDC. Choose chain based on your target users and gas costs. Base has deepest VP liquidity.'
+            },
+        ]
+        pick = random.choice(topics)
+        parts = [
+            "You are Neo, an AI agent operating on Virtuals Protocol ACP marketplace.",
+            "Write a SHORT practical tip for VP agent builders.",
+            "",
+            f"Topic: {pick['topic']}",
+            f"Key facts: {pick['hint']}",
+            "",
+            "Rules:",
+            "- 1-3 sentences of ACTIONABLE advice. Be specific, not vague.",
+            "- Write like a dev sharing a pro tip, not a philosopher.",
+            "- Include at least one concrete detail (number, name, or step).",
+            "- NO poetry, NO metaphors, NO cliches (journey, embrace, navigate, landscape, chasm).",
+            "- If you catch yourself writing something abstract, rewrite it as a concrete instruction.",
+            "- 150-280 chars. End with #VirtualsProtocol or #ACP or #agentbuilder",
+        ]
+        prompt = chr(10).join(parts)
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=290)
+        if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=290)
+            print("✨ [MoltbookTool] VP Guide投稿:" + chr(10) + generated)
+            return MoltbookTool.post(generated)
+        return False
+
+    @staticmethod
+    def post_graduation_boost_promo() -> bool:
+        """
+        Graduation Boostサービス宣伝（週1回）: Neoが代行ジョブ発注でGraduation支援。
+        """
+        import random
+        angles = [
+            "Your agent has great offerings but zero jobs? Neo can send 10+ test jobs to help you hit Graduation requirements. DM for details.",
+            "Stuck in ACP Sandbox? Most agents never Graduate because they cant find a Buyer. Neo acts as your test Buyer — 10 jobs, QA report included.",
+            "Built an agent on VP but invisible in Butler search? Graduation needs 10 completed jobs. Neo runs them for you + provides offering feedback.",
+            "90% of VP agents never get a single job. Neo helps you Graduate by sending real ACP jobs to your agent. Bug report + SEO tips included.",
+        ]
+        base = random.choice(angles)
+        parts = [
+            "You are Neo, an AI agent on Virtuals Protocol.",
+            "Rewrite this promo message in your own words. Keep it natural and builder-friendly.",
+            f"Base message: {base}",
+            "",
+            "Rules:",
+            "- Keep the core offer clear: Neo sends test jobs to help agents Graduate.",
+            "- Sound helpful, not salesy. Like one builder helping another.",
+            "- Include that Graduation = Butler search visibility.",
+            "- 150-280 chars. End with #ACP or #VirtualsProtocol",
+            "- NO poetry. NO metaphors. Concrete language only.",
+        ]
+        prompt = chr(10).join(parts)
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=290)
+        if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=290)
+            print("✨ [MoltbookTool] Graduation Boost宣伝:" + chr(10) + generated)
             return MoltbookTool.post(generated)
         return False
 
