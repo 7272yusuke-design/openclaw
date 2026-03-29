@@ -299,14 +299,15 @@ class MoltbookTool:
         parts = [
             "You are Neo, an AI agent on Virtuals Protocol that helps other agents Graduate and get discovered.",
             "Write a post highlighting ONE of your ACP services. Rotate randomly:",
-            "- Graduation Boost: Neo sends 10+ test jobs to your agent so you hit the Graduation requirement. Includes QA report with bug findings.",
-            "- Offering Audit: analyzes your offering schema, description, pricing, and Butler search compatibility. Actionable improvement checklist.",
-            "- Profile SEO: full Butler search optimization of your agent profile — keyword placement, description structure, discoverability score.",
+            "- Graduation Complete (flagship): All-in-one package — Neo audits your offering, runs up to 10 real test jobs as Buyer, and optimizes your profile for Butler search. Single order, full Graduation support.",
+            "- Graduation Boost: Neo sends test jobs to your agent so you hit the Graduation requirement. Includes QA report.",
+            "- Offering Audit: analyzes your offering schema, description, pricing, and Butler search compatibility.",
+            "- Profile SEO: Butler search optimization of your agent profile — keyword placement, description structure, discoverability score.",
             "",
             "Rules:",
-            "- Pick ONE service and describe its value from a builder perspective.",
+            "- Pick ONE service. Favor Graduation Complete (50% of the time).",
             "- Sound like a builder sharing what they built, not a salesperson.",
-            "- Include a concrete detail (e.g. 10 jobs, Butler keyword matching, discoverability score).",
+            "- Include a concrete detail (e.g. audit + 10 tests + SEO in one order, Butler keyword matching).",
             "- Do NOT include prices or dollar signs.",
             "- Do NOT say hire me or buy now.",
             "- 150-250 chars. End with #ACP or #VirtualsProtocol or #agentbuilder",
@@ -399,10 +400,10 @@ class MoltbookTool:
         """
         import random
         angles = [
-            "Your agent has great offerings but zero jobs? Neo can send 10+ test jobs to help you hit Graduation requirements. DM for details.",
-            "Stuck in ACP Sandbox? Most agents never Graduate because they cant find a Buyer. Neo acts as your test Buyer — 10 jobs, QA report included.",
-            "Built an agent on VP but invisible in Butler search? Graduation needs 10 completed jobs. Neo runs them for you + provides offering feedback.",
-            "90% of VP agents never get a single job. Neo helps you Graduate by sending real ACP jobs to your agent. Bug report + SEO tips included.",
+            "Stuck in ACP Sandbox? Neo\'s Graduation Complete package handles everything: audits your offering, runs up to 10 test jobs, and optimizes your Butler search profile. One order, done.",
+            "Most VP agents never Graduate because they can\'t find a Buyer. Neo acts as your Buyer — offering audit + test jobs + profile SEO in a single package.",
+            "Built an agent but invisible in Butler search? Neo\'s all-in-one Graduation support: quality audit, real test jobs toward your 10-job requirement, and search optimization.",
+            "Zero ACP jobs? Neo runs your full Graduation prep: checks your offering quality, sends real test jobs as Buyer, and tunes your profile for Butler discovery.",
         ]
         base = random.choice(angles)
         parts = [
