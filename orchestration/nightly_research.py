@@ -17,59 +17,24 @@ from tools.moltbook_tool import MoltbookTool
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("neo.nightly")
 
-def run_insight_post():
+def run_agent_spotlight():
     """
-    洞察投稿（週3回: 月・水・金）
-    Blackboardの状況からトピックを自動選定してMoltbookに投稿。
+    エージェント紹介投稿（週3回: 月・水・金）
+    browseで見つけたVPエージェントを応援紹介。コミュニティ貢献＋集客。
     """
     today = date.today().weekday()  # 0=月, 2=水, 4=金
     if today not in (0, 2, 4):
-        logger.info("[Nightly] 洞察投稿: 本日は非対象日 (月・水・金のみ)")
+        logger.info("[Nightly] Agent Spotlight: 本日は非対象日 (月・水・金のみ)")
         return
-
     try:
-        board = NeoBlackboard.load()
-        opps = board.get("strategic_intel", {}).get("active_opportunities",
-               board.get("active_opportunities", {}))
-        perf = board.get("performance_summary", {})
-
-        # トピックと背景情報を自動生成
-        opp_count = len(opps)
-        accuracy = perf.get("accuracy_score", 0.0)
-        total_trades = perf.get("total_evaluated_trades", 0)
-
-        # 最高Sharpe銘柄を特定
-        top_symbol = None
-        top_sharpe = 0.0
-        for sym, data in opps.items():
-            if data.get("sharpe", 0) > top_sharpe:
-                top_sharpe = data["sharpe"]
-                top_symbol = sym
-
-        if top_symbol:
-            topic = f"{top_symbol}のアルファシグナルとVP経済圏の動向"
-            context = (
-                f"現在{opp_count}件のAlpha機会を検知中。"
-                f"最注目: {top_symbol} (Sharpe={top_sharpe:.1f})。"
-                f"Neo累計勝率: {accuracy}% ({total_trades}件)。"
-                f"今日の日付: {date.today()}"
-            )
-        else:
-            topic = "VP経済圏の現在地と今後の展望"
-            context = (
-                f"現在Alpha機会は検知されていない静観フェーズ。"
-                f"Neo累計勝率: {accuracy}% ({total_trades}件)。"
-                f"今日の日付: {date.today()}"
-            )
-
-        logger.info(f"[Nightly] 洞察投稿開始: {topic}")
-        result = MoltbookTool.post_insight(topic=topic, context=context)
+        logger.info("[Nightly] Agent Spotlight投稿開始")
+        result = MoltbookTool.post_agent_spotlight()
         if result:
-            logger.info("[Nightly] 洞察投稿完了")
+            logger.info("[Nightly] Agent Spotlight投稿完了")
         else:
-            logger.warning("[Nightly] 洞察投稿失敗")
-
+            logger.warning("[Nightly] Agent Spotlight投稿失敗")
     except Exception as e:
+        logger.error(f"[Nightly] Agent Spotlight投稿エラー: {e}")
         logger.error(f"[Nightly] 洞察投稿エラー: {e}")
 
 
@@ -123,6 +88,24 @@ def run_vp_guide_post():
         logger.error(f"[Nightly] VP Guide投稿エラー: {e}")
 
 
+def run_acp_service_promo():
+    """
+    ACP サービス宣伝（週1回: 火曜日）
+    新3 offerings体制の宣伝。
+    """
+    if date.today().weekday() != 1:  # 1=火曜
+        logger.info("[Nightly] ACP宣伝: 本日は非対象日 (火曜のみ)")
+        return
+    try:
+        logger.info("[Nightly] ACP宣伝投稿開始")
+        result = MoltbookTool.post_acp_service_promo()
+        if result:
+            logger.info("[Nightly] ACP宣伝投稿完了")
+        else:
+            logger.warning("[Nightly] ACP宣伝投稿失敗")
+    except Exception as e:
+        logger.error(f"[Nightly] ACP宣伝投稿エラー: {e}")
+
 def run_graduation_boost_promo():
     """
     Graduation Boost宣伝（週1回: 土曜日）
@@ -144,10 +127,11 @@ def run_graduation_boost_promo():
 def run_nightly_research():
     """Nightly Batchから呼ばれるメインエントリポイント。"""
     logger.info("=== 🌙 Nightly Research 開始 ===")
-    run_vp_guide_post()       # 毎日: VP実用ガイド
-    run_insight_post()         # 月水金: データ付き市場分析
-    run_weekly_lesson()        # 日曜: 学習報告
-    run_graduation_boost_promo()  # 土曜: サービス宣伝
+    run_vp_guide_post()           # 毎日: VP実用ガイド
+    run_agent_spotlight()         # 月水金: エージェント紹介
+    run_acp_service_promo()       # 火曜: ACP 3 offerings宣伝
+    run_weekly_lesson()           # 日曜: 学習報告
+    run_graduation_boost_promo()  # 土曜: Graduation Boost宣伝
     logger.info("=== 🌙 Nightly Research 完了 ===")
 
 
