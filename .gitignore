@@ -19,3 +19,5 @@ vault/chroma_db.bak*
 *.bak2
 .env.bak
 *.bak*
+*.bak*
+.env.bak
