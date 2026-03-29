@@ -209,7 +209,9 @@ class DiscordReporter:
             for p in recent_performance[-5:]:
                 pnl = p.get("pnl_pct", 0)
                 emoji = "✅" if pnl > 0 else "❌"
-                lines.append(f"{emoji} {p.get('symbol','?')} | ${p.get('entry',0):.4f}→${p.get('current',0):.4f} | {pnl:+.2f}%")
+                entry = p.get('entry_price', p.get('entry', 0))
+                exit_ = p.get('exit_price', p.get('current', 0))
+                lines.append(f"{emoji} {p.get('symbol','?')} | ${entry:.4f}→${exit_:.4f} | {pnl:+.2f}%")
             recent_str = "\n".join(lines)
         else:
             recent_str = "決済済み取引なし"
