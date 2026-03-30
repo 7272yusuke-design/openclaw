@@ -1,12 +1,19 @@
 {
-  "whale_AIXBT": {
-    "symbol": "AIXBT",
-    "whale_count": 0,
-    "whale_volume_usd": 0,
-    "large_txs": [],
+  "whale_VIRTUAL": {
+    "symbol": "VIRTUAL",
+    "whale_count": 1,
+    "whale_volume_usd": 68631,
+    "large_txs": [
+      {
+        "from": "0x91c68c4b...",
+        "to": "0xBaeD383E...",
+        "amount_usd": 68631,
+        "tx_hash": "0xdafb91672f3c79..."
+      }
+    ],
     "signal": "NEUTRAL",
     "scanned_blocks": 300,
-    "fetched_at": "2026-03-29T08:44:13.363913+00:00"
+    "fetched_at": "2026-03-30T03:28:18.500389+00:00"
   },
-  "_ts": 1774773853.3639894
+  "_ts": 1774841298.5004988
 }

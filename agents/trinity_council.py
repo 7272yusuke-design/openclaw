@@ -650,7 +650,9 @@ class TrinityCouncil(NeoBaseCrew):
                 if _last_sl_time:
                     _hours_since = (datetime.now(timezone.utc) - _last_sl_time.replace(tzinfo=timezone.utc if _last_sl_time.tzinfo is None else _last_sl_time.tzinfo)).total_seconds() / 3600
                     if _hours_since > 48:
-                        _streak_decay = 0.5
+                        _streak_decay = 0.0  # 48h経過: 完全解除（デッドロック防止 v6.5r）
+                    elif _hours_since > 24:
+                        _streak_decay = 0.5  # 24h経過: 半減
             except Exception:
                 pass
         if _recent_losses >= 3:
