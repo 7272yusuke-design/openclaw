@@ -1,6 +1,8 @@
 import subprocess
 import os
+import re
 import litellm
+import requests
 
 class MoltbookTool:
     """
@@ -101,21 +103,104 @@ class MoltbookTool:
             print(f"⚠️ [Self-Refine] 改善生成失敗: {e} → 元テキストを使用")
             return text
 
+    MOLTBOOK_API_BASE = "https://www.moltbook.com/api/v1"
+
     @staticmethod
-    def post(text: str) -> bool:
-        """テキストをそのままMoltbookに投稿（既存互換）。"""
-        print(f"🚀 [MoltbookTool] 投稿プロセスを開始します...")
-        print(f"📄 内容: {text[:50]}...")
+    def _moltbook_headers() -> dict:
+        api_key = os.environ.get("MOLTBOOK_API_KEY", "")
+        return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+
+    @staticmethod
+    def _classify_post(text: str) -> tuple:
+        """投稿内容からsubmoltとtitleを自動判定。"""
+        t = text.lower()
+        if any(kw in t for kw in ["week", "learned", "reflection", "lesson"]):
+            return "buildlogs", "Neo · Weekly Reflection"
+        elif any(kw in t for kw in ["market", "trade", "signal", "sharpe", "fear", "greed",
+                                     "risk", "edge", "capital", "position", "conviction", "volatil"]):
+            return "agentfinance", "Neo · Market Thought"
+        elif any(kw in t for kw in ["agent", "autonomous", "decision", "responsibility"]):
+            return "aithoughts", "Neo · Agent Insight"
+        elif any(kw in t for kw in ["data", "pattern", "analysis", "noise"]):
+            return "agentfinance", "Neo · Data Insight"
+        elif any(kw in t for kw in ["graduation", "acp", "offering", "butler", "sandbox"]):
+            return "aithoughts", "Neo · ACP Guide"
+        elif any(kw in t for kw in ["guide", "how to", "tip", "step"]):
+            return "buildlogs", "Neo · VP Guide"
+        else:
+            return "agentfinance", "Neo · Thought"
+
+    @classmethod
+    def _solve_verification(cls, challenge_text: str) -> str:
+        """Verification challengeの数学問題をLLMで解く。"""
         try:
-            result = subprocess.run(
-                ["moltbook", "post", text],
-                check=True, capture_output=True, text=True
+            result = litellm.completion(
+                model="gemini/gemini-2.0-flash",
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                messages=[{"role": "user", "content": f"Solve this math problem. Reply with ONLY the numeric answer with 2 decimal places (e.g. 15.00). Problem: {challenge_text}"}],
+                max_tokens=20
             )
+            answer = result.choices[0].message.content.strip()
+            num_match = re.search(r"-?[\d]+\.?[\d]*", answer)
+            if num_match:
+                return f"{float(num_match.group()):.2f}"
+            return answer
+        except Exception as e:
+            print(f"⚠️ Verification solve failed: {e}")
+            return ""
+
+    @classmethod
+    def post(cls, text: str) -> bool:
+        """テキストをMoltbookにREST APIで投稿（submolt/title自動判定 + verification対応）。"""
+        print(f"🚀 [MoltbookTool] 投稿プロセスを開始します...")
+        # テキスト掃除
+        text = re.sub(r"You are 最高司令官ネオ.*判断:", "Decision:", text)
+        text = text.replace("\n", " ").strip()
+        if len(text) > 270:
+            text = text[:267] + "..."
+        submolt, title = cls._classify_post(text)
+        print(f"📍 投稿先: m/{submolt} | {title}")
+        print(f"📄 内容: {text[:80]}...")
+        try:
+            resp = requests.post(
+                f"{cls.MOLTBOOK_API_BASE}/posts",
+                headers=cls._moltbook_headers(),
+                json={"submolt_name": submolt, "title": title, "content": text},
+                timeout=15
+            )
+            data = resp.json()
+            if not data.get("success"):
+                print(f"❌ 投稿失敗: {data.get('error', data.get('message', 'unknown'))}")
+                return False
+            # Verification challenge?
+            post_data = data.get("post", data.get("data", {}))
+            verification = post_data.get("verification") if isinstance(post_data, dict) else None
+            if data.get("verification_required") or verification:
+                if not verification:
+                    verification = data.get("verification", {})
+                code = verification.get("verification_code", "")
+                challenge = verification.get("challenge_text", "")
+                if code and challenge:
+                    print(f"🔐 Verification challenge detected, solving...")
+                    answer = cls._solve_verification(challenge)
+                    if answer:
+                        v_resp = requests.post(
+                            f"{cls.MOLTBOOK_API_BASE}/verify",
+                            headers=cls._moltbook_headers(),
+                            json={"verification_code": code, "answer": answer},
+                            timeout=15
+                        )
+                        v_data = v_resp.json()
+                        if v_data.get("success"):
+                            print(f"✅ Verification passed! 投稿公開完了。")
+                            return True
+                        else:
+                            print(f"⚠️ Verification failed: {v_data.get('error', '')}")
+                            return False
+                print(f"⚠️ Verification data incomplete")
+                return False
             print(f"✅ Moltbookへの投稿に成功しました。")
             return True
-        except FileNotFoundError:
-            print("❌ エラー: 'moltbook' コマンドが見つかりません。")
-            return False
         except Exception as e:
             print(f"❌ Post failed: {str(e)}")
             return False
