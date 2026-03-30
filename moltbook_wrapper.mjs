@@ -63,11 +63,22 @@ if (cmd === 'post') {
         });
 
 } else if (cmd === 'myposts') {
-    // 自分の投稿一覧を取得（JSON出力）
+    // 自分の投稿一覧を取得（REST API直接呼び出し）
     const limit = parseInt(args[0]) || 10;
     try {
-        const result = await client.getPosts({ limit, sort: 'new' });
-        const posts = result.posts || result || [];
+        const apiKey = process.env.MOLTBOOK_API_KEY;
+        // 1. 自分の名前を取得
+        const meResp = await fetch('https://www.moltbook.com/api/v1/agents/me', {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const me = await meResp.json();
+        const name = me.agent?.name;
+        // 2. プロフィールから自分の投稿を取得
+        const profileResp = await fetch(`https://www.moltbook.com/api/v1/agents/profile?name=${name}`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const profile = await profileResp.json();
+        const posts = (profile.recentPosts || []).slice(0, limit);
         console.log(JSON.stringify(posts, null, 2));
     } catch(err) {
         console.error("❌ エラー:", err.message);
