@@ -528,7 +528,8 @@ def start_hybrid_radar():
                     engage_result = MoltbookEngager.run_engagement_cycle()
                     r = engage_result.get("replies", {})
                     f = engage_result.get("feed", {})
-                    logger.info(f"[Engager] 完了 — 返信:{r.get('replied',0)} upvote:{f.get('upvoted',0)} コメント:{f.get('commented',0)}")
+                    s = engage_result.get("search", {})
+                    logger.info(f"[Engager] 完了 — 返信:{r.get('replied',0)} upvote:{f.get('upvoted',0)} コメント:{f.get('commented',0)} 営業:{s.get('commented',0)}")
                 except Exception as e:
                     logger.error(f"[Engager] エラー: {e}")
 
