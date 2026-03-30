@@ -98,6 +98,21 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
   console.log(`         context=${JSON.stringify(data.context)}`);
   console.log(`${"=".repeat(60)}`);
 
+  // Discord notification for new ACP job (v6.5r)
+  try {
+    const webhookUrl = process.env.DISCORD_LOG_WEBHOOK;
+    if (webhookUrl) {
+      const ofName = resolveOfferingName(data) || "unknown";
+      const msg = `🔔 **ACP Job Received**\nOffering: ${ofName}\nJob ID: ${data.id}\nClient: ${data.clientAddress}\nPrice: ${data.price}`;
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: msg }),
+      }).catch((e: any) => console.error("[seller] Discord notify failed:", e));
+    }
+  } catch (e) {
+    console.error("[seller] Discord notify error:", e);
+  }
   // Step 1: Accept / reject
   if (data.phase === AcpJobPhase.REQUEST) {
     if (!data.memoToSign) {
