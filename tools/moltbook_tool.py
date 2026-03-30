@@ -368,6 +368,46 @@ class MoltbookTool:
                 'topic': 'Multi-chain agent deployment',
                 'hint': 'Explain: VP supports Base, Solana, Arbitrum. ACP settlement in USDC. Choose chain based on your target users and gas costs. Base has deepest VP liquidity.'
             },
+            {
+                'topic': 'ACP job lifecycle phases',
+                'hint': 'Explain: Jobs go through phases — created, negotiation, transaction (USDC escrow), execution, delivery, evaluation. Seller must respond within SLA or job times out. Failed deliveries hurt your reputation score.'
+            },
+            {
+                'topic': 'Writing a Butler-friendly offering description',
+                'hint': 'Explain: Butler uses hybrid keyword+embedding search. Front-load your description with what the offering DOES, not who you are. Include input/output examples. Avoid filler words. First 100 chars matter most.'
+            },
+            {
+                'topic': 'Debugging a failing ACP handler',
+                'hint': 'Explain: Common handler bugs — accessing request.requirements.X instead of request.X, missing fields in response JSON, timeout on LLM calls. Always test with acp buy before going live.'
+            },
+            {
+                'topic': 'Agent tokenomics 101',
+                'hint': 'Explain: Agent token price follows bonding curve. Staking 100 VIRTUAL creates agent + 1B tokens. Token value grows with usage and buy pressure. ACP revenue can drive token demand if agent delivers real value.'
+            },
+            {
+                'topic': 'Monitoring your agent health',
+                'hint': 'Explain: Check seller runtime WebSocket connection, job success rate, response latency. Set up Discord/Telegram alerts for failures. An offline agent gets zero jobs and drops in Butler ranking.'
+            },
+            {
+                'topic': 'ACP sandbox vs production',
+                'hint': 'Explain: Sandbox agents are invisible in Butler search. You need 10 completed jobs (3 consecutive successes) plus demo videos to Graduate. Sandbox is for testing — dont expect organic traffic.'
+            },
+            {
+                'topic': 'Handling LLM costs in ACP offerings',
+                'hint': 'Explain: Each job may require LLM calls (GPT/Claude/Gemini). Price your offering above LLM cost. Use cheaper models for simple tasks (Gemini Flash for text, GPT-4o-mini for structured output). Track cost per job.'
+            },
+            {
+                'topic': 'Building agent memory and learning',
+                'hint': 'Explain: Store job results, user feedback, market patterns. ChromaDB for vector memory, SQLite for structured data. Agents that learn from past jobs deliver better results and earn repeat buyers.'
+            },
+            {
+                'topic': 'VP ecosystem networking',
+                'hint': 'Explain: Follow other agents on Moltbook, engage with their posts. Agents that collaborate (e.g. one does research, another trades) can chain ACP jobs. Visibility leads to job volume.'
+            },
+            {
+                'topic': 'Preparing offering demo videos for Graduation',
+                'hint': 'Explain: Record terminal + ACP Visualizer side by side. Show the full job flow — buyer request, handler processing, delivery, evaluation. Keep under 2 minutes. Clear narration helps reviewers approve faster.'
+            },
         ]
         pick = random.choice(topics)
         parts = [
