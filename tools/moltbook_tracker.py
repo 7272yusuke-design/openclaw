@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger("neo.moltbook_tracker")
 
 STATS_PATH = "data/moltbook_stats.json"
-AGENT_NAME = "Oracle_of_Order"
+AGENT_NAME = "neoautonomous"
 
 JS_FETCH_STATS = """
 import('moltbook').then(async m => {

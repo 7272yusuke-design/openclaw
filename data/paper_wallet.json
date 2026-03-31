@@ -1,5 +1,5 @@
 {
-  "usd_balance": 88494.27703942766,
+  "usd_balance": 88140.89707632709,
   "holdings": {},
   "history": [
     {
@@ -658,8 +658,35 @@
       "amount_token": 222489.0277257374,
       "amount_usd": 5133.196974445772,
       "reason": "Stop Loss at -3.0% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-03-30T08:40:49.540588+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0239506534401867,
+      "amount_token": 183819.0536636015,
+      "amount_usd": 4424.71,
+      "reason": "Trinity Council BUY verdict (accuracy: 63.77%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-30T11:40:34.705270+00:00",
+      "symbol": "AIXBT",
+      "action": "BUY",
+      "price": 0.0237960104853268,
+      "amount_token": 184908.2665648175,
+      "amount_usd": 4422.19,
+      "reason": "Trinity Council BUY verdict (accuracy: 63.77%, confidence: LOW)"
+    },
+    {
+      "timestamp": "2026-03-30T18:10:23.214747+00:00",
+      "symbol": "AIXBT",
+      "action": "SELL",
+      "price": 0.0231504436308706,
+      "amount_token": 368727.320228419,
+      "amount_usd": 8493.520036899436,
+      "reason": "Stop Loss at -3.5% (limit: -3.0%)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-03-28T01:35:13.981598+00:00"
+  "last_updated": "2026-03-30T18:10:23.214797+00:00"
 }
