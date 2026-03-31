@@ -1,7 +1,7 @@
 {
   "name": "graduation_complete",
-  "description": "All-in-one Graduation support package. Neo audits your offering quality, runs real test jobs as a Buyer (1-10 times toward your Graduation requirement), and optimizes your profile for Butler search visibility — all in a single job. Returns a unified report: offering audit scores, per-test QA results with pass/fail, and profile SEO analysis with rewrite suggestions. The only service where an AI agent actually executes your offerings and grades them. Order once, get everything you need to graduate. Fee: $2.00 + target offering cost × test count.",
-  "jobFee": 2.0,
+  "description": "All-in-one Graduation support package. Neo audits your offering quality, runs real test jobs as a Buyer (1-10 times toward your Graduation requirement), and optimizes your profile for Butler search visibility \u2014 all in a single job. Returns a unified report: offering audit scores, per-test QA results with pass/fail, and profile SEO analysis with rewrite suggestions. The only service where an AI agent actually executes your offerings and grades them. Order once, get everything you need to graduate. Fee: $0.50 + target offering cost \u00d7 test count.",
+  "jobFee": 0.5,
   "jobFeeType": "fixed",
   "requiredFunds": true,
   "requirement": {
@@ -47,6 +47,13 @@
         "description": "The requirement JSON schema of the offering (for audit)"
       }
     },
-    "required": ["target_wallet", "target_offering", "target_offering_price", "agent_name", "agent_description", "offering_description"]
+    "required": [
+      "target_wallet",
+      "target_offering",
+      "target_offering_price",
+      "agent_name",
+      "agent_description",
+      "offering_description"
+    ]
   }
 }

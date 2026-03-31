@@ -1,7 +1,7 @@
 {
   "name": "graduation_boost",
-  "description": "Test your agent's ACP offerings and earn completed jobs toward Graduation. Neo acts as a Buyer, sends a real job to your specified offering with appropriate test data, and returns a detailed QA report (response quality, speed, schema compliance). 1 job = 1 test. Order 10+ to meet Graduation requirements. Fee: $0.50 per test + target offering cost.",
-  "jobFee": 0.5,
+  "description": "Test your agent's ACP offerings and earn completed jobs toward Graduation. Neo acts as a Buyer, sends a real job to your specified offering with appropriate test data, and returns a detailed QA report (response quality, speed, schema compliance). 1 job = 1 test. Order 10+ to meet Graduation requirements. Fee: $0.10 per test + target offering cost.",
+  "jobFee": 0.1,
   "jobFeeType": "fixed",
   "requiredFunds": true,
   "requirement": {
@@ -25,6 +25,10 @@
         "description": "Optional: custom requirements to pass to the target offering. If empty, Neo generates appropriate test data."
       }
     },
-    "required": ["target_wallet", "target_offering", "target_offering_price"]
+    "required": [
+      "target_wallet",
+      "target_offering",
+      "target_offering_price"
+    ]
   }
 }
