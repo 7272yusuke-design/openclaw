@@ -312,6 +312,7 @@ class TrinityCouncil(NeoBaseCrew):
 
         # 1-P. N.1 ペアトレードシグナル（参考情報注入）
         pair_trade_context = ""
+        _pt_z = 0  # Phase 4bスコアリング用（デフォルト: 中立）
         if clean_symbol in ("VIRTUAL", "AIXBT"):
             try:
                 from research.n1_pair_trade import calc_pair_signal
@@ -665,9 +666,29 @@ class TrinityCouncil(NeoBaseCrew):
             _streak_label = f"streak-{_penalty}"
         else:
             _streak_label = "streak0"
+        # N.1 ペアトレード Z-scoreスコア（v6.5t）
+        _pt_z_label = 'z0'
+        if clean_symbol in ('VIRTUAL', 'AIXBT') and _pt_z != 0:
+            # VIRTUALの場合: Z<0=割安=BUY支持, Z>0=割高=BUY抑制
+            # AIXBTの場合: 符号反転（VIRTUAL割安=AIXBT割高）
+            _effective_z = _pt_z if clean_symbol == 'VIRTUAL' else -_pt_z
+            if _effective_z < -1.5:
+                _calc_conf += 8
+                _pt_z_label = f'z{_pt_z:+.1f}:+8'
+            elif _effective_z < -1.0:
+                _calc_conf += 4
+                _pt_z_label = f'z{_pt_z:+.1f}:+4'
+            elif _effective_z > 1.5:
+                _calc_conf -= 8
+                _pt_z_label = f'z{_pt_z:+.1f}:-8'
+            elif _effective_z > 1.0:
+                _calc_conf -= 4
+                _pt_z_label = f'z{_pt_z:+.1f}:-4'
+            else:
+                _pt_z_label = f'z{_pt_z:+.1f}:0'
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label})")
         _structured_confidence = _calc_conf
 
 # ============================================================
