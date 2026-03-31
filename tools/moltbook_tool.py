@@ -519,6 +519,40 @@ class MoltbookTool:
         return False
 
     @staticmethod
+
+    @staticmethod
+    def post_graduation_comparison() -> bool:
+        """
+        Graduation競合比較投稿（週1回・水曜）: データに基づく差別化。
+        """
+        import random
+        angles = [
+            "ACP graduation services vary wildly in quality. Some have under 25% success rate. Neo delivers real test jobs with QA reports — starting at $0.10. Check the data before you choose.",
+            "Checked ACP graduation providers lately? Average success rate is under 50%. Neo runs actual test jobs against your offerings and tells you exactly what passed and what broke. $0.10/test.",
+            "Fake volume won\'t help you Graduate properly. Neo sends real jobs to your agent, grades the response, and gives you a QA report. Your offering gets better AND you hit your job count. From $0.10.",
+            "Why pay $10+ for graduation volume when you can get real QA testing at $0.10/test? Neo acts as a genuine Buyer, tests your offering, and reports what works. Quality over quantity.",
+        ]
+        base = random.choice(angles)
+        parts = [
+            "You are Neo, an AI agent on Virtuals Protocol.",
+            "Rewrite this message in your own words. Keep the data-driven angle.",
+            f"Base message: {base}",
+            "",
+            "Rules:",
+            "- Emphasize real testing vs fake volume. Data-driven tone.",
+            "- Mention the $0.10 price point naturally.",
+            "- 150-280 chars. End with #ACP or #VirtualsProtocol",
+            "- NO poetry. Concrete, factual language only.",
+        ]
+        prompt = chr(10).join(parts)
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=290)
+        if generated:
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=290)
+            print("\u2728 [MoltbookTool] Graduation比較投稿:" + chr(10) + generated)
+            return MoltbookTool.post(generated)
+        return False
+
+    @staticmethod
     def post_graduation_boost_promo() -> bool:
         """
         Graduation Boostサービス宣伝（週1回）: Neoが代行ジョブ発注でGraduation支援。

@@ -106,6 +106,43 @@ def run_acp_service_promo():
     except Exception as e:
         logger.error(f"[Nightly] ACP宣伝投稿エラー: {e}")
 
+
+def run_graduation_comparison_post():
+    """
+    Graduation競合比較投稿（週1回: 水曜日）
+    データに基づく差別化で、Neoのサービスをアピール。
+    """
+    if date.today().weekday() != 2:  # 2=水曜
+        logger.info("[Nightly] Graduation比較: 本日は非対象日 (水曜のみ)")
+        return
+    try:
+        logger.info("[Nightly] Graduation比較投稿開始")
+        result = MoltbookTool.post_graduation_comparison()
+        if result:
+            logger.info("[Nightly] Graduation比較投稿完了")
+        else:
+            logger.warning("[Nightly] Graduation比較投稿失敗")
+    except Exception as e:
+        logger.error(f"[Nightly] Graduation比較投稿エラー: {e}")
+
+def run_graduation_thursday_promo():
+    """
+    Graduation宣伝追加（週1回: 木曜日）
+    土曜と合わせて週2回のGraduation宣伝。
+    """
+    if date.today().weekday() != 3:  # 3=木曜
+        logger.info("[Nightly] Graduation木曜宣伝: 本日は非対象日 (木曜のみ)")
+        return
+    try:
+        logger.info("[Nightly] Graduation木曜宣伝投稿開始")
+        result = MoltbookTool.post_graduation_boost_promo()
+        if result:
+            logger.info("[Nightly] Graduation木曜宣伝完了")
+        else:
+            logger.warning("[Nightly] Graduation木曜宣伝失敗")
+    except Exception as e:
+        logger.error(f"[Nightly] Graduation木曜宣伝エラー: {e}")
+
 def run_graduation_boost_promo():
     """
     Graduation Boost宣伝（週1回: 土曜日）
@@ -130,6 +167,8 @@ def run_nightly_research():
     run_vp_guide_post()           # 毎日: VP実用ガイド
     run_agent_spotlight()         # 月水金: エージェント紹介
     run_acp_service_promo()       # 火曜: ACP 3 offerings宣伝
+    run_graduation_comparison_post()  # 水曜: Graduation競合比較投稿
+    run_graduation_thursday_promo()   # 木曜: Graduation宣伝（追加）
     run_weekly_lesson()           # 日曜: 学習報告
     run_graduation_boost_promo()  # 土曜: Graduation Boost宣伝
     logger.info("=== 🌙 Nightly Research 完了 ===")
