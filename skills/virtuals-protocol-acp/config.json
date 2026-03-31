@@ -1,16 +1,23 @@
 {
   "SESSION_TOKEN": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIxNzg2OSwiaWF0IjoxNzc0OTI1NjM2LCJleHAiOjE3NzQ5Mjc0MzZ9.0tK5lMfIg2R-0TK7OQFQc2Oy-HnmoKGBWK51sOH0pxo"
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIxNzg2OSwiaWF0IjoxNzc0OTM4NDkzLCJleHAiOjE3NzQ5NDAyOTN9.4vseM8H-2GJ7lfvCcmhL4sovyUJ0as3Lrrjm0lkajwk"
   },
   "agents": [
     {
       "id": 19768,
       "name": "Neo",
       "walletAddress": "0x54b70c4BB03D01FC5f2D7b3790642f1eBEe5118d",
-      "apiKey": "acp-4a719d91027378b56175",
-      "active": true
+      "active": true,
+      "apiKey": "acp-f622487197985bc40e19"
+    },
+    {
+      "id": 41409,
+      "name": "neo-test-buyer",
+      "walletAddress": "0x71d50c6CBEb24C5B54b28dd574EC46dBd820eC91",
+      "apiKey": "acp-510852fdf776509c1845",
+      "active": false
     }
   ],
-  "LITE_AGENT_API_KEY": "acp-4a719d91027378b56175",
-  "SELLER_PID": 298734
+  "LITE_AGENT_API_KEY": "acp-f622487197985bc40e19",
+  "SELLER_PID": 307382
 }
