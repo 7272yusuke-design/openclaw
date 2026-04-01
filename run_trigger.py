@@ -437,8 +437,14 @@ def _run_nightly_batch():
         _result = subprocess.run(["wc", "-l", _log_path], capture_output=True, text=True)
         _lines = int(_result.stdout.strip().split()[0])
         if _lines > 10000:
-            subprocess.run(f"tail -10000 {_log_path} > {_log_path}.tmp && mv {_log_path}.tmp {_log_path}", shell=True)
-            logger.info(f"[Nightly] ログ切り詰め: {_lines}行 → 10000行")
+            # inode保持方式: tail→tmpに書き出し、元ファイルをtruncate+上書き（fdが切れない）
+            subprocess.run(f"tail -10000 {_log_path} > {_log_path}.tmp", shell=True)
+            with open(_log_path + '.tmp', 'r') as _tmp_f:
+                _kept = _tmp_f.read()
+            with open(_log_path, 'w') as _orig_f:
+                _orig_f.write(_kept)
+            import os; os.remove(_log_path + '.tmp')
+            logger.info(f"[Nightly] ログ切り詰め: {_lines}行 → 10000行（inode保持）")
     except Exception as e:
         logger.error(f"[Nightly] ログ切り詰め失敗: {e}")
 

@@ -1,1 +1,1 @@
-{"dex_AIXBT": {"symbol": "AIXBT", "price_usd": 0.02333, "volume_24h": 7287.48, "liquidity_usd": 927231.66, "price_change_24h": -0.17, "dex_name": "uniswap", "chain": "base", "fetched_at": "2026-04-01T02:23:52.591002+00:00"}, "_ts": 1775010232.5910869}
+{"dex_VIRTUAL": {"symbol": "VIRTUAL", "price_usd": 0.6604, "volume_24h": 174668.03, "liquidity_usd": 5842069.56, "price_change_24h": 0.58, "dex_name": "aerodrome", "chain": "base", "fetched_at": "2026-04-01T04:44:57.635509+00:00"}, "_ts": 1775018697.6355765}
