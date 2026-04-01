@@ -9,7 +9,7 @@ dotenv.config({ path: "/docker/openclaw-taan/data/.openclaw/workspace/.env" });
 
 const SELLER_WALLET = process.env.NATIVE_AGENT_WALLET_ADDRESS!;
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const EVALUATOR = "0x3675E1AB3c4E0B32A950BD55a989B97F5dEf6199";
+const EVALUATOR = "0x0000000000000000000000000000000000000000";  // skip evaluation
 
 const JOBS = [
   { offering: "offering_audit", reqs: { target_wallet: SELLER_WALLET, offering_name: "profile_seo", offering_description: "Audit test 1", offering_price: 0.3 }},
@@ -62,7 +62,7 @@ async function main() {
         SELLER_WALLET as `0x${string}`,
         JSON.stringify(reqs),
         fareAmount,
-        undefined,
+        EVALUATOR as `0x${string}`,
         new Date(Date.now() + 30 * 60 * 1000),
         j.offering
       );
