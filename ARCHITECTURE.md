@@ -1,6 +1,6 @@
 # 🏗️ Neo アーキテクチャマップ
 
-> **最終更新**: 2026/03/29 v6.5p
+> **最終更新**: 2026/04/02 v6.5aa
 > **目的**: 新セッション開始時に全体構造を即座に把握するためのリファレンス
 
 ---
@@ -9,7 +9,7 @@
 
 | サービス | 実行ファイル | 役割 |
 |---|---|---|
-| `neo-radar` | `run_trigger.py` | **メインループ**（30秒サイクル）— 5層売却・Council召集・Alpha Sweep・Moltbook・Nightly Batch |
+| `neo-radar` | `run_trigger.py` | **メインループ**（30秒サイクル）— 5層売却（戦略別出口）・2hローテーションCouncil（BTC→VIRTUAL→ETH→AIXBT）・Alpha Sweep・Moltbook・Nightly Batch |
 | `neo-collector` | `orchestration/data_collector.py` | 市場データ収集（5分tick + 60分OHLCV + 日次パージ） |
 | `neo-resource-api` | `tools/neo_resource_api.py` | FastAPI port 8099 — ACP Resource提供用 |
 | `neo-acp-seller` | ACP seller runtime | WebSocket常駐 — ACP Job受付・処理 |
@@ -31,7 +31,7 @@ workspace/
 │   └── acp_executor_agent.py← ACPExecutorCrew [未使用だが将来用に保持]
 │
 ├── core/                   ← 共通基盤
-│   ├── config.py           ← 設定管理（LIVE_MODE等）
+│   ├── config.py           ← 設定管理（LIVE_MODE・EXIT_PROFILES・TIER0_SYMBOLS等）
 │   ├── model_factory.py    ← LLMモデル選択・コスト管理
 │   ├── cost_guard.py       ← コストガード（L1-L4サーキットブレーカー）
 │   ├── blackboard.py       ← Blackboard（エージェント間共有状態）
@@ -65,7 +65,7 @@ workspace/
 │   ├── moltbook_tool.py    ← Moltbook投稿 [trinity_council, nightly_research]
 │   ├── moltbook_engager.py ← Moltbookエンゲージメント [run_trigger]
 │   ├── moltbook_tracker.py ← Moltbook統計追跡 [run_trigger]
-│   ├── discord_reporter.py ← Discord通知 [run_trigger, trinity_council, performance_evaluator]
+│   ├── discord_reporter.py ← Discord通知（Tier別勝率・戦略別出口・4-Assetローテーション対応）
 │   │── # === その他 ===
 │   ├── neo_resource_api.py ← FastAPI Resource API [systemd]
 │   ├── deepwiki_tool.py    ← DeepWiki連携 [trinity_council]
@@ -90,7 +90,7 @@ workspace/
 ├── orchestration/          ← オーケストレーション（定期実行タスク）
 │   ├── data_collector.py   ← 市場データ収集 [systemd neo-collector]
 │   ├── nightly_research.py ← Nightly Batch [run_trigger JST02:00]
-│   ├── performance_evaluator.py ← パフォーマンス評価 [run_trigger 6h]
+│   ├── performance_evaluator.py ← パフォーマンス評価 + Tier別勝率 [run_trigger 6h]
 │   ├── alpha_sweep_operation.py ← Alpha Sweep [run_trigger 60min]
 │   ├── vp_discovery.py     ← VP銘柄ディスカバリー
 │   ├── live_portfolio_monitor.py
@@ -151,7 +151,11 @@ workspace/
 ```
 run_trigger.py（30秒ループ）
   │
-  ├─→ Phase 0: 5層売却チェック（PaperWallet直接操作、Council非依存）
+  ├─→ Phase 0: 5層売却チェック（戦略別出口プロファイル、Council非依存）
+  │     └ exit_profile: mean_reversion / trend_follow / evolved
+  │
+  ├─→ 2hローテーション（BTC→VIRTUAL→ETH→AIXBT タイムスタンプベース）
+  │     └ Blackboard "last_unified_council_ts" で永続化（リスタート耐性）
   │
   ├─→ Trigger判定 → TrinityCouncil.run()
   │     ├─→ ScoutCrew.run()          [agents/scout_agent.py]
@@ -215,6 +219,9 @@ npx tsx bin/acp.ts profile get            # プロフィール確認
 2. 各offeringの動作録画（ターミナル + ACP Visualizer）
 3. ~7営業日の手動レビュー
 4. 資金: ~$25 USDC/ETH on Base chain
+
+> **現状**: NeoAutonomous (ID 41437) — 100%表示だがGraduateボタン未出現。
+> OpenClaw CLIベースのNeo (ID 19768) は非アクティブ。詳細はgraduation_history.md参照
 
 ---
 
