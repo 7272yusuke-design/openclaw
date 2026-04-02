@@ -616,9 +616,10 @@ def start_hybrid_radar():
                     # CFOステータス
                     try:
                         _hb_cg = CostGuard()
-                        _hb_level = _hb_cg.current_level()
-                        _hb_lines.append("🛡️ CFO: L{} | HWM: ${:,.0f}".format(
-                            _hb_level, _hb_cg.state.get("hwm", 0)))
+                        _hb_dd_ok, _hb_dd_pct = _hb_cg.check_drawdown()
+                        _hb_hwm = _hb_cg._breaker.get("hwm", 0)
+                        _hb_dd_status = "✅ OK" if _hb_dd_ok else f"🚫 BLOCKED ({_hb_dd_pct:.1f}%)"
+                        _hb_lines.append("🛡️ CFO: DD={} | HWM: ${:,.0f}".format(_hb_dd_status, _hb_hwm))
                     except Exception:
                         pass
                     # 次ローテーション情報
