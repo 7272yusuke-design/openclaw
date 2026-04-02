@@ -629,7 +629,7 @@ def start_hybrid_radar():
                             _hb_bbi = _hb_json.load(_hb_f)
                         _hb_last_ts = float(_hb_bbi.get("last_unified_council_ts", 0))
                         _hb_last_sym = _hb_bbi.get("last_unified_council_symbol", "?")
-                        _hb_rotation = ["BTC", "VIRTUAL", "ETH", "AIXBT"]
+                        _hb_rotation = ["BTC", "VIRTUAL", "ETH"]
                         _hb_next_idx = (_hb_rotation.index(_hb_last_sym) + 1) % len(_hb_rotation) if _hb_last_sym in _hb_rotation else 0
                         _hb_next_sym = _hb_rotation[_hb_next_idx]
                         _hb_elapsed = time.time() - _hb_last_ts
@@ -739,11 +739,11 @@ def start_hybrid_radar():
 
             # ============================================================
             # 2. 統合定期Council召集（タイムスタンプベース・2時間ローテーション）
-            #    順序: BTC → VIRTUAL → ETH → AIXBT → BTC → ...
+            #    順序: BTC → VIRTUAL → ETH → BTC → ...（AIXBTはTier2降格 v6.5ab）
             #    リスタート耐性: Blackboardに最終実行時刻を永続保存
             # ============================================================
             if trigger_type is None:
-                _rotation_symbols = ["BTC", "VIRTUAL", "ETH", "AIXBT"]
+                _rotation_symbols = ["BTC", "VIRTUAL", "ETH"]
                 _now_ts = time.time()
                 try:
                     import json as _json_uc

@@ -115,7 +115,7 @@ class DiscordReporter:
             "title": title[:256],
             "color": color,
             "fields": fields,
-            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v3 | 4-Asset Rotation"},
+            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v3 | 3-Asset Rotation"},
             "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         }
         
@@ -160,7 +160,7 @@ class DiscordReporter:
             "title": f"{emoji_map.get(action, '❓')} Trade Alert: {action} {symbol}",
             "color": color_map.get(action, 0x3498db),
             "fields": fields,
-            "footer": {"text": "Neo Trinity Council v3 | Paper Trading | 4-Asset Rotation"}
+            "footer": {"text": "Neo Trinity Council v3 | Paper Trading | 3-Asset Rotation"}
         }
         
         payload = {"embeds": [embed]}
@@ -337,7 +337,7 @@ class DiscordReporter:
             "title": "📊 Neo Performance Dashboard",
             "color": color,
             "fields": fields,
-            "footer": {"text": "Neo Trinity Council v3 | Paper Trading | Tier0+Tier1 4-Asset Rotation"},
+            "footer": {"text": "Neo Trinity Council v3 | Paper Trading | Tier0+Tier1 3-Asset Rotation"},
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         payload = {"embeds": [embed]}

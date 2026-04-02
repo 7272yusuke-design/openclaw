@@ -26,8 +26,8 @@ def get_neo_llm():
 # VP銘柄監視 3層設定（Task A.1）
 # ============================================================
 TIER0_SYMBOLS    = ["BTC", "ETH"]              # Tier0: メイン取引対象（Binance）
-VP_TIER1_SYMBOLS = ["VIRTUAL", "AIXBT"]       # 常時監視 + Sweep最優先
-VP_TIER2_SYMBOLS = ["TIBBIR", "ROBO"]          # Tier2: VP経済圏銘柄（60分Sweep対象）
+VP_TIER1_SYMBOLS = ["VIRTUAL"]                 # 常時監視 + Sweep最優先（AIXBTはTier2降格 v6.5ab）
+VP_TIER2_SYMBOLS = ["AIXBT", "TIBBIR", "ROBO"] # Tier2: VP経済圏銘柄（60分Sweep対象）※AIXBTはv6.5abで降格
 VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
 
 SWEEP_SYMBOLS         = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS   # 通常Sweep
