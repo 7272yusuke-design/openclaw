@@ -1,1 +1,1 @@
-{"dex_AIXBT": {"symbol": "AIXBT", "price_usd": 0.02354, "volume_24h": 7108.29, "liquidity_usd": 940411.98, "price_change_24h": 4.67, "dex_name": "uniswap", "chain": "base", "fetched_at": "2026-04-01T10:08:37.750873+00:00"}, "_ts": 1775038117.750959}
+{"dex_BTC": {"symbol": "BTC", "price_usd": 67524.65, "volume_24h": 120377.76, "liquidity_usd": 621024371.58, "price_change_24h": 0.0, "dex_name": "raydium", "chain": "solana", "fetched_at": "2026-04-02T03:51:33.173556+00:00"}, "_ts": 1775101893.1736412}

@@ -226,8 +226,7 @@ ARB_INTERVAL     = 60         # Arbitrageチェック間隔（30秒×60=30分）
 EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間）
 CFR_INTERVAL     = 720        # Capital Flow Radar間隔（30秒×720=6時間）
 ENGAGE_INTERVAL  = 240
-PERIODIC_COUNCIL_INTERVAL = 480  # 4時間ごと（30秒×480=14400秒）
-TIER0_COUNCIL_INTERVAL   = 480  # Tier0も4時間ごと（VP Tier1と独立サイクル）
+UNIFIED_COUNCIL_INTERVAL_SEC = 7200  # 2時間ごと（秒）— タイムスタンプベース・リスタート耐性あり
 HEARTBEAT_INTERVAL = 60       # 稼働報告間隔（30秒×60=30分）        # Moltbookエンゲージメント間隔（30秒×240=2時間）
 NIGHTLY_HOUR     = 2           # Nightly Batch実行時刻（JST 02:00 — now_jst_hourと比較）
 
@@ -676,76 +675,49 @@ def start_hybrid_radar():
                     logger.error(f"アルファ監視エラー: {e}")
 
             # ============================================================
-            # 2a. Tier0定期Council召集（BTC/ETH — VP Tier1と独立サイクル）
+            # 2. 統合定期Council召集（タイムスタンプベース・2時間ローテーション）
+            #    順序: BTC → VIRTUAL → ETH → AIXBT → BTC → ...
+            #    リスタート耐性: Blackboardに最終実行時刻を永続保存
             # ============================================================
-            if trigger_type is None and cycle_count > 0 and (cycle_count + 240) % TIER0_COUNCIL_INTERVAL == 0:
-                if is_cooled_down and len(TIER0_SYMBOLS) > 0:
-                    try:
-                        import json as _json_t0
-                        with open("vault/blackboard/live_intel.json", "r") as _f_t0:
-                            _bb_t0 = _json_t0.load(_f_t0)
-                        _last_t0 = _bb_t0.get("last_tier0_symbol", "")
-                    except Exception:
-                        _last_t0 = ""
-                    if _last_t0 and _last_t0 in TIER0_SYMBOLS:
-                        _t0_idx = (TIER0_SYMBOLS.index(_last_t0) + 1) % len(TIER0_SYMBOLS)
+            if trigger_type is None:
+                _rotation_symbols = ["BTC", "VIRTUAL", "ETH", "AIXBT"]
+                _now_ts = time.time()
+                try:
+                    import json as _json_uc
+                    with open("vault/blackboard/live_intel.json", "r") as _f_uc:
+                        _bb_uc = _json_uc.load(_f_uc)
+                    _last_uc_ts = float(_bb_uc.get("last_unified_council_ts", 0))
+                    _last_uc_sym = _bb_uc.get("last_unified_council_symbol", "")
+                except Exception:
+                    _last_uc_ts = 0
+                    _last_uc_sym = ""
+                _elapsed = _now_ts - _last_uc_ts
+                if _elapsed >= UNIFIED_COUNCIL_INTERVAL_SEC:
+                    if is_cooled_down:
+                        # ローテーション: 前回の次の銘柄
+                        if _last_uc_sym and _last_uc_sym in _rotation_symbols:
+                            _uc_idx = (_rotation_symbols.index(_last_uc_sym) + 1) % len(_rotation_symbols)
+                        else:
+                            _uc_idx = 0
+                        _uc_sym = _rotation_symbols[_uc_idx]
+                        _uc_tier = "TIER0" if _uc_sym in TIER0_SYMBOLS else "PERIODIC"
+                        trigger_type = _uc_tier
+                        trigger_symbol = _uc_sym
+                        trigger_context = f"定期Council（2時間ローテーション）: {_uc_sym}"
+                        # Blackboardに記録（永続化）
+                        try:
+                            import json as _json_ucw
+                            with open("vault/blackboard/live_intel.json", "r") as _f_ucw:
+                                _bb_ucw = _json_ucw.load(_f_ucw)
+                            _bb_ucw["last_unified_council_ts"] = _now_ts
+                            _bb_ucw["last_unified_council_symbol"] = _uc_sym
+                            with open("vault/blackboard/live_intel.json", "w") as _f_ucw:
+                                _json_ucw.dump(_bb_ucw, _f_ucw, indent=2, ensure_ascii=False)
+                        except Exception as _uc_err:
+                            logger.warning(f"[COUNCIL] Blackboard書き込み失敗: {_uc_err}")
+                        logger.info(f"⏰ [{_uc_tier}] 定期Council召集: {_uc_sym}（{_elapsed/3600:.1f}h経過）")
                     else:
-                        _t0_idx = 0
-                    _t0_sym = TIER0_SYMBOLS[_t0_idx]
-                    trigger_type = "TIER0_PERIODIC"
-                    trigger_symbol = _t0_sym
-                    trigger_context = f"Tier0定期Council（4時間ごと）: {_t0_sym}"
-                    try:
-                        import json as _json_t0w
-                        with open("vault/blackboard/live_intel.json", "r") as _f_t0w:
-                            _bb_t0w = _json_t0w.load(_f_t0w)
-                        _bb_t0w["last_tier0_symbol"] = _t0_sym
-                        with open("vault/blackboard/live_intel.json", "w") as _f_t0w:
-                            _json_t0w.dump(_bb_t0w, _f_t0w, indent=2, ensure_ascii=False)
-                    except Exception as _t0_err:
-                        logger.warning(f"[TIER0] Blackboard書き込み失敗: {_t0_err}")
-                    logger.info(f"⏰ [TIER0] 定期Council召集: {_t0_sym}（cycle={cycle_count}）")
-                else:
-                    if not is_cooled_down:
-                        logger.info(f"⏰ [TIER0] 定期Council時刻だが冷却中 — スキップ")
-
-            # 2b. 定期Council召集（横ばい相場でも学習を進める）
-            # ============================================================
-            if cycle_count % PERIODIC_COUNCIL_INTERVAL == 0 and cycle_count > 0:
-                logger.info(f"🔍 [PERIODIC-DBG] cycle={cycle_count} trigger_type={trigger_type} cooled={is_cooled_down}")
-            if trigger_type is None and cycle_count % PERIODIC_COUNCIL_INTERVAL == 0 and cycle_count > 0:
-                if is_cooled_down:
-                    # Tier1銘柄を交互に召集（永続トグル: Blackboardに最後の銘柄を記録）
-                    _periodic_symbols = [s for s in COUNCIL_ELIGIBLE_SYMBOLS]
-                    try:
-                        import json as _json_toggle
-                        with open("vault/blackboard/live_intel.json", "r") as _f_bb:
-                            _bb_data = _json_toggle.load(_f_bb)
-                        _last_periodic = _bb_data.get("last_periodic_symbol", "")
-                    except Exception:
-                        _last_periodic = ""
-                    # 前回と異なる銘柄を選択（初回はリスト先頭）
-                    if _last_periodic and _last_periodic in _periodic_symbols:
-                        _periodic_idx = (_periodic_symbols.index(_last_periodic) + 1) % len(_periodic_symbols)
-                    else:
-                        _periodic_idx = 0
-                    _periodic_sym = _periodic_symbols[_periodic_idx]
-                    trigger_type = "PERIODIC"
-                    trigger_symbol = _periodic_sym
-                    trigger_context = f"定期Council召集（4時間ごと・学習促進）: {_periodic_sym}"
-                    # 永続トグル: Blackboardに今回の銘柄を記録
-                    try:
-                        import json as _json_toggle
-                        with open("vault/blackboard/live_intel.json", "r") as _f_bb:
-                            _bb_write = _json_toggle.load(_f_bb)
-                        _bb_write["last_periodic_symbol"] = _periodic_sym
-                        with open("vault/blackboard/live_intel.json", "w") as _f_bb:
-                            _json_toggle.dump(_bb_write, _f_bb, indent=2, ensure_ascii=False)
-                    except Exception as _bb_err:
-                        logger.warning(f"[PERIODIC] Blackboard書き込み失敗: {_bb_err}")
-                    logger.info(f"⏰ [PERIODIC] 定期Council召集: {_periodic_sym}（cycle={cycle_count}）")
-                else:
-                    logger.info(f"⏰ [PERIODIC] 定期Council時刻だが冷却中（残り{int(cooldown_remaining/60)}分）— スキップ")
+                        logger.info(f"⏰ [COUNCIL] 定期Council時刻だが冷却中（残り{int(cooldown_remaining/60)}分）— スキップ")
 
             # ============================================================
             # 3. Council召集（トリガー発火時のみ）
