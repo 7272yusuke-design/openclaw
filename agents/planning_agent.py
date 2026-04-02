@@ -1,61 +1,151 @@
-from crewai import Agent, Task, Crew
-from core.base_crew import NeoBaseCrew
-from bridge.crewai_bridge import CrewResult
-from pydantic import BaseModel, Field
-from typing import List
-from tools.deepwiki_tool import DeepWikiTool
+"""
+PlanningCrew — 戦略リスク評価エージェント (Phase 1e)
 
-class PlanningPayload(BaseModel):
-    strategy_name: str = Field(..., description="戦略の名称")
-    technical_justification: str = Field(..., description="テクニカル指標およびDeepWikiの知見に基づく判断の根拠")
-    expected_net_profit: float = Field(..., description="USD換算の期待純利益 (手数料・スリッページ考慮後)")
-    probability_of_success: float = Field(..., description="0.0 to 1.0 で表す勝率予測")
-    worst_case_scenario: str = Field(..., description="最悪のシナリオ（Worst Case）の定義")
-    mitigation_plan: str = Field(..., description="最悪のシナリオが発生した際の防衛策/損切りルール")
-    risk_level: str = Field(..., description="Low, Medium, High")
-    action_directives: List[str] = Field(..., description="具体的なアクション項目")
-    success_metrics: List[str] = Field(..., description="この戦略が成功したと判断する数値指標")
+Neo内部データ（H.2統計、EvolveRルール、ChromaDB記憶、scoring_adjustments）を
+統合し、構造化されたリスク評価を出力する。
 
-class PlanningCrew(NeoBaseCrew):
-    def __init__(self):
-        super().__init__(name="StrategicPlanning")
+TrinityCouncilのPhase 1e（バックテスト前）で呼び出され、
+Phase 3の三者協議とPhase 4bのスコアリングに注入される。
+"""
+import sys; sys.path.insert(0, '.')
+import json
+import os
+from datetime import datetime, timezone
+from core.model_factory import ModelFactory
 
-    def run(self, goal: str, context: str, sentiment_score: float = 0.0, market_trends: str = ""):
-        # DeepWikiツールの初期化
-        deepwiki = DeepWikiTool()
 
-        # 最高戦略責任者 (Neo-CSO)
-        cso = Agent(
-            role='Chief Strategy Officer (Neo-CSO)',
-            goal='DeepWikiの専門知識とリアルタイム指標を統合し、リスクを最小化しながら最大のVIRTUAL拡大戦略を策定する。',
-            backstory=(
-                'あなたは数理モデルと市場心理学、さらに DeepWiki の膨大な金融ナレッジに精通したエリート・ストラテジストです。'
-                '単なる指標の数値だけでなく、DeepWiki を用いてその指標が現在の市場環境（トレンド、ファンダメンタルズ）において'
-                'どのような歴史的意味を持つかを分析し、精度の高い「Wait」または「Go」を判断します。'
-            ),
-            tools=[deepwiki],
-            llm=self.llm,
-            verbose=True
-        )
+def run_strategic_assessment(symbol: str, current_price: float,
+                              sentiment_score: float, sentiment_label: str,
+                              bt_confidence: str = "NONE",
+                              formatted_precedents: str = "",
+                              failure_summary: str = "") -> dict:
+    """
+    内部データに基づく戦略リスク評価を実行。
+    
+    Returns:
+        dict with keys:
+        - risk_level: "LOW" / "MEDIUM" / "HIGH" / "CRITICAL"
+        - risk_factors: list of str (最大5つ)
+        - opportunity_factors: list of str (最大3つ)
+        - recommended_position_pct: 0-10 (推奨ポジションサイズ%)
+        - worst_case: str (最悪シナリオ)
+        - mitigation: str (対策)
+        - confidence_modifier: int (-15 to +15)
+        - reasoning: str (50字以内の根拠)
+    """
+    # --- 内部データ収集 ---
+    # 1. H.2統計
+    h2_summary = ""
+    try:
+        from research.h2_trade_analysis import get_clean_pairs
+        import pandas as pd
+        pairs, _, _ = get_clean_pairs()
+        if pairs:
+            df = pd.DataFrame(pairs)
+            sd = df[df['symbol'] == symbol]
+            total_wr = (df['result'] == 'win').mean() * 100 if len(df) > 0 else 0
+            sym_wr = (sd['result'] == 'win').mean() * 100 if len(sd) > 0 else 0
+            avg_hold_win = sd[sd['result'] == 'win']['hold_hours'].mean() if len(sd[sd['result'] == 'win']) > 0 else 0
+            avg_hold_loss = sd[sd['result'] == 'loss']['hold_hours'].mean() if len(sd[sd['result'] == 'loss']) > 0 else 0
+            win_df = df[df['result'] == 'win']
+            loss_df = df[df['result'] == 'loss']
+            avg_win_pnl = win_df['pnl_pct_after_fee'].mean() if len(win_df) > 0 else 0
+            avg_loss_pnl = loss_df['pnl_pct_after_fee'].mean() if len(loss_df) > 0 else 0
+            h2_summary = (
+                f"全体勝率: {total_wr:.0f}% ({len(df)}件), "
+                f"{symbol}勝率: {sym_wr:.0f}% ({len(sd)}件), "
+                f"平均Win: {avg_win_pnl:+.2f}%, 平均Loss: {avg_loss_pnl:+.2f}%, "
+                f"Win保有: {avg_hold_win:.0f}h, Loss保有: {avg_hold_loss:.0f}h"
+            )
+    except Exception as e:
+        h2_summary = f"H.2データ取得失敗: {e}"
 
-        task = Task(
-            description=(
-                f"【ミッション】: {goal}\n"
-                f"【スカウト報告】: {context}\n"
-                f"【市場動向】: {market_trends}\n"
-                f"【感情スコア】: {sentiment_score}\n\n"
-                "【戦略策定プロセス】:\n"
-                "1. 不明な用語や、現在のテクニカル指標の有効性について DeepWiki でリサーチせよ。\n"
-                "2. RSI/EMA 等の過熱感と、DeepWiki から得られたトレンドの強さを照合せよ。\n"
-                "3. 手数料・スリッページを考慮した期待純利益を算出せよ。\n"
-                "4. 期待純利益が 0 以下、または根拠が不十分な場合、迷わず 'Wait' を選択せよ。\n"
-                "5. DeepWiki から得た知見を technical_justification に具体的に記載せよ。"
-            ),
-            expected_output='DeepWikiの知見とテクニカル評価を融合させた、実行可能な高度戦略ドキュメント。',
-            agent=cso,
-            output_json=PlanningPayload
-        )
+    # 2. EvolveRルール
+    evolver_summary = ""
+    try:
+        adj_path = "vault/evolver/scoring_adjustments.json"
+        if os.path.exists(adj_path):
+            with open(adj_path, encoding='utf-8') as f:
+                adj_data = json.load(f)
+            rules = adj_data.get("adjustments", [])
+            evolver_summary = "; ".join(
+                f"{r['rule_id']}: {r['adjustment']:+d} ({r['evidence']})"
+                for r in rules
+            )
+    except Exception:
+        pass
 
-        crew = Crew(agents=[cso], tasks=[task], verbose=True)
-        result = crew.kickoff()
-        return result
+    # --- LLM戦略評価 ---
+    prompt = f"""あなたは自律取引AIエージェントNeoの戦略リスク評価モジュールだ。
+
+【評価対象】
+{symbol} @ ${current_price:.6f}
+センチメント: {sentiment_label} ({sentiment_score:.2f})
+バックテスト信頼度: {bt_confidence}
+
+【H.2統計分析】
+{h2_summary}
+
+【EvolveR自動ルール】
+{evolver_summary or "ルールなし"}
+
+【直近の失敗パターン】
+{failure_summary}
+
+【過去の教訓】
+{formatted_precedents[:500]}
+
+以下のJSON形式のみで回答せよ（余計なテキスト不可）:
+{{"risk_level": "LOW/MEDIUM/HIGH/CRITICAL",
+"risk_factors": ["リスク要因（最大5つ・各20字以内）"],
+"opportunity_factors": ["機会要因（最大3つ・各20字以内）"],
+"recommended_position_pct": 0から10の整数,
+"worst_case": "最悪シナリオ（30字以内）",
+"mitigation": "対策（30字以内）",
+"confidence_modifier": -15から+15の整数,
+"reasoning": "根拠（50字以内）"}}"""
+
+    default_result = {
+        "risk_level": "MEDIUM",
+        "risk_factors": [],
+        "opportunity_factors": [],
+        "recommended_position_pct": 5,
+        "worst_case": "不明",
+        "mitigation": "標準SL",
+        "confidence_modifier": 0,
+        "reasoning": "評価失敗・デフォルト",
+    }
+
+    try:
+        model = ModelFactory.get_genai_model("fast")
+        resp = model.generate_content(prompt)
+        raw = resp.text.strip()
+        # JSON抽出
+        clean = raw
+        if "```" in clean:
+            clean = clean.split("```")[1].replace("json", "", 1).strip()
+        if "{" in clean:
+            clean = clean[clean.index("{"):clean.rindex("}")+1]
+        parsed = json.loads(clean)
+        # 安全制限
+        parsed["confidence_modifier"] = max(-15, min(15, int(parsed.get("confidence_modifier", 0))))
+        parsed["recommended_position_pct"] = max(0, min(10, int(parsed.get("recommended_position_pct", 5))))
+        print(f"  🎯 [Phase 1e] リスク={parsed['risk_level']}, conf_mod={parsed['confidence_modifier']:+d}, pos={parsed['recommended_position_pct']}%")
+        return parsed
+    except json.JSONDecodeError:
+        print(f"  ⚠️ [Phase 1e] JSONパース失敗、フォールバック")
+        return default_result
+    except Exception as e:
+        print(f"  ⚠️ [Phase 1e] 戦略評価失敗: {str(e)[:60]}")
+        return default_result
+
+
+if __name__ == '__main__':
+    result = run_strategic_assessment(
+        symbol="VIRTUAL", current_price=0.64,
+        sentiment_score=-0.40, sentiment_label="bearish",
+        bt_confidence="HIGH",
+        formatted_precedents="過去の記録なし。",
+        failure_summary="失敗パターンデータなし"
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))

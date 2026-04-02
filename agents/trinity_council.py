@@ -439,7 +439,26 @@ class TrinityCouncil(NeoBaseCrew):
             except Exception as _pt_err:
                 print(f"  ⚠️ [Phase 1-P] ペアトレード計算失敗: {str(_pt_err)[:60]}")
 
-        # 1e. 実データバックテスト (v2)
+        # 1e. PlanningCrew 戦略リスク評価
+        _planning_result = {}
+        _planning_conf_mod = 0
+        try:
+            from agents.planning_agent import run_strategic_assessment
+            print(f"\n[Phase 1e] 戦略リスク評価中...")
+            _planning_result = run_strategic_assessment(
+                symbol=clean_symbol,
+                current_price=current_price,
+                sentiment_score=sentiment_score,
+                sentiment_label=sentiment_label,
+                bt_confidence=bt_confidence if 'bt_confidence' in dir() else "NONE",
+                formatted_precedents=formatted_precedents,
+                failure_summary=_failure_summary,
+            )
+            _planning_conf_mod = _planning_result.get("confidence_modifier", 0)
+        except Exception as _pe:
+            print(f"  ⚠️ [Phase 1e] PlanningCrew失敗: {str(_pe)[:60]}")
+
+        # 1f. 実データバックテスト (v2)
         print(f"\n[Phase 2] バックテスト実行中...")
         test_logic = 'ema_cross' if "Accumulating" in whale_sig else 'bb_reversal'
         backtester = BacktestAgent()
@@ -532,7 +551,7 @@ class TrinityCouncil(NeoBaseCrew):
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}{_wait_quality_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
-                f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}'
+                f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}+ (f"【戦略リスク評価】risk={_planning_result.get('risk_level','N/A')}, リスク: {_planning_result.get('risk_factors',[])}, 機会: {_planning_result.get('opportunity_factors',[])}, 最悪: {_planning_result.get('worst_case','')}, 推奨ポジション: {_planning_result.get('recommended_position_pct',5)}%\n\n" if _planning_result.get("risk_level") else "")'
                 + (
                     # === 学習モード: BUY積極促進 ===
                     f'【学習モード — BUY促進ルール】\n'
@@ -810,6 +829,12 @@ class TrinityCouncil(NeoBaseCrew):
                     _cfr_label = f"cfr{_cfr_score:+.0f}:0({_cfr_regime})"
         except Exception:
             pass
+        # === Phase 1e Planning confidence_modifier注入 ===
+        _planning_label = "plan0"
+        if _planning_conf_mod != 0:
+            _calc_conf += _planning_conf_mod
+            _planning_label = f"plan{_planning_conf_mod:+d}"
+            print(f"[Phase 4b] Planning調整: {_planning_conf_mod:+d} (risk={_planning_result.get('risk_level','?')})")
         # === E3: EvolveR動的ルール適用 ===
         _evolver_total = 0
         _evolver_labels = []
@@ -862,7 +887,7 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label})")
         _structured_confidence = _calc_conf
 
         # ============================================================
