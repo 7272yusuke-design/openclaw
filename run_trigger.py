@@ -66,16 +66,28 @@ def check_tp_sl_all_positions():
         if amount <= 0:
             continue
         try:
-            # VP銘柄はGeckoTerminal直接取得
-            if clean_symbol in ("VIRTUAL", "AIXBT"):
+            # Tier0（BTC/ETH）: ローカルDB優先（Binance蓄積・API節約）
+            # VP銘柄: GeckoTerminal優先
+            current_price = 0.0
+            if clean_symbol in ("BTC", "ETH"):
+                from orchestration.data_collector import get_latest_price_from_db
+                _db_price = get_latest_price_from_db(clean_symbol)
+                if _db_price and _db_price > 0:
+                    current_price = _db_price
+                else:
+                    price_data = MarketData.fetch_token_data(clean_symbol)
+                    if price_data and price_data.get("status") == "success":
+                        current_price = float(price_data.get("priceUsd", 0.0))
+            elif clean_symbol in ("VIRTUAL", "AIXBT"):
                 price_data = MarketData._fetch_price_from_geckoterminal(clean_symbol)
                 if not price_data:
                     price_data = MarketData.fetch_token_data(clean_symbol)
+                if price_data and price_data.get("status") == "success":
+                    current_price = float(price_data.get("priceUsd", 0.0))
             else:
                 price_data = MarketData.fetch_token_data(clean_symbol)
-            if not price_data or price_data.get("status") != "success":
-                continue
-            current_price = float(price_data.get("priceUsd", 0.0))
+                if price_data and price_data.get("status") == "success":
+                    current_price = float(price_data.get("priceUsd", 0.0))
             if current_price <= 0:
                 continue
 
