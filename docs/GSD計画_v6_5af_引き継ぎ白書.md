@@ -55,10 +55,16 @@
 3. **improve_prompt監査**: Fabric improve_promptのチェックリストでE1内省プロンプトにChain of Thought追加、few-shot例追加を検討（E1実データ取得後）
 4. **VP障害確認**: ACP復旧状況 + Discord返答確認
 
+### 短中期（ContestTrade/TradingAgents知見）
+5. **バックテスト戦略スコア蓄積**: vault/strategy_scores.json — 9戦略にreward（シグナル方向×実際変動）を蓄積。Nightly H.2拡張。ContestTrade Evaluator方式
+6. **Phase 4b戦略スコア反映**: 高実績戦略のBUYシグナル→加点、低実績→減点。ContestTrade Predictor方式
+7. **データソース信頼度トラッキング**: RSI/センチメント/BTC相関/クジラの各ソース的中率をvault/source_reliability.jsonに蓄積
+8. **improve_promptチェックリスト監査**: E1内省プロンプトにChain of Thought追加、few-shot例追加（Fabric improve_prompt）
+
 ### 中期
-5. **ACP登録**: vp_market_intelligenceをNeoAutonomousに登録（VP復旧後）
-6. **旧offering整理**: sentiment_scan / backtest_on_demand のACP登録解除検討
-7. **実取引エンジン**: `tools/cex_executor.py` 新設（Binance Spot API）
+9. **ACP登録**: vp_market_intelligenceをNeoAutonomousに登録（VP復旧後）
+10. **旧offering整理**: sentiment_scan / backtest_on_demand のACP登録解除検討
+11. **実取引エンジン**: `tools/cex_executor.py` 新設（Binance Spot API）
 
 ---
 
