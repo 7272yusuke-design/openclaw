@@ -458,6 +458,18 @@ class TrinityCouncil(NeoBaseCrew):
         except Exception as _pe:
             print(f"  ⚠️ [Phase 1e] PlanningCrew失敗: {str(_pe)[:60]}")
 
+        # Planning結果を三者協議用テキストに変換
+        _planning_context = ""
+        if _planning_result.get("risk_level"):
+            _pr = _planning_result
+            _planning_context = (
+                f"{_pr.get('risk_level','?')}, "
+                f"リスク: {', '.join(_pr.get('risk_factors',[])[:3])}, "
+                f"機会: {', '.join(_pr.get('opportunity_factors',[])[:3])}, "
+                f"最悪: {_pr.get('worst_case','')}, "
+                f"推奨ポジション: {_pr.get('recommended_position_pct',5)}%"
+            )
+
         # 1f. 実データバックテスト (v2)
         print(f"\n[Phase 2] バックテスト実行中...")
         test_logic = 'ema_cross' if "Accumulating" in whale_sig else 'bb_reversal'
@@ -551,7 +563,7 @@ class TrinityCouncil(NeoBaseCrew):
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}{_wait_quality_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
-                f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}+ (f"【戦略リスク評価】risk={_planning_result.get('risk_level','N/A')}, リスク: {_planning_result.get('risk_factors',[])}, 機会: {_planning_result.get('opportunity_factors',[])}, 最悪: {_planning_result.get('worst_case','')}, 推奨ポジション: {_planning_result.get('recommended_position_pct',5)}%\n\n" if _planning_result.get("risk_level") else "")'
+                f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}{"【戦略リスク評価】risk=" + _planning_context + "\n\n" if _planning_context else ""}'
                 + (
                     # === 学習モード: BUY積極促進 ===
                     f'【学習モード — BUY促進ルール】\n'
