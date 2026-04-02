@@ -567,7 +567,7 @@ class TrinityCouncil(NeoBaseCrew):
         )
         agent_neo = Agent(
             role='最高司令官ネオ',
-            goal='全意見を総合し、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 20-95の確信度, "key_factor": "実際の根拠1語"} で1回のみ出力し、2行目以降に根拠を述べよ。65をデフォルトにするな。データに基づき正直に採点せよ。',
+            goal='まずBullとBearの主張を対比し、双方の最も強い論点と最も弱い論点を特定せよ。その上で最も決定的な1点を選び、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 20-95の確信度, "key_factor": "実際の根拠1語"} で1回のみ出力し、2行目以降に根拠を述べよ。65をデフォルトにするな。データに基づき正直に採点せよ。',
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}{_wait_quality_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
