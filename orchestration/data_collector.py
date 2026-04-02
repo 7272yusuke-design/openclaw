@@ -157,13 +157,60 @@ def collect_ohlcv_candles(conn):
     return total_inserted
 
 
+def _aggregate_ticks_to_1h(conn, symbol: str, limit: int) -> list:
+    """5分ティック(flat O=H=L=C)を1時間足OHLCVに集約する。
+    12ティック/時間を集約するので、始値!=終値の本物のキャンドルが得られる。
+    Returns: [[timestamp_ms, open, high, low, close], ...] 昇順
+    """
+    # limit時間分 = limit * 12 ティック分を取得（余裕を持って+50%）
+    # フラットティック（DexScreener 5分足）のみ対象。GeckoTerminal 4hキャンドルを除外
+    tick_limit = int(limit * 12 * 1.5)
+    cur = conn.execute(
+        "SELECT timestamp, close FROM prices "
+        "WHERE symbol=? AND (open=high AND high=low AND low=close) "
+        "ORDER BY timestamp DESC LIMIT ?",
+        (symbol.upper(), tick_limit)
+    )
+    ticks = cur.fetchall()
+    if len(ticks) < 2:
+        return []
+    # 昇順に
+    ticks.reverse()
+    # 1時間バケットに集約（timestamp_msを3600000で切り捨て）
+    buckets = {}
+    for ts_ms, price in ticks:
+        hour_key = (ts_ms // 3600000) * 3600000
+        if hour_key not in buckets:
+            buckets[hour_key] = {"open": price, "high": price, "low": price, "close": price}
+        else:
+            b = buckets[hour_key]
+            if price > b["high"]:
+                b["high"] = price
+            if price < b["low"]:
+                b["low"] = price
+            b["close"] = price  # 最後のティックが終値
+    # リスト化して昇順ソート、最新limit件
+    result = []
+    for ts_ms in sorted(buckets.keys()):
+        b = buckets[ts_ms]
+        result.append([ts_ms, b["open"], b["high"], b["low"], b["close"]])
+    # 最新limit件に制限
+    if len(result) > limit:
+        result = result[-limit:]
+    return result
+
+
 def get_ohlcv_from_db(symbol: str, limit: int = 180) -> list:
     """
     SQLiteからOHLCVデータを取得。market_data.pyから呼ばれる。
+    優先順位:
+      1. GeckoTerminal由来の本物のOHLCVキャンドル（O!=H or H!=L or L!=C）
+      2. 5分ティックから1時間足に自前集約したキャンドル
     Returns: [[timestamp_ms, open, high, low, close], ...] or []
     """
     try:
         conn = sqlite3.connect(DB_PATH)
+        # Step 1: 本物のOHLCVキャンドルを試行（鮮度チェック付き）
         cur = conn.execute(
             "SELECT timestamp, open, high, low, close FROM prices "
             "WHERE symbol=? AND NOT (open=high AND high=low AND low=close) "
@@ -171,12 +218,22 @@ def get_ohlcv_from_db(symbol: str, limit: int = 180) -> list:
             (symbol.upper(), limit)
         )
         rows = cur.fetchall()
+        if len(rows) >= 10:
+            newest_ts = rows[0][0]  # DESC順なので先頭が最新
+            age_hours = (time.time() * 1000 - newest_ts) / 3600000
+            if age_hours <= 6:  # 6時間以内なら本物OHLCVを使用
+                conn.close()
+                rows_list = [list(r) for r in rows]
+                rows_list.reverse()
+                return rows_list
+            logger.info(f"Real OHLCV for {symbol} is stale ({age_hours:.1f}h old), using tick aggregation")
+        # Step 2: 不足時 → 5分ティックから1時間足を自前合成
+        logger.info(f"Real OHLCV insufficient for {symbol} ({len(rows)} rows), aggregating from ticks")
+        agg = _aggregate_ticks_to_1h(conn, symbol, limit)
         conn.close()
-        if not rows:
-            return []
-        # 昇順に並び替えて返す
-        rows.reverse()
-        return [list(r) for r in rows]
+        if agg:
+            logger.info(f"Aggregated {len(agg)} 1h candles for {symbol} from ticks")
+        return agg
     except Exception as e:
         logger.warning(f"DB read error for {symbol}: {e}")
         return []
@@ -235,6 +292,7 @@ def main():
     conn = get_db()
     last_purge = 0
     last_ohlcv = 0
+    consecutive_errors = 0
 
     while True:
         try:
@@ -252,8 +310,29 @@ def main():
                 purge_old(conn)
                 last_purge = time.time()
 
+            consecutive_errors = 0
+
         except Exception as e:
             logger.error(f"Main loop error: {e}")
+            consecutive_errors += 1
+            # DB接続が壊れた場合（readonly等）→ 再接続
+            if consecutive_errors >= 3 or "readonly" in str(e).lower():
+                logger.warning(f"DB connection may be broken ({consecutive_errors} consecutive errors), reconnecting...")
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+                conn = get_db()
+                # 書き込みテストで確認
+                try:
+                    conn.execute("CREATE TABLE IF NOT EXISTS _health (x INTEGER)")
+                    conn.execute("DELETE FROM _health")
+                    conn.execute("INSERT INTO _health VALUES (1)")
+                    conn.commit()
+                    logger.info("DB reconnection successful, write test passed")
+                    consecutive_errors = 0
+                except Exception as e2:
+                    logger.error(f"DB reconnection failed: {e2}")
 
         time.sleep(COLLECT_INTERVAL)
 
