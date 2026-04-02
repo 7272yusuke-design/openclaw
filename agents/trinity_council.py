@@ -741,9 +741,9 @@ class TrinityCouncil(NeoBaseCrew):
             _calc_conf += 5
         elif accuracy < 40:
             _calc_conf -= 5
-        # BUY判定自体が+5（LLMがBUYと言ったなら少しポジティブ）
-        if first_word == "BUY":
-            _calc_conf += 5
+        # BUY判定自体のバイアス（v6.5ag: 相関分析で高conf=低勝率 → バイアス0に）
+        # if first_word == "BUY":
+        #     _calc_conf += 5  # 旧: +5 → データ: 逆相関のため無効化
         # === v6.5i H.2ベース スコアリングテーブル拡張 ===
         # 時間帯スコア（H.2分析: 欧州82%勝率 vs アジア40%）
         from core.config import TZ_SCORE_ASIA, TZ_SCORE_EU, TZ_SCORE_US
