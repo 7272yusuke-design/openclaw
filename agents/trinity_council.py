@@ -346,17 +346,23 @@ class TrinityCouncil(NeoBaseCrew):
                 if _last_reflexion_instruction:
                     _compliance_note = f"\n\n【前回のReflexion指示】\n{_last_reflexion_instruction}\n→ この指示に今回従えているか評価せよ。"
                 _ref_prompt = (
-                    f"あなたは自律取引AIエージェントNeoの自己評価モジュールだ。\n\n"
-                    f"【今回の判断対象】\n{clean_symbol} @ ${current_price:.6f}\n"
-                    f"センチメント={sentiment_label}({sentiment_score:.2f})\n\n"
-                    f"【過去の教訓・取引記録】\n{formatted_precedents}\n\n"
-                    f"【直近の失敗パターン分布】\n{_failure_summary}"
+                    f"あなたはNeoの思考パターン分析官だ。市場リスクの列挙は不要。\n"
+                    f"Neoの過去の**判断プロセスの癖・偏り**を特定し、今回それが再発しうるか診断せよ。\n\n"
+                    f"【分析手順】\n"
+                    f"Step 1: 過去の取引記録から「事実の間違い」ではなく「思考パターンの間違い」を抽出せよ\n"
+                    f"  例: 過信傾向、トレンド無視、BTC相関軽視、ナンピン固執、時間帯無視\n"
+                    f"Step 2: 今回の状況({clean_symbol} sent={sentiment_score:.2f})に同じパターンが当てはまるか検査\n"
+                    f"Step 3: 当てはまる場合は確率を下げ、過去に学びが活かせている場合は上げよ\n\n"
+                    f"【今回の判断対象】\n{clean_symbol} @ ${current_price:.6f} | sent={sentiment_label}({sentiment_score:.2f})\n\n"
+                    f"【過去の取引記録・教訓】\n{formatted_precedents}\n\n"
+                    f"【失敗カテゴリ分布（E1）】\n{_failure_summary}"
                     f"{_compliance_note}\n\n"
-                    f"以下のJSON形式のみで回答せよ（余計なテキスト不可）:\n"
-                    f'{{\"active_risks\": [\"現在最も警戒すべきリスク（最大3つ・各20字以内）\"],'
-                    f'\"confidence_adjustment\": -10から+10の整数,'
-                    f'\"adjustment_reason\": \"修正値の根拠（30字以内）\",'
-                    f'\"instruction_for_next\": \"次回Councilへの具体的指示（50字以内）\",'
+                    f"以下のJSON形式のみで回答（余計なテキスト厳禁）:\n"
+                    f'{{\"thinking_biases\": [\"Neoが繰り返している思考の癖（最大3つ・各25字以内・市場状況ではなくNeoの判断傾向を書け）\"],'
+                    f'\"current_pattern_match\": \"今回の状況が過去の思考バイアスに該当するか（true/false+根拠20字）\",'
+                    f'\"confidence_adjustment\": -10から+10の整数（バイアス該当なら下げ、学習改善あれば上げ）,'
+                    f'\"adjustment_reason\": \"修正値の根拠（30字以内・Neoの思考傾向に言及）\",'
+                    f'\"instruction_for_next\": \"次回Councilで意識すべき思考の罠（50字以内・市場予測ではなく判断プロセスの注意点）\",'
                     f'\"previous_instruction_followed\": true/false/null}}'
                 )
                 _ref_resp = _ref_model.generate_content(_ref_prompt)
@@ -371,19 +377,21 @@ class TrinityCouncil(NeoBaseCrew):
                 _ref_parsed = _json_ref.loads(_ref_clean)
                 _reflexion_adj = int(_ref_parsed.get("confidence_adjustment", 0))
                 _reflexion_adj = max(-10, min(10, _reflexion_adj))
-                _ref_risks = _ref_parsed.get("active_risks", [])
+                _ref_biases = _ref_parsed.get("thinking_biases", _ref_parsed.get("active_risks", []))
+                _ref_pattern = _ref_parsed.get("current_pattern_match", "")
                 _ref_reason = _ref_parsed.get("adjustment_reason", "")
                 _ref_next = _ref_parsed.get("instruction_for_next", "")
                 _ref_followed = _ref_parsed.get("previous_instruction_followed", None)
                 reflexion_insight = (
-                    f"リスク: {', '.join(_ref_risks[:3])}\n"
+                    f"思考バイアス: {', '.join(_ref_biases[:3])}\n"
+                    f"今回該当: {_ref_pattern}\n"
                     f"confidence調整: {_reflexion_adj:+d} ({_ref_reason})\n"
-                    f"次回指示: {_ref_next}"
+                    f"次回注意: {_ref_next}"
                 )
                 # E2.4: Reflexion結果をChromaDBに保存（閉ループ用）
                 try:
                     self.memory.store(
-                        f"{clean_symbol} Reflexion: adj={_reflexion_adj:+d}, risks={_ref_risks}, next={_ref_next}",
+                        f"{clean_symbol} Reflexion: adj={_reflexion_adj:+d}, biases={_ref_biases}, pattern={_ref_pattern}, next={_ref_next}",
                         metadata={
                             "category": "reflexion_result",
                             "symbol": clean_symbol,
@@ -395,7 +403,7 @@ class TrinityCouncil(NeoBaseCrew):
                     )
                 except Exception:
                     pass
-                print(f"  🔄 [E2 Reflexion] adj={_reflexion_adj:+d}, risks={_ref_risks}, followed={_ref_followed}")
+                print(f"  🔄 [E2 Reflexion] adj={_reflexion_adj:+d}, biases={_ref_biases}, pattern={_ref_pattern}, followed={_ref_followed}")
             except (_json_ref.JSONDecodeError if '_json_ref' in dir() else ValueError):
                 # JSONパース失敗 → フォールバック（従来の自由文Reflexion）
                 reflexion_insight = _ref_raw[:300] if '_ref_raw' in dir() else ""
@@ -958,6 +966,8 @@ class TrinityCouncil(NeoBaseCrew):
                     "time_limit_hours": _exit_data.get("time_limit_hours", 96),
                 },
                 "best_strategy": bt_best_strategy,
+                "reflexion_insight": reflexion_insight if reflexion_insight else "N/A",
+                "planning_assessment": _planning_context if _planning_context else "N/A",
             }
 
 # ============================================================
