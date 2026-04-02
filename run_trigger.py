@@ -178,26 +178,99 @@ def check_tp_sl_all_positions():
                         logger.error(f"[CFO] SL記録エラー: {_cg_err}")
                     logger.info(f"[TP/SL] ✅ {sell_label}完了: {clean_symbol} ${sell_amount_usd:.2f} ({pnl['pnl_pct']:+.1f}%)")
 
-                    # 損切時はGemini内省
+                    # E1.1: 構造化内省（Deep Introspection）
                     introspection = ""
+                    _failure_category = ""
                     if not is_win:
-                        introspection = f"-{sl_pct}%到達。センチメント・クジラ動向の見直しが必要。"
+                        introspection = f"-{sl_pct}%到達。構造化内省を生成中。"
+                        # エントリー時コンテキストの取得（E1.3で保存したもの）
+                        _ectx = hdata.get("entry_context", {})
+                        _entry_rsi = _ectx.get("rsi_14", "N/A")
+                        _entry_bt = _ectx.get("bt_confidence", "N/A")
+                        _entry_sent = _ectx.get("sentiment_label", "N/A")
+                        _entry_conf = _ectx.get("confidence", "N/A")
+                        _entry_btc = _ectx.get("btc_trend", "N/A")
+                        _entry_btc_24h = _ectx.get("btc_24h", "N/A")
+                        _entry_kf = _ectx.get("key_factor", "N/A")
+                        # 現在のRSI取得
+                        _cur_rsi = "N/A"
                         try:
-                            import google.generativeai as _genai
-                            import os as _os
-                            _genai.configure(api_key=_os.environ.get("GEMINI_API_KEY",""))
-                            _model = _genai.GenerativeModel("gemini-2.0-flash")
-                            _resp = _model.generate_content(f"あなたは自律取引AIエージェントNeoです。{clean_symbol}をエントリー${pnl['avg_price']:.4f}→決済${current_price:.4f}({pnl['pnl_pct']:.1f}%)で{sell_label}しました。なぜ負けたか、次回どう判断すべきか、合計100字以内で内省してください。")
-                            introspection = _resp.text.strip()
+                            _cur_rsi = round(_calc_rsi(clean_symbol), 1)
+                        except Exception:
+                            pass
+                        # 現在のBTC変動取得
+                        _cur_btc_24h = "N/A"
+                        try:
+                            _btc_now = MarketData.fetch_btc_trend()
+                            _cur_btc_24h = f"{_btc_now.get('change_24h', 0):+.1f}" if _btc_now else "N/A"
+                        except Exception:
+                            pass
+                        # 保有時間計算
+                        _hold_hours = 0
+                        try:
+                            _et = hdata.get("entry_time", "")
+                            if _et:
+                                from datetime import datetime as _dt2
+                                _etime = _dt2.fromisoformat(_et.replace("Z", "+00:00"))
+                                _hold_hours = round((datetime.now(timezone.utc) - _etime).total_seconds() / 3600, 1)
+                        except Exception:
+                            pass
+                        try:
+                            from core.model_factory import ModelFactory
+                            _model = ModelFactory.get_genai_model("fast")
+                            _prompt = (
+                                f"あなたは自律取引AIエージェントNeoだ。以下の取引を構造的に分析せよ。\n\n"
+                                f"【取引データ】\n"
+                                f"- 銘柄: {clean_symbol}\n"
+                                f"- エントリー: ${pnl['avg_price']:.6f} → 決済: ${current_price:.6f} ({pnl['pnl_pct']:+.1f}%)\n"
+                                f"- 保有時間: {_hold_hours}h\n"
+                                f"- エントリー時RSI: {_entry_rsi}\n"
+                                f"- エントリー時バックテスト信頼度: {_entry_bt}\n"
+                                f"- エントリー時センチメント: {_entry_sent}\n"
+                                f"- エントリー時BTC: {_entry_btc}\n"
+                                f"- エントリー時confidence: {_entry_conf}\n"
+                                f"- エントリー時key_factor: {_entry_kf}\n"
+                                f"- 決済理由: {sell_reason}\n"
+                                f"- 決済時RSI: {_cur_rsi}\n"
+                                f"- 決済時BTC 24h変動: {_cur_btc_24h}%\n\n"
+                                f"以下のJSON形式のみで回答せよ（日本語、各フィールド30字以内）:\n"
+                                f'{{"failure_category": "trend_against | btc_correlation | overconfidence | bad_timing | signal_false | volatility_spike | averaging_down",'
+                                f'"entry_mistake": "エントリー判断の何が間違っていたか",'
+                                f'"missed_signal": "見落としていたシグナルは何か",'
+                                f'"market_context_gap": "想定と実際の市場環境の乖離",'
+                                f'"next_time_rule": "同条件で次回取るべき行動",'
+                                f'"confidence_was_justified": true}}'
+                            )
+                            _resp = _model.generate_content(_prompt)
+                            _raw = _resp.text.strip()
+                            # JSONパース試行
+                            import json as _json
+                            # ```json ... ``` ブロック除去
+                            _clean = _raw
+                            if "```" in _clean:
+                                _clean = _clean.split("```json")[-1].split("```")[0] if "```json" in _clean else _clean.split("```")[1] if _clean.count("```") >= 2 else _clean
+                            _clean = _clean.strip()
+                            _parsed = _json.loads(_clean)
+                            _failure_category = _parsed.get("failure_category", "").split("|")[0].strip().split(" ")[0].strip()
+                            introspection = (
+                                f"[{_failure_category}] "
+                                f"判断ミス: {_parsed.get('entry_mistake', 'N/A')} | "
+                                f"見落とし: {_parsed.get('missed_signal', 'N/A')} | "
+                                f"乖離: {_parsed.get('market_context_gap', 'N/A')} | "
+                                f"次回: {_parsed.get('next_time_rule', 'N/A')}"
+                            )
+                            logger.info(f"[E1] 構造化内省成功: category={_failure_category}")
                         except Exception as _ie:
-                            logger.error(f"[TP/SL] 内省生成失敗: {_ie}")
+                            logger.error(f"[E1] 構造化内省失敗（フォールバック）: {_ie}")
+                            introspection = f"SL発火 {pnl['pnl_pct']:+.1f}% ({sell_reason})"
+                            _failure_category = "unknown"
 
                     # メモリ保存
                     mem_text = f"【{sell_label}】{clean_symbol} エントリー${pnl['avg_price']:.4f}→決済${current_price:.4f} {pnl['pnl_pct']:+.1f}% (${pnl['pnl_usd']:+.2f})"
                     if introspection:
                         mem_text += "\n内省: " + introspection
                         logger.info(f"[TP/SL] 🧠 内省: {introspection}")
-                    memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "tier": "2"})
+                    memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "failure_category": _failure_category if not is_win else "", "tier": "2"})
 
                     # paper_trade.logに記録（Evaluatorが参照）
                     try:

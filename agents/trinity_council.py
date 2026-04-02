@@ -893,6 +893,38 @@ class TrinityCouncil(NeoBaseCrew):
                                         _pw_state["holdings"][clean_symbol]["exit_profile"] = _exit_cat
                                         self.portfolio._save_wallet()
                                         logger.info(f"Strategy tag: {bt_best_strategy} → exit_profile: {_exit_cat}")
+                                        # E1.3: エントリー時コンテキスト保存（自己進化用）
+                                        _entry_ctx = {
+                                            "rsi_14": float(df.iloc[-1].get("rsi_14", 0)) if "df" in dir() and len(df) > 0 else 0,
+                                            "sentiment_score": round(sentiment_score, 3),
+                                            "sentiment_label": sentiment_label,
+                                            "bt_confidence": bt_confidence,
+                                            "confidence": _calc_conf,
+                                            "key_factor": _structured_key_factor,
+                                            "scoring_breakdown": {
+                                                "base": 50,
+                                                "bt": bt_confidence,
+                                                "sent": round(sentiment_score, 3),
+                                                "acc": accuracy,
+                                                "tz": _tz_label,
+                                                "npin": _npin_label,
+                                                "streak": _streak_label,
+                                                "pt_z": _pt_z_label,
+                                                "cfr": _cfr_label,
+                                                "total": _calc_conf,
+                                            },
+                                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                                        }
+                                        try:
+                                            _btc_ctx = MarketData.fetch_btc_trend()
+                                            _entry_ctx["btc_24h"] = _btc_ctx.get("change_24h", 0) if _btc_ctx else 0
+                                            _entry_ctx["btc_trend"] = _btc_ctx.get("trend", "unknown") if _btc_ctx else "unknown"
+                                        except Exception:
+                                            _entry_ctx["btc_24h"] = 0
+                                            _entry_ctx["btc_trend"] = "unknown"
+                                        _pw_state["holdings"][clean_symbol]["entry_context"] = _entry_ctx
+                                        self.portfolio._save_wallet()
+                                        logger.info(f"Entry context saved for {clean_symbol}: conf={_calc_conf}, bt={bt_confidence}")
                                 else:
                                     trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
                                     print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
