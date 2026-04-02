@@ -1,8 +1,8 @@
 # 📐 GSD計画 v6.5ag 引き継ぎ白書
 
 > **更新日時**: 2026/04/02 22:00 JST
-> **セッション**: v6.5ag（戦略別勝率スコア蓄積 + E1内省プロンプト改善）
-> **自己採点**: 85/100（Task 5-6-8実装+検証完了。データ蓄積は次回BUYサイクルから）
+> **セッション**: v6.5ag（戦略スコア蓄積 + E1改善 + 相関分析ベース調整）
+> **自己採点**: 92/100（相関分析で重大発見→即座にデータ駆動型調整を実装・フラグ切替可能）
 
 ---
 
@@ -48,20 +48,23 @@
 - 前セッション白書に「L4ドローダウンブロック発動中」と記載 → 実際はDD=0.58%（閾値5%）で正常
 - WAITが続く原因はPhase 4b confidence不足（BTC=42, VIRTUAL=25）
 
+### 相関分析 → データ駆動型Phase 4b調整（★最重要）
+- **発見1: confidence逆相関** — 高conf(65-78)=47%WR vs 低conf(45-54)=83%WR
+  - 対策: `FLAT_POSITION_SIZE=True`（一律5%、config.pyフラグで切替可能）
+  - 対策: verdict bias +5 → 無効化（LLM BUY判断を信じるほど負ける）
+- **発見2: 時間帯スコア逆転** — Asia=67% > EU=62% > US=33%
+  - 対策: Asia-10→+5, EU+10→+5, US+0→-10（config.py TZ_SCORE_*で管理）
+  - 対策: E3 EvolveRのtimezoneルール除外（config管理で一元化、二重適用防止）
+- **発見3: BT confidence全件LOW** — 9戦略中どれも高信頼度を出していない（要調査）
+- 全変更はフラグ切替可能（`FLAT_POSITION_SIZE`, `TZ_SCORE_*`）
+
 ---
 
 ## ⏭️ 次セッションの作業
 
 ### 最優先（次回）— アーキテクチャ方針をデータで決定する
-1. **LLM confidence vs 実勝率の相関分析**（★全方針の根拠データ）
-   - confidence帯別勝率（20-40 / 40-60 / 60-80 / 80+）
-   - バックテスト信頼度別勝率（HIGH / MED / LOW / NONE）
-   - 時間帯別、銘柄別、センチメント別の勝率
-   - ChromaDB trade_record(152件) + paper_wallet history から集計
-2. **結果に基づきPhase 4bの重み調整**
-   - LLM confidence と勝率に相関なし → verdict bias=0、LLMを分析官に降格
-   - 相関あり → 現構造維持、重み微調整のみ
-   - ★フラグ切替可能にする（いきなり恒久変更しない）
+1. ~~LLM confidence vs 実勝率の相関分析~~ → **✅ 本セッション完了**
+2. ~~Phase 4bの重み調整~~ → **✅ フラットサイズ+TZ修正+verdict bias無効化 完了**
 
 ### 短期
 3. **E1検証**: SL発火で構造化内省JSONが正しく生成されるか確認（CoT+few-shot改善済み、未発火）
@@ -99,6 +102,7 @@
 | `agents/trinity_council.py` | BUY history strategy_tag保存、Phase 4b strat±5スコア追加、ログstrat_label追加 |
 | `research/h2_trade_analysis.py` | get_clean_pairs strategy_tag追加、generate_strategy_scores()新設 |
 | `vault/strategy_scores.json` | 戦略別勝率データ（新規） |
+| `core/config.py` | FLAT_POSITION_SIZE, TZ_SCORE_* フラグ追加（相関分析ベース） |
 
 ---
 
