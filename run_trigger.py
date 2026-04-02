@@ -15,7 +15,7 @@ from agents.trinity_council import TrinityCouncil
 from tools.discord_reporter import DiscordReporter
 from orchestration.alpha_sweep_operation import run_sweep
 from orchestration.data_collector import get_latest_price_from_db
-from core.config import VOLATILITY_WATCH_SYMBOLS, COUNCIL_ELIGIBLE_SYMBOLS
+from core.config import VOLATILITY_WATCH_SYMBOLS, COUNCIL_ELIGIBLE_SYMBOLS, TIER0_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 from orchestration.nightly_research import run_nightly_research
 from tools.arbitrage_monitor import check_arbitrage_spreads, send_arbitrage_discord_alert, get_spread_summary
@@ -227,6 +227,7 @@ EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間
 CFR_INTERVAL     = 720        # Capital Flow Radar間隔（30秒×720=6時間）
 ENGAGE_INTERVAL  = 240
 PERIODIC_COUNCIL_INTERVAL = 480  # 4時間ごと（30秒×480=14400秒）
+TIER0_COUNCIL_INTERVAL   = 480  # Tier0も4時間ごと（VP Tier1と独立サイクル）
 HEARTBEAT_INTERVAL = 60       # 稼働報告間隔（30秒×60=30分）        # Moltbookエンゲージメント間隔（30秒×240=2時間）
 NIGHTLY_HOUR     = 2           # Nightly Batch実行時刻（JST 02:00 — now_jst_hourと比較）
 
@@ -675,6 +676,39 @@ def start_hybrid_radar():
                     logger.error(f"アルファ監視エラー: {e}")
 
             # ============================================================
+            # 2a. Tier0定期Council召集（BTC/ETH — VP Tier1と独立サイクル）
+            # ============================================================
+            if trigger_type is None and cycle_count > 0 and (cycle_count + 240) % TIER0_COUNCIL_INTERVAL == 0:
+                if is_cooled_down and len(TIER0_SYMBOLS) > 0:
+                    try:
+                        import json as _json_t0
+                        with open("vault/blackboard/live_intel.json", "r") as _f_t0:
+                            _bb_t0 = _json_t0.load(_f_t0)
+                        _last_t0 = _bb_t0.get("last_tier0_symbol", "")
+                    except Exception:
+                        _last_t0 = ""
+                    if _last_t0 and _last_t0 in TIER0_SYMBOLS:
+                        _t0_idx = (TIER0_SYMBOLS.index(_last_t0) + 1) % len(TIER0_SYMBOLS)
+                    else:
+                        _t0_idx = 0
+                    _t0_sym = TIER0_SYMBOLS[_t0_idx]
+                    trigger_type = "TIER0_PERIODIC"
+                    trigger_symbol = _t0_sym
+                    trigger_context = f"Tier0定期Council（4時間ごと）: {_t0_sym}"
+                    try:
+                        import json as _json_t0w
+                        with open("vault/blackboard/live_intel.json", "r") as _f_t0w:
+                            _bb_t0w = _json_t0w.load(_f_t0w)
+                        _bb_t0w["last_tier0_symbol"] = _t0_sym
+                        with open("vault/blackboard/live_intel.json", "w") as _f_t0w:
+                            _json_t0w.dump(_bb_t0w, _f_t0w, indent=2, ensure_ascii=False)
+                    except Exception as _t0_err:
+                        logger.warning(f"[TIER0] Blackboard書き込み失敗: {_t0_err}")
+                    logger.info(f"⏰ [TIER0] 定期Council召集: {_t0_sym}（cycle={cycle_count}）")
+                else:
+                    if not is_cooled_down:
+                        logger.info(f"⏰ [TIER0] 定期Council時刻だが冷却中 — スキップ")
+
             # 2b. 定期Council召集（横ばい相場でも学習を進める）
             # ============================================================
             if cycle_count % PERIODIC_COUNCIL_INTERVAL == 0 and cycle_count > 0:

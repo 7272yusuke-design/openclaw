@@ -25,6 +25,7 @@ def get_neo_llm():
 # ============================================================
 # VP銘柄監視 3層設定（Task A.1）
 # ============================================================
+TIER0_SYMBOLS    = ["BTC", "ETH"]              # Tier0: メイン取引対象（Binance）
 VP_TIER1_SYMBOLS = ["VIRTUAL", "AIXBT"]       # 常時監視 + Sweep最優先
 VP_TIER2_SYMBOLS = ["TIBBIR", "ROBO"]          # Tier2: VP経済圏銘柄（60分Sweep対象）
 VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
@@ -32,7 +33,7 @@ VP_TIER3_SYMBOLS = ["ETH", "SOL", "BNB"]      # 日次Nightlyのみ
 SWEEP_SYMBOLS         = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS   # 通常Sweep
 SWEEP_SYMBOLS_NIGHTLY = VP_TIER1_SYMBOLS + VP_TIER2_SYMBOLS + VP_TIER3_SYMBOLS  # Nightly
 VOLATILITY_WATCH_SYMBOLS = VP_TIER1_SYMBOLS   # ボラティリティ監視
-COUNCIL_ELIGIBLE_SYMBOLS = VP_TIER1_SYMBOLS    # Council召集可能（Tier1のみ）
+COUNCIL_ELIGIBLE_SYMBOLS = TIER0_SYMBOLS + VP_TIER1_SYMBOLS  # Council召集可能（Tier0+Tier1）
 
 # ============================================================
 # 学習モード設定（Task F.1）
