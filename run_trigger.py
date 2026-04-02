@@ -224,8 +224,9 @@ def check_tp_sl_all_positions():
                             action="SELL",
                             amount_usd=sell_amount_usd,
                             price=current_price,
-                            status=f"{sell_label} | entry:${pnl['avg_price']:.4f} pnl:${pnl['pnl_usd']:+.2f}",
-                            balance_after=_bal
+                            status=f"{sell_label} | entry:{DiscordReporter._fmt_price(pnl['avg_price'], clean_symbol)} pnl:${pnl['pnl_usd']:+.2f}",
+                            balance_after=_bal,
+                            exit_profile=_exit_cat
                         )
                     except Exception as _de:
                         logger.error(f"[TP/SL] Discord報告失敗: {_de}")
@@ -421,10 +422,17 @@ def _run_nightly_batch():
         except Exception as e:
             logger.error(f"[Nightly] MoltbookEngager統計失敗: {e}")
 
+        # Tier別勝率
+        _t0_acc = perf.get("tier0_accuracy", 0)
+        _t0_n = perf.get("tier0_trades", 0)
+        _t1_acc = perf.get("tier1_accuracy", 0)
+        _t1_n = perf.get("tier1_trades", 0)
+        _tier_line = f"  🏦 T0(BTC/ETH): {_t0_acc:.1f}%({_t0_n}件) | 🪙 T1(VP): {_t1_acc:.1f}%({_t1_n}件)"
+
         summary = (
             f"📅 **日次バッチ完了** — {today}\n"
             f"⏱️ 実行時間: {elapsed}秒\n"
-            f"🎯 現在の勝率: {accuracy}% ({total_trades}件)\n"
+            f"🎯 総合勝率: {accuracy}% ({total_trades}件)\n{_tier_line}\n"
             f"🔍 Alpha機会: {opp_count}件\n"
             f"✅ Sweep / Evaluator / Dashboard 完了"
             f"{moltbook_report}"
@@ -577,7 +585,7 @@ def start_hybrid_radar():
                     _hb_holdings = _hbw.state.get("holdings", {})
                     _hb_hist = len(_hbw.state.get("history", []))
                     _hb_lines = []
-                    _hb_lines.append("USDC: ${:,.0f}".format(_hb_usdc))
+                    _hb_lines.append("💰 USDC: ${:,.0f}".format(_hb_usdc))
                     _hb_total = _hb_usdc
                     for _hbs, _hbd in _hb_holdings.items():
                         try:
@@ -587,13 +595,49 @@ def start_hybrid_radar():
                                 _hb_val = _hbd["amount"] * _hbpr
                                 _hb_total += _hb_val
                                 _hb_pnl = ((_hbpr - _hbd["avg_price"]) / _hbd["avg_price"] * 100) if _hbd["avg_price"] > 0 else 0
-                                _hb_lines.append("{}: ${:.6f} ({:+.2f}%)".format(_hbs, _hbpr, _hb_pnl))
+                                _hb_lines.append("📊 {}: {} ({:+.2f}%)".format(_hbs, DiscordReporter._fmt_price(_hbpr, _hbs), _hb_pnl))
                         except Exception:
                             pass
-                    _hb_lines.append("Total: ${:,.0f}".format(_hb_total))
-                    _hb_lines.append("Learn: {}/{}".format(_hb_hist, LEARNING_TARGET_TRADES))
-                    _hb_lines.append("Cycle: #{}".format(cycle_count))
-                    DiscordReporter.send_log("Heartbeat", chr(10).join(_hb_lines), 0x3498db)
+                    _hb_lines.append("💎 Total: ${:,.0f}".format(_hb_total))
+                    # Tier別勝率
+                    try:
+                        _hb_bb = NeoBlackboard.load()
+                        _hb_ps = _hb_bb.get("performance_summary", {})
+                        _hb_t0a = _hb_ps.get("tier0_accuracy", 0)
+                        _hb_t0n = _hb_ps.get("tier0_trades", 0)
+                        _hb_t1a = _hb_ps.get("tier1_accuracy", 0)
+                        _hb_t1n = _hb_ps.get("tier1_trades", 0)
+                        _hb_total_acc = _hb_ps.get("accuracy_score", 0)
+                        _hb_total_n = _hb_ps.get("total_evaluated_trades", 0)
+                        _hb_lines.append("🎯 勝率: {:.1f}% ({}件) | T0:{:.0f}%({}) T1:{:.0f}%({})".format(
+                            _hb_total_acc, _hb_total_n, _hb_t0a, _hb_t0n, _hb_t1a, _hb_t1n))
+                    except Exception:
+                        _hb_lines.append("🎯 Learn: {}/{}".format(_hb_hist, LEARNING_TARGET_TRADES))
+                    # CFOステータス
+                    try:
+                        _hb_cg = CostGuard()
+                        _hb_level = _hb_cg.current_level()
+                        _hb_lines.append("🛡️ CFO: L{} | HWM: ${:,.0f}".format(
+                            _hb_level, _hb_cg.state.get("hwm", 0)))
+                    except Exception:
+                        pass
+                    # 次ローテーション情報
+                    try:
+                        import json as _hb_json
+                        with open("vault/blackboard/live_intel.json", "r") as _hb_f:
+                            _hb_bbi = _hb_json.load(_hb_f)
+                        _hb_last_ts = float(_hb_bbi.get("last_unified_council_ts", 0))
+                        _hb_last_sym = _hb_bbi.get("last_unified_council_symbol", "?")
+                        _hb_rotation = ["BTC", "VIRTUAL", "ETH", "AIXBT"]
+                        _hb_next_idx = (_hb_rotation.index(_hb_last_sym) + 1) % len(_hb_rotation) if _hb_last_sym in _hb_rotation else 0
+                        _hb_next_sym = _hb_rotation[_hb_next_idx]
+                        _hb_elapsed = time.time() - _hb_last_ts
+                        _hb_remain = max(0, UNIFIED_COUNCIL_INTERVAL_SEC - _hb_elapsed)
+                        _hb_lines.append("⏰ Next: {} (残{:.0f}分)".format(_hb_next_sym, _hb_remain / 60))
+                    except Exception:
+                        pass
+                    _hb_lines.append("🔄 Cycle: #{}".format(cycle_count))
+                    DiscordReporter.send_log("💓 Heartbeat", chr(10).join(_hb_lines), 0x3498db)
                     logger.info("[Heartbeat] ✅ 送信完了 (cycle #{})".format(cycle_count))
                 except Exception as _hbe:
                     logger.error("[Heartbeat] error: {}".format(_hbe))

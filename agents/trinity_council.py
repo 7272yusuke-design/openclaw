@@ -964,7 +964,26 @@ class TrinityCouncil(NeoBaseCrew):
             "unrealized_pnl_usd": _pnl_data.get("pnl_usd", 0),
             "backtest_summary": _bt_summary,
             "pair_trade": pair_trade_context if pair_trade_context else "",
+            "symbol": clean_symbol,
+            "tier": "Tier0 (BTC/ETH)" if clean_symbol in ("BTC", "ETH") else "Tier1 (VP銘柄)",
+            "exit_profile": "",
         }
+        # exit_profile情報をBUY時に追加
+        if trade_action == "BUY" and trade_result and trade_result.get("status") == "success":
+            try:
+                from core.config import EXIT_PROFILES, STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
+                _ep_name = EXIT_PROFILE_DEFAULT
+                _st = trade_result.get("tx", {}).get("strategy_tag", "")
+                if _st:
+                    _ep_name = STRATEGY_TO_EXIT_PROFILE.get(_st, EXIT_PROFILE_DEFAULT)
+                _ep = EXIT_PROFILES.get(_ep_name, {})
+                discussion_data["exit_profile"] = (
+                    f"📋 **{_ep_name}** (strategy: {_st})\n"
+                    f"SL: {_ep.get('sl_pct', 'N/A')}% | Trail: +{_ep.get('trailing_start_pct', 'N/A')}%開始/-{abs(_ep.get('trailing_drop_pct', 0))}%利確\n"
+                    f"Hard TP: +{_ep.get('hard_tp_pct', 'N/A')}% | 時間上限: {_ep.get('max_hold_hours', 'N/A')}h"
+                )
+            except Exception:
+                pass
         
         if trade_action in ("BUY", "SELL"):
             DiscordReporter.send_council_minutes(

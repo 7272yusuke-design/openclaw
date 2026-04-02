@@ -24,7 +24,8 @@ class DiscordReporter:
         # --- 市況サマリー（1フィールドにコンパクトに） ---
         market_lines = []
         if d.get("current_price"):
-            market_lines.append(f"💲 **価格**: ${d['current_price']:.6f}")
+            _sym = d.get("symbol", "")
+            market_lines.append(f"💲 **価格**: {cls._fmt_price(d['current_price'], _sym)}")
         if d.get("btc_context"):
             market_lines.append(f"₿ {d['btc_context']}")
         if d.get("fear_greed") and d["fear_greed"] != "N/A":
@@ -44,7 +45,8 @@ class DiscordReporter:
             pos_lines.append(f"💰 **USDC**: ${d['usdc_balance']:,.0f} ({d.get('usdc_ratio', 0):.0f}%)")
         if d.get("holding_amount") and d["holding_amount"] > 0:
             pnl_emoji = "📈" if d.get("unrealized_pnl_pct", 0) >= 0 else "📉"
-            pos_lines.append(f"{pnl_emoji} **保有**: {d['holding_amount']:.2f} tokens @ ${d.get('avg_price', 0):.6f}")
+            _pos_sym = d.get("symbol", "")
+            pos_lines.append(f"{pnl_emoji} **保有**: {d['holding_amount']:.4f} tokens @ {cls._fmt_price(d.get('avg_price', 0), _pos_sym)}")
             pos_lines.append(f"   含み損益: {d.get('unrealized_pnl_pct', 0):+.2f}% (${d.get('unrealized_pnl_usd', 0):+.2f})")
         else:
             pos_lines.append("📦 **保有**: なし（新規エントリー）")
@@ -93,11 +95,27 @@ class DiscordReporter:
                 "inline": False
             })
         
+        # Tier表記フィールド（存在する場合のみ追加）
+        if d.get("tier"):
+            fields.insert(0, {
+                "name": "🏷️ Tier",
+                "value": d["tier"],
+                "inline": True
+            })
+
+        # 出口プロファイル（存在する場合のみ追加）
+        if d.get("exit_profile"):
+            fields.append({
+                "name": "🚪 出口プロファイル",
+                "value": cls._truncate(d["exit_profile"], 300),
+                "inline": False
+            })
+
         embed = {
             "title": title[:256],
             "color": color,
             "fields": fields,
-            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v3"},
+            "footer": {"text": f"Mode: {os.getenv('NEO_MODE', 'PAPER')} | Neo Trinity Council v3 | 4-Asset Rotation"},
             "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
         }
         
@@ -121,22 +139,28 @@ class DiscordReporter:
         return success
 
     @classmethod
-    def send_trade_alert(cls, symbol, action, amount_usd, price, status, balance_after):
+    def send_trade_alert(cls, symbol, action, amount_usd, price, status, balance_after, exit_profile=""):
         """取引実行の即時アラート（ログチャンネル）"""
         color_map = {"BUY": 0x2ecc71, "SELL": 0xe74c3c, "WAIT": 0x95a5a6}
         emoji_map = {"BUY": "🟢", "SELL": "🔴", "WAIT": "⏸️"}
+        # 銘柄名からシンボル抽出（"VIRTUAL (TP +5.2%)" → "VIRTUAL"）
+        _clean_sym = symbol.split("(")[0].strip().split("/")[0].strip() if symbol else ""
+        
+        fields = [
+            {"name": "Action", "value": action, "inline": True},
+            {"name": "Amount", "value": f"${amount_usd:.2f}", "inline": True},
+            {"name": "Price", "value": cls._fmt_price(price, _clean_sym), "inline": True},
+            {"name": "Status", "value": status, "inline": True},
+            {"name": "Balance After", "value": f"${balance_after:,.2f} USDC", "inline": True},
+        ]
+        if exit_profile:
+            fields.append({"name": "Exit Profile", "value": exit_profile, "inline": True})
         
         embed = {
             "title": f"{emoji_map.get(action, '❓')} Trade Alert: {action} {symbol}",
             "color": color_map.get(action, 0x3498db),
-            "fields": [
-                {"name": "Action", "value": action, "inline": True},
-                {"name": "Amount", "value": f"${amount_usd:.2f}", "inline": True},
-                {"name": "Price", "value": f"${price:.6f}", "inline": True},
-                {"name": "Status", "value": status, "inline": True},
-                {"name": "Balance After", "value": f"${balance_after:.2f} USDC", "inline": True},
-            ],
-            "footer": {"text": "Neo Paper Trading v2"}
+            "fields": fields,
+            "footer": {"text": "Neo Trinity Council v3 | Paper Trading | 4-Asset Rotation"}
         }
         
         payload = {"embeds": [embed]}
@@ -161,6 +185,18 @@ class DiscordReporter:
         if len(text) > max_len:
             return text[:max_len - 3] + "..."
         return text
+
+    @staticmethod
+    def _fmt_price(price, symbol=""):
+        """銘柄に応じた価格フォーマット（BTC/ETH=カンマ区切り, VP銘柄=6桁小数）"""
+        if price is None or price == 0:
+            return "$0"
+        if symbol in ("BTC", "ETH") or price >= 10:
+            return f"${price:,.2f}"
+        elif price >= 0.01:
+            return f"${price:.4f}"
+        else:
+            return f"${price:.6f}"
 
     @classmethod
     def _post(cls, url, payload, image_path=None):
@@ -260,12 +296,40 @@ class DiscordReporter:
         progress = f"{history_count}/{LEARNING_TARGET_TRADES}"
         progress_pct = min(history_count / LEARNING_TARGET_TRADES * 100, 100)
         progress_bar = "▓" * int(progress_pct / 10) + "░" * (10 - int(progress_pct / 10))
-        tp_sl_str = "TP1=+3% / TP2=+7% / SL=-3%" if LEARNING_MODE else "TP=+20% / SL=-10%"
+        # 出口プロファイル情報（v6.5aa: 戦略別出口）
+        try:
+            from core.config import EXIT_PROFILES
+            _ep_lines = []
+            for _ep_name, _ep in EXIT_PROFILES.items():
+                _ep_lines.append(f"{_ep_name}: SL{_ep['sl_pct']}%/TP{_ep['hard_tp_pct']}%/Trail+{_ep['trailing_start_pct']}%")
+            tp_sl_str = " | ".join(_ep_lines)
+        except Exception:
+            tp_sl_str = "戦略別出口プロファイル（config.py参照）"
+        # Tier別勝率取得
+        _tier0_str = "N/A"
+        _tier1_str = "N/A"
+        try:
+            from core.blackboard import NeoBlackboard
+            _bb = NeoBlackboard.load()
+            _ps = _bb.get("performance_summary", {})
+            _t0_acc = _ps.get("tier0_accuracy", 0)
+            _t0_n = _ps.get("tier0_trades", 0)
+            _t1_acc = _ps.get("tier1_accuracy", 0)
+            _t1_n = _ps.get("tier1_trades", 0)
+            if _t0_n > 0:
+                _tier0_str = f"{_t0_acc:.1f}% ({_t0_n}件)"
+            if _t1_n > 0:
+                _tier1_str = f"{_t1_acc:.1f}% ({_t1_n}件)"
+        except Exception:
+            pass
+
         fields = [
-            {"name": "🎯 決済済み勝率", "value": f"`{bar}` **{accuracy:.1f}%** ({total_trades}件)", "inline": False},
+            {"name": "🎯 総合勝率", "value": f"`{bar}` **{accuracy:.1f}%** ({total_trades}件)", "inline": False},
+            {"name": "🏦 Tier0 (BTC/ETH)", "value": _tier0_str, "inline": True},
+            {"name": "🪙 Tier1 (VP銘柄)", "value": _tier1_str, "inline": True},
             {"name": "📊 平均P&L", "value": pnl_str, "inline": True},
             {"name": "🕐 更新時刻", "value": datetime.now(JST).strftime("%Y-%m-%d %H:%M JST"), "inline": True},
-            {"name": f"{mode_str}", "value": f"`{progress_bar}` {progress} ({progress_pct:.0f}%)\n📐 閾値: {tp_sl_str}", "inline": False},
+            {"name": f"{mode_str}", "value": f"`{progress_bar}` {progress} ({progress_pct:.0f}%)\n📐 出口: {tp_sl_str}", "inline": False},
             {"name": "💼 ポートフォリオ", "value": portfolio_str, "inline": False},
             {"name": "📋 直近決済5件", "value": recent_str or "なし", "inline": False},
         ]
@@ -273,7 +337,7 @@ class DiscordReporter:
             "title": "📊 Neo Performance Dashboard",
             "color": color,
             "fields": fields,
-            "footer": {"text": "Neo Trinity Council v3 | Paper Trading"},
+            "footer": {"text": "Neo Trinity Council v3 | Paper Trading | Tier0+Tier1 4-Asset Rotation"},
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         payload = {"embeds": [embed]}
