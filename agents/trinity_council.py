@@ -298,28 +298,113 @@ class TrinityCouncil(NeoBaseCrew):
                 unique_precedents.append(p)
         formatted_precedents = "\n---\n".join(unique_precedents[:6]) if unique_precedents else "過去の記録なし。"
 
+        # E2.2: failure_category集計（Reflexion入力用）
+        _failure_summary = "失敗パターンデータなし"
+        _failure_counts = {}
+        try:
+            _fc_results = self.memory.recall(
+                query=f"{clean_symbol} trade_result failure",
+                n_results=50,
+                where={"category": "trade_result"}
+            )
+            _fc_metas = _fc_results.get("metadatas", [[]])[0]
+            for _fm in _fc_metas:
+                _fc = _fm.get("failure_category", "")
+                if _fc and _fc != "unknown":
+                    _failure_counts[_fc] = _failure_counts.get(_fc, 0) + 1
+            if _failure_counts:
+                _failure_summary = "\n".join(
+                    f"- {cat}: {cnt}回"
+                    for cat, cnt in sorted(_failure_counts.items(), key=lambda x: -x[1])
+                )
+                print(f"  📊 [E2] failure分布: {_failure_counts}")
+        except Exception as _fce:
+            print(f"  ⚠️ [E2] failure集計失敗: {_fce}")
 
-        # 1d-R. Reflexion: 過去判断の自己評価を動的生成
+        # E2.4: 前回のReflexion指示を取得（閉ループ検証用）
+        _last_reflexion_instruction = ""
+        try:
+            _lr = self.memory.recall(
+                query=f"{clean_symbol} reflexion instruction_for_next",
+                n_results=1,
+                where={"category": "reflexion_result"}
+            )
+            _lr_docs = _lr.get("documents", [[]])[0]
+            if _lr_docs:
+                _last_reflexion_instruction = _lr_docs[0][:200] if isinstance(_lr_docs[0], str) else str(_lr_docs[0])[:200]
+                print(f"  📝 [E2] 前回Reflexion指示: {_last_reflexion_instruction[:60]}...")
+        except Exception:
+            pass
+
+        # 1d-R. Reflexion: 過去判断の自己評価を動的生成（E2.1高度化）
         reflexion_insight = ""
+        _reflexion_adj = 0
         if unique_precedents:
             try:
                 _ref_model = ModelFactory.get_genai_model("fast")
+                _compliance_note = ""
+                if _last_reflexion_instruction:
+                    _compliance_note = f"\n\n【前回のReflexion指示】\n{_last_reflexion_instruction}\n→ この指示に今回従えているか評価せよ。"
                 _ref_prompt = (
-                    f"あなたは自律取引AIエージェントNeoだ。{clean_symbol}について判断を下す前に、"
-                    f"以下の過去記録を読み、自己評価せよ。\n\n"
+                    f"あなたは自律取引AIエージェントNeoの自己評価モジュールだ。\n\n"
+                    f"【今回の判断対象】\n{clean_symbol} @ ${current_price:.6f}\n"
+                    f"センチメント={sentiment_label}({sentiment_score:.2f})\n\n"
                     f"【過去の教訓・取引記録】\n{formatted_precedents}\n\n"
-                    f"以下の3点を各1文で答えよ（合計100字以内・日本語）:\n"
-                    f"1. 過去の判断で何が正しかったか\n"
-                    f"2. 何が間違っていたか（または不明確だったか）\n"
-                    f"3. 今回の判断で特に注意すべき点は何か\n\n"
-                    f"余計な前置きなく、番号付きで直接答えよ。"
+                    f"【直近の失敗パターン分布】\n{_failure_summary}"
+                    f"{_compliance_note}\n\n"
+                    f"以下のJSON形式のみで回答せよ（余計なテキスト不可）:\n"
+                    f'{{\"active_risks\": [\"現在最も警戒すべきリスク（最大3つ・各20字以内）\"],'
+                    f'\"confidence_adjustment\": -10から+10の整数,'
+                    f'\"adjustment_reason\": \"修正値の根拠（30字以内）\",'
+                    f'\"instruction_for_next\": \"次回Councilへの具体的指示（50字以内）\",'
+                    f'\"previous_instruction_followed\": true/false/null}}'
                 )
                 _ref_resp = _ref_model.generate_content(_ref_prompt)
-                reflexion_insight = _ref_resp.text.strip()[:300]
-                print(f"  🔄 [Reflexion] 自己評価完了: {reflexion_insight[:60]}...")
+                _ref_raw = _ref_resp.text.strip()
+                # JSON抽出を試行
+                import json as _json_ref
+                _ref_clean = _ref_raw
+                if "```" in _ref_clean:
+                    _ref_clean = _ref_clean.split("```")[1].replace("json", "", 1).strip()
+                if "{" in _ref_clean:
+                    _ref_clean = _ref_clean[_ref_clean.index("{"):_ref_clean.rindex("}")+1]
+                _ref_parsed = _json_ref.loads(_ref_clean)
+                _reflexion_adj = int(_ref_parsed.get("confidence_adjustment", 0))
+                _reflexion_adj = max(-10, min(10, _reflexion_adj))
+                _ref_risks = _ref_parsed.get("active_risks", [])
+                _ref_reason = _ref_parsed.get("adjustment_reason", "")
+                _ref_next = _ref_parsed.get("instruction_for_next", "")
+                _ref_followed = _ref_parsed.get("previous_instruction_followed", None)
+                reflexion_insight = (
+                    f"リスク: {', '.join(_ref_risks[:3])}\n"
+                    f"confidence調整: {_reflexion_adj:+d} ({_ref_reason})\n"
+                    f"次回指示: {_ref_next}"
+                )
+                # E2.4: Reflexion結果をChromaDBに保存（閉ループ用）
+                try:
+                    self.memory.store(
+                        f"{clean_symbol} Reflexion: adj={_reflexion_adj:+d}, risks={_ref_risks}, next={_ref_next}",
+                        metadata={
+                            "category": "reflexion_result",
+                            "symbol": clean_symbol,
+                            "confidence_adjustment": str(_reflexion_adj),
+                            "instruction_for_next": _ref_next[:200],
+                            "previous_followed": str(_ref_followed),
+                            "tier": "4",
+                        }
+                    )
+                except Exception:
+                    pass
+                print(f"  🔄 [E2 Reflexion] adj={_reflexion_adj:+d}, risks={_ref_risks}, followed={_ref_followed}")
+            except (_json_ref.JSONDecodeError if '_json_ref' in dir() else ValueError):
+                # JSONパース失敗 → フォールバック（従来の自由文Reflexion）
+                reflexion_insight = _ref_raw[:300] if '_ref_raw' in dir() else ""
+                _reflexion_adj = 0
+                print(f"  ⚠️ [E2 Reflexion] JSONパース失敗、フォールバック: {reflexion_insight[:60]}")
             except Exception as _re:
-                print(f"  ⚠️ [Reflexion] 自己評価失敗: {str(_re)[:60]}")
+                print(f"  ⚠️ [E2 Reflexion] 失敗: {str(_re)[:60]}")
                 reflexion_insight = ""
+                _reflexion_adj = 0
 
         # 1-P. N.1 ペアトレードシグナル（参考情報注入）
         pair_trade_context = ""
@@ -725,9 +810,15 @@ class TrinityCouncil(NeoBaseCrew):
                     _cfr_label = f"cfr{_cfr_score:+.0f}:0({_cfr_regime})"
         except Exception:
             pass
+        # === E2.3: Reflexion confidence_adjustment注入 ===
+        _reflexion_label = "refl0"
+        if _reflexion_adj != 0:
+            _calc_conf += _reflexion_adj
+            _reflexion_label = f"refl{_reflexion_adj:+d}"
+            print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label})")
         _structured_confidence = _calc_conf
 
         # ============================================================
