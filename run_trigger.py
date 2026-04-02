@@ -219,27 +219,30 @@ def check_tp_sl_all_positions():
                             from core.model_factory import ModelFactory
                             _model = ModelFactory.get_genai_model("fast")
                             _prompt = (
-                                f"あなたは自律取引AIエージェントNeoだ。以下の取引を構造的に分析せよ。\n\n"
+                                f"あなたは自律取引AIエージェントNeoの内省モジュールだ。\n\n"
                                 f"【取引データ】\n"
                                 f"- 銘柄: {clean_symbol}\n"
                                 f"- エントリー: ${pnl['avg_price']:.6f} → 決済: ${current_price:.6f} ({pnl['pnl_pct']:+.1f}%)\n"
                                 f"- 保有時間: {_hold_hours}h\n"
-                                f"- エントリー時RSI: {_entry_rsi}\n"
-                                f"- エントリー時バックテスト信頼度: {_entry_bt}\n"
-                                f"- エントリー時センチメント: {_entry_sent}\n"
-                                f"- エントリー時BTC: {_entry_btc}\n"
-                                f"- エントリー時confidence: {_entry_conf}\n"
-                                f"- エントリー時key_factor: {_entry_kf}\n"
-                                f"- 決済理由: {sell_reason}\n"
-                                f"- 決済時RSI: {_cur_rsi}\n"
-                                f"- 決済時BTC 24h変動: {_cur_btc_24h}%\n\n"
-                                f"以下のJSON形式のみで回答せよ（日本語、各フィールド30字以内）:\n"
+                                f"- エントリー時RSI: {_entry_rsi} / 決済時RSI: {_cur_rsi}\n"
+                                f"- エントリー時BT信頼度: {_entry_bt} / センチメント: {_entry_sent}\n"
+                                f"- エントリー時BTC: {_entry_btc} / 決済時BTC 24h: {_cur_btc_24h}%\n"
+                                f"- エントリー時confidence: {_entry_conf} / key_factor: {_entry_kf}\n"
+                                f"- 決済理由: {sell_reason}\n\n"
+                                f"【分析手順（Step by Step）】\n"
+                                f"Step 1: エントリー時の判断根拠を列挙し、どれが正しくどれが間違いだったか仕分けよ\n"
+                                f"Step 2: 見落としていたシグナル（RSI乖離、BTC連動、センチメント過信等）を特定せよ\n"
+                                f"Step 3: 7カテゴリから最も適切な失敗原因を1つ選び、再発防止ルールを具体化せよ\n\n"
+                                f"【few-shot例】\n"
+                                f'AIXBT: entry=$0.027 exit=$0.026 (-3.1%), RSI=58→42, BTC -4.2%\n'
+                                f'{{"failure_category":"btc_correlation","entry_mistake":"BTC下落トレンド中にアルト買い","missed_signal":"BTC 30d=-8%の長期下落を軽視","market_context_gap":"アルト個別材料を過信しBTC連動リスクを無視","next_time_rule":"BTC 24h<-3%時はアルトBUY見送り","confidence_was_justified":false}}\n\n'
+                                f"分析手順に従い思考した上で、最終回答をJSON形式のみで出力せよ（日本語、各フィールド30字以内）:\n"
                                 f'{{"failure_category": "trend_against | btc_correlation | overconfidence | bad_timing | signal_false | volatility_spike | averaging_down",'
-                                f'"entry_mistake": "エントリー判断の何が間違っていたか",'
-                                f'"missed_signal": "見落としていたシグナルは何か",'
-                                f'"market_context_gap": "想定と実際の市場環境の乖離",'
-                                f'"next_time_rule": "同条件で次回取るべき行動",'
-                                f'"confidence_was_justified": true}}'
+                                f'"entry_mistake": "...",'
+                                f'"missed_signal": "...",'
+                                f'"market_context_gap": "...",'
+                                f'"next_time_rule": "...",'
+                                f'"confidence_was_justified": true/false}}'
                             )
                             _resp = _model.generate_content(_prompt)
                             _raw = _resp.text.strip()
