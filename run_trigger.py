@@ -18,7 +18,7 @@ from orchestration.data_collector import get_latest_price_from_db
 from core.config import VOLATILITY_WATCH_SYMBOLS, COUNCIL_ELIGIBLE_SYMBOLS, TIER0_SYMBOLS
 from orchestration.performance_evaluator import evaluate_performance
 from orchestration.nightly_research import run_nightly_research
-from tools.arbitrage_monitor import check_arbitrage_spreads, send_arbitrage_discord_alert, get_spread_summary
+# [v6.5ac] arbitrage_monitor removed — see .archive_deadcode_v65p/
 from orchestration.vp_discovery import run_vp_discovery
 from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_THRESHOLD
 from core.cost_guard import CostGuard
@@ -314,7 +314,7 @@ VOLATILITY_THRESHOLD = 2.0    # ボラティリティ閾値（%）
 ALPHA_THRESHOLD = LEARNING_SHARPE_THRESHOLD if LEARNING_MODE else 5.0  # 学習モード中は緩和
 COUNCIL_COOLDOWN = 1800       # 冷却期間（30分）— Moltbook Rate Limit保護
 SWEEP_INTERVAL   = 120        # Sweepサイクル間隔（30秒×120=60分）
-ARB_INTERVAL     = 60         # Arbitrageチェック間隔（30秒×60=30分）
+# [v6.5ac] ARB_INTERVAL removed
 EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間）
 CFR_INTERVAL     = 720        # Capital Flow Radar間隔（30秒×720=6時間）
 ENGAGE_INTERVAL  = 240
@@ -620,18 +620,7 @@ def start_hybrid_radar():
             # ============================================================
             # 0a-1b. Arbitrage Spread Monitor（30分ごと）
             # ============================================================
-            if cycle_count % ARB_INTERVAL == 0:
-                logger.info(f"[Arb] スプレッドチェック開始 (cycle={cycle_count})")
-                try:
-                    arb_result = check_arbitrage_spreads()
-                    arb_alerts = arb_result.get("alerts", [])
-                    if arb_alerts:
-                        send_arbitrage_discord_alert(arb_alerts, arb_result["results"])
-                        logger.warning(f"[Arb] {len(arb_alerts)}件のアラート検知")
-                    else:
-                        logger.info("[Arb] 完了 — スプレッド正常範囲内")
-                except Exception as e:
-                    logger.error(f"[Arb] エラー: {e}")
+            # [v6.5ac] Arbitrage monitoring removed — see .archive_deadcode_v65p/
             # ============================================================
             # 0a-2. Moltbookエンゲージメント（2時間ごと）
             # ============================================================
