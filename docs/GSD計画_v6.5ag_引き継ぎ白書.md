@@ -52,15 +52,27 @@
 
 ## ⏭️ 次セッションの作業
 
-### 短期（次回）
-1. **E1検証**: SL発火で構造化内省JSONが正しく生成されるか確認（CoT+few-shot改善済み、未発火）
-2. **E2検証**: ログで思考バイアス検出の多様性維持を数回分確認（BTCとVIRTUALで異なるbiases確認済み）
-3. **戦略スコア蓄積確認**: Nightly Batchでvault/strategy_scores.json更新とPhase 4b strat_label表示を確認
-4. **VP/Graduation**: Discord返答確認 + NeoAutonomous Graduateボタン出現チェック
+### 最優先（次回）— アーキテクチャ方針をデータで決定する
+1. **LLM confidence vs 実勝率の相関分析**（★全方針の根拠データ）
+   - confidence帯別勝率（20-40 / 40-60 / 60-80 / 80+）
+   - バックテスト信頼度別勝率（HIGH / MED / LOW / NONE）
+   - 時間帯別、銘柄別、センチメント別の勝率
+   - ChromaDB trade_record(152件) + paper_wallet history から集計
+2. **結果に基づきPhase 4bの重み調整**
+   - LLM confidence と勝率に相関なし → verdict bias=0、LLMを分析官に降格
+   - 相関あり → 現構造維持、重み微調整のみ
+   - ★フラグ切替可能にする（いきなり恒久変更しない）
 
-### 短中期
-5. **データソース信頼度トラッキング**: RSI/センチメント/BTC相関/クジラの各ソース的中率をvault/source_reliability.jsonに蓄積（Task 5-6と同パターン）
-6. **E1 few-shot例追加**: 実際のSL発火データが蓄積されたら、実例ベースのfew-shot例に差し替え
+### 短期
+3. **E1検証**: SL発火で構造化内省JSONが正しく生成されるか確認（CoT+few-shot改善済み、未発火）
+4. **E2検証**: ログで思考バイアス検出の多様性維持を数回分確認（BTCとVIRTUALで異なるbiases確認済み）
+5. **戦略スコア蓄積確認**: Nightly Batchでvault/strategy_scores.json更新とPhase 4b strat_label表示を確認
+6. **VP/Graduation**: Discord返答確認 + NeoAutonomous Graduateボタン出現チェック
+
+### 短中期（ContestTrade方式 — 実績ベース重み付け）
+7. **銘柄別勝率閾値**: 45%以下で自動取引停止（AIXBTの50%問題への構造的対策）
+8. **データソース信頼度トラッキング**: RSI/センチメント/BTC相関/クジラの各ソース的中率をvault/source_reliability.jsonに蓄積
+9. **E1 few-shot例追加**: 実際のSL発火データが蓄積されたら、実例ベースのfew-shot例に差し替え
 
 ### 中期
 9. **ACP登録**: vp_market_intelligenceをNeoAutonomousに登録（VP復旧後）
