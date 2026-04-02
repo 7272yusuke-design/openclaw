@@ -36,6 +36,48 @@ VOLATILITY_WATCH_SYMBOLS = VP_TIER1_SYMBOLS   # ボラティリティ監視
 COUNCIL_ELIGIBLE_SYMBOLS = TIER0_SYMBOLS + VP_TIER1_SYMBOLS  # Council召集可能（Tier0+Tier1）
 
 # ============================================================
+# 戦略別出口プロファイル（Task 3.3c）
+# BUY時にポジションにstrategy_tagを保存 → 売却時に参照
+# ============================================================
+EXIT_PROFILES = {
+    "mean_reversion": {
+        "sl_pct": 5.0,           # 損切り幅
+        "trailing_start": 5.0,   # トレーリング開始
+        "trailing_drop": 2.5,    # HWMからの下落で利確
+        "hard_tp_pct": 14.0,     # 絶対上限TP
+        "time_limit_hours": 96,  # 時間上限
+    },
+    "trend_follow": {
+        "sl_pct": 8.0,
+        "trailing_start": 10.0,
+        "trailing_drop": 4.0,
+        "hard_tp_pct": 30.0,
+        "time_limit_hours": 336,  # 2週間
+    },
+    "evolved": {
+        "sl_pct": 8.0,
+        "trailing_start": 10.0,
+        "trailing_drop": 4.0,
+        "hard_tp_pct": 30.0,
+        "time_limit_hours": 336,
+    },
+}
+EXIT_PROFILE_DEFAULT = "mean_reversion"  # 未タグ時のフォールバック
+
+# 戦略名 → 出口カテゴリ マッピング
+STRATEGY_TO_EXIT_PROFILE = {
+    "rsi_bounce": "mean_reversion",
+    "bb_reversal": "mean_reversion",
+    "mean_reversion": "mean_reversion",
+    "macd_cross": "trend_follow",
+    "ema_trend": "trend_follow",
+    "momentum_breakout": "trend_follow",
+    "vp_momentum": "trend_follow",
+    "alpha_strategy": "trend_follow",
+    "gplearn_evolved": "evolved",
+}
+
+# ============================================================
 # 学習モード設定（Task F.1）
 # ============================================================
 LEARNING_MODE = True           # 100回取引達成まで有効

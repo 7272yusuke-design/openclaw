@@ -366,8 +366,9 @@ class TrinityCouncil(NeoBaseCrew):
         )
         backtest_report = bt_result.get("raw_report", "バックテスト未実行") if isinstance(bt_result, dict) else str(bt_result)
         bt_confidence = bt_result.get("confidence", "NONE") if isinstance(bt_result, dict) else "NONE"
+        bt_best_strategy = bt_result.get("best_strategy", "none") if isinstance(bt_result, dict) else "none"
         
-        print(f"  📈 バックテスト: {bt_confidence} confidence")
+        print(f"  📈 バックテスト: {bt_confidence} confidence (best: {bt_best_strategy})")
 
         # ============================================================
         # Phase 2: 三者協議
@@ -825,6 +826,15 @@ class TrinityCouncil(NeoBaseCrew):
                                         reason=f"Trinity Council BUY verdict (accuracy: {accuracy}%, confidence: {bt_confidence})"
                                     )
                                     logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
+                                    # 戦略タグをholdingsに保存（出口プロファイル用）
+                                    from core.config import STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
+                                    _exit_cat = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
+                                    _pw_state = self.portfolio.state
+                                    if clean_symbol in _pw_state.get("holdings", {}):
+                                        _pw_state["holdings"][clean_symbol]["strategy_tag"] = bt_best_strategy
+                                        _pw_state["holdings"][clean_symbol]["exit_profile"] = _exit_cat
+                                        self.portfolio._save_wallet()
+                                        logger.info(f"Strategy tag: {bt_best_strategy} → exit_profile: {_exit_cat}")
                                 else:
                                     trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
                                     print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")

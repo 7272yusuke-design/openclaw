@@ -92,50 +92,56 @@ def check_tp_sl_all_positions():
                 continue
 
             pnl = pw.get_unrealized_pnl(clean_symbol, current_price)
-            sl_pct = 3.0 if LEARNING_MODE else 10.0
-            full_tp_pct = 7.0 if LEARNING_MODE else 20.0
+
+            # === 戦略別出口プロファイル読み込み ===
+            from core.config import EXIT_PROFILES, EXIT_PROFILE_DEFAULT
+            _exit_cat = hdata.get("exit_profile", EXIT_PROFILE_DEFAULT)
+            _exit_p = EXIT_PROFILES.get(_exit_cat, EXIT_PROFILES[EXIT_PROFILE_DEFAULT])
+            sl_pct = _exit_p["sl_pct"]
+            _trail_start = _exit_p["trailing_start"]
+            _trail_drop = _exit_p["trailing_drop"]
+            _hard_tp = _exit_p["hard_tp_pct"]
+            _time_limit = _exit_p["time_limit_hours"]
 
             sell_reason = ""
             sell_label = ""
 
-            # === 第1層: 固定SL ===
+            # === 第1層: 固定SL（戦略別） ===
             if pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
-                sell_reason = f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%)"
+                sell_reason = f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%, profile: {_exit_cat})"
                 sell_label = "SL"
-                logger.warning(f"[TP/SL] 🛑 損切トリガー: {clean_symbol} {pnl['pnl_pct']:.1f}%")
+                logger.warning(f"[TP/SL] 🛑 損切トリガー: {clean_symbol} {pnl['pnl_pct']:.1f}% (profile: {_exit_cat})")
 
-            # === 第2層: トレーリングストップ（+5%からトレール開始、高値から-2.5%で利確）===
-            elif pnl['pnl_pct'] >= 5.0 or hdata.get("high_water_pnl", 0) >= 5.0:
-                # 高値更新チェック
+            # === 第2層: トレーリングストップ（戦略別開始・ドロップ幅） ===
+            elif pnl['pnl_pct'] >= _trail_start or hdata.get("high_water_pnl", 0) >= _trail_start:
                 prev_hw = hdata.get("high_water_pnl", pnl['pnl_pct'])
                 if pnl['pnl_pct'] > prev_hw:
-                    # 高値更新 → 記録
                     hdata["high_water_pnl"] = pnl['pnl_pct']
                     pw.state["holdings"][clean_symbol]["high_water_pnl"] = pnl['pnl_pct']
                     pw._save()
                     logger.info(f"[TP/SL] 📈 高値更新: {clean_symbol} +{pnl['pnl_pct']:.1f}% (HWM)")
                     prev_hw = pnl['pnl_pct']
-                # 高値から2.5%以上下落 → 利確
                 drawdown_from_hw = prev_hw - pnl['pnl_pct']
-                if drawdown_from_hw >= 2.5:
-                    sell_reason = f"Trailing Stop at +{pnl['pnl_pct']:.1f}% (HWM: +{prev_hw:.1f}%, drawdown: -{drawdown_from_hw:.1f}%)"
+                if drawdown_from_hw >= _trail_drop:
+                    sell_reason = f"Trailing Stop at +{pnl['pnl_pct']:.1f}% (HWM: +{prev_hw:.1f}%, drop: -{drawdown_from_hw:.1f}%, profile: {_exit_cat})"
                     sell_label = "Trail TP"
-                    logger.warning(f"[TP/SL] 🎯 トレーリング利確: {clean_symbol} +{pnl['pnl_pct']:.1f}% (HWM: +{prev_hw:.1f}%)")
-            # === 第2層b: 固定TP上限（安全装置: +15%で強制利確）===
-            elif pnl['pnl_pct'] >= full_tp_pct * 2:
-                sell_reason = f"Hard TP Ceiling at +{pnl['pnl_pct']:.1f}% (ceiling: +{full_tp_pct * 2:.0f}%)"
-                sell_label = "Hard TP"
-                logger.warning(f"[TP/SL] 🎯 固定上限利確: {clean_symbol} +{pnl['pnl_pct']:.1f}%")
+                    logger.warning(f"[TP/SL] 🎯 トレーリング利確: {clean_symbol} +{pnl['pnl_pct']:.1f}% (HWM: +{prev_hw:.1f}%, profile: {_exit_cat})")
 
-            # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 1.5%） === [v6.5i H.2分析: 手数料後でも+0.5%確保]
+            # === 第2層b: 固定TP上限（戦略別） ===
+            elif pnl['pnl_pct'] >= _hard_tp:
+                sell_reason = f"Hard TP Ceiling at +{pnl['pnl_pct']:.1f}% (ceiling: +{_hard_tp:.0f}%, profile: {_exit_cat})"
+                sell_label = "Hard TP"
+                logger.warning(f"[TP/SL] 🎯 固定上限利確: {clean_symbol} +{pnl['pnl_pct']:.1f}% (profile: {_exit_cat})")
+
+            # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 1.5%） ===
             elif pnl['pnl_pct'] > 1.5:
                 rsi_val = _calc_rsi(clean_symbol)
                 if rsi_val is not None and rsi_val > 65:
-                    sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit"
+                    sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit (profile: {_exit_cat})"
                     sell_label = "RSI Exit"
                     logger.warning(f"[TP/SL] 📊 テクニカル出口: {clean_symbol} RSI={rsi_val:.1f} +{pnl['pnl_pct']:.1f}%")
 
-            # === 第4層: 時間制約（96時間=4日超過） ===
+            # === 第4層: 時間制約（戦略別） ===
             if not sell_reason:
                 entry_time_str = hdata.get("entry_time", "")
                 if entry_time_str:
@@ -145,10 +151,10 @@ def check_tp_sl_all_positions():
                         else:
                             entry_time = datetime.fromisoformat(entry_time_str).replace(tzinfo=timezone.utc)
                         hours_held = (datetime.now(timezone.utc) - entry_time).total_seconds() / 3600
-                        if hours_held > 96:
-                            sell_reason = f"Time Exit after {hours_held:.0f}h (limit: 96h) with {pnl['pnl_pct']:+.1f}%"
+                        if hours_held > _time_limit:
+                            sell_reason = f"Time Exit after {hours_held:.0f}h (limit: {_time_limit}h, profile: {_exit_cat}) with {pnl['pnl_pct']:+.1f}%"
                             sell_label = "Time Exit"
-                            logger.warning(f"[TP/SL] ⏰ 時間制約: {clean_symbol} {hours_held:.0f}h保有 {pnl['pnl_pct']:+.1f}%")
+                            logger.warning(f"[TP/SL] ⏰ 時間制約: {clean_symbol} {hours_held:.0f}h (limit: {_time_limit}h, profile: {_exit_cat}) {pnl['pnl_pct']:+.1f}%")
                     except Exception as _te:
                         logger.error(f"[TP/SL] entry_time解析エラー: {_te}")
 
