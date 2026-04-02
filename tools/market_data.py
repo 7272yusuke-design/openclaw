@@ -117,29 +117,33 @@ class MarketData:
     @staticmethod
     def fetch_btc_trend() -> dict:
         """BTC価格トレンドを3段階（24h/30d/180d）で取得
-        新興トークンのバックテスト不足を補うマクロフィルターとして使用"""
+        新興トークンのバックテスト不足を補うマクロフィルターとして使用
+        データソース: Binance API（APIキー不要）"""
         try:
-            MarketData._rate_limit_wait()
-            url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
-            params = {"vs_currency": "usd", "days": 180, "interval": "daily"}
-            resp = requests.get(url, params=params, timeout=10)
+            # 日足180本取得（30d/180d変化率算出用）
+            resp = requests.get(
+                "https://api.binance.com/api/v3/klines",
+                params={"symbol": "BTCUSDT", "interval": "1d", "limit": 180},
+                timeout=15
+            )
             resp.raise_for_status()
-            prices = resp.json().get("prices", [])
-            if len(prices) < 30:
+            klines = resp.json()
+            if len(klines) < 30:
                 return {}
 
-            price_now  = prices[-1][1]
-            price_30d  = prices[-30][1]
-            price_180d = prices[0][1]
+            price_now  = float(klines[-1][4])   # close
+            price_30d  = float(klines[-30][1])   # open of 30d ago
+            price_180d = float(klines[0][1])     # open of 180d ago
 
-            # 24hはsimple/price APIから取得
-            MarketData._rate_limit_wait()
-            sp = requests.get(
-                "https://api.coingecko.com/api/v3/simple/price",
-                params={"ids": "bitcoin", "vs_currencies": "usd", "include_24hr_change": "true"},
+            # 24h変化率はBinance 24hrティッカーから取得
+            resp24 = requests.get(
+                "https://api.binance.com/api/v3/ticker/24hr",
+                params={"symbol": "BTCUSDT"},
                 timeout=10
-            ).json()
-            change_24h = float(sp.get("bitcoin", {}).get("usd_24h_change", 0) or 0)
+            )
+            resp24.raise_for_status()
+            change_24h = float(resp24.json().get("priceChangePercent", 0))
+
             change_30d  = (price_now - price_30d)  / price_30d  * 100
             change_180d = (price_now - price_180d) / price_180d * 100
 
@@ -305,6 +309,36 @@ class MarketData:
             return pd.DataFrame()
 
     @staticmethod
+    def fetch_ohlcv_binance(symbol: str, days: int = 30) -> pd.DataFrame:
+        """Binance klines APIからOHLCVを取得（BTC/ETH専用フォールバック）"""
+        BINANCE_PAIRS = {"BTC": "BTCUSDT", "ETH": "ETHUSDT"}
+        pair = BINANCE_PAIRS.get(symbol.upper())
+        if not pair:
+            return pd.DataFrame(columns=["datetime", "open", "high", "low", "close"])
+        try:
+            limit = min(days * 24, 1000)
+            resp = requests.get(
+                "https://api.binance.com/api/v3/klines",
+                params={"symbol": pair, "interval": "1h", "limit": limit},
+                timeout=15
+            )
+            resp.raise_for_status()
+            klines = resp.json()
+            if not klines:
+                return pd.DataFrame(columns=["datetime", "open", "high", "low", "close"])
+            rows = []
+            for k in klines:
+                rows.append([int(k[0]), float(k[1]), float(k[2]), float(k[3]), float(k[4])])
+            df = pd.DataFrame(rows, columns=["timestamp", "open", "high", "low", "close"])
+            df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms")
+            df = df.drop(columns=["timestamp"])
+            logger.info(f"OHLCV from Binance API for {symbol}: {len(df)} rows")
+            return df
+        except Exception as e:
+            logger.warning(f"Binance OHLCV fetch error for {symbol}: {e}")
+            return pd.DataFrame(columns=["datetime", "open", "high", "low", "close"])
+
+    @staticmethod
     def fetch_ohlcv_custom(query: str, days: int = 30) -> pd.DataFrame:
         """
         OHLCVデータ取得。優先順位:
@@ -343,6 +377,15 @@ class MarketData:
                 return gt_df
         except Exception as e:
             logger.warning(f"GeckoTerminal failed for {symbol}: {e}")
+
+        # --- Step 1.7: Binance API直接（BTC/ETH用フォールバック） ---
+        if symbol.upper() in ("BTC", "ETH"):
+            try:
+                bn_df = MarketData.fetch_ohlcv_binance(symbol, days)
+                if len(bn_df) >= 10:
+                    return bn_df
+            except Exception as e:
+                logger.warning(f"Binance fallback failed for {symbol}: {e}")
 
         # --- Step 2: CoinGecko API（フォールバック） ---
         # CoinGecko IDマップにない銘柄（ROBO, TIBBIR等）はスキップ（404回避）
