@@ -83,3 +83,16 @@ STRATEGY_TO_EXIT_PROFILE = {
 LEARNING_MODE = True           # 100回取引達成まで有効
 LEARNING_TARGET_TRADES = 100   # 目標取引数
 LEARNING_SHARPE_THRESHOLD = 0.5  # 学習モード中の緩和Sharpeしきい値（通常5.0）
+
+# ============================================================
+# 相関分析ベース設定（v6.5ag — データ駆動型調整）
+# ============================================================
+# confidence→サイズ連動を無効化（データ: 高conf=47%勝率 vs 低conf=83%勝率）
+FLAT_POSITION_SIZE = True      # True=全BUY一律5%, False=従来のconf連動(3-10%)
+FLAT_SIZE_PCT = 0.05           # FLAT_POSITION_SIZE=True時のサイズ
+
+# 時間帯スコア修正（データ: Asia67% > EU62% > US33%）
+# 旧: Asia-10, EU+10, US+0 → 新: Asia+5, EU+5, US-10
+TZ_SCORE_ASIA = 5              # 旧-10 → データでは67%勝率
+TZ_SCORE_EU = 5                # 旧+10 → データでは62%勝率（維持方向だが控えめに）
+TZ_SCORE_US = -10              # 旧+0  → データでは33%勝率

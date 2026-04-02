@@ -746,15 +746,17 @@ class TrinityCouncil(NeoBaseCrew):
             _calc_conf += 5
         # === v6.5i H.2ベース スコアリングテーブル拡張 ===
         # 時間帯スコア（H.2分析: 欧州82%勝率 vs アジア40%）
+        from core.config import TZ_SCORE_ASIA, TZ_SCORE_EU, TZ_SCORE_US
         _utc_hour = datetime.now(timezone.utc).hour
         if 8 <= _utc_hour < 16:   # 欧州時間(17-01 JST)
-            _calc_conf += 10
-            _tz_label = "EU+10"
+            _calc_conf += TZ_SCORE_EU
+            _tz_label = f"EU{TZ_SCORE_EU:+d}"
         elif 0 <= _utc_hour < 8:  # アジア時間(09-17 JST)
-            _calc_conf -= 10
-            _tz_label = "Asia-10"
+            _calc_conf += TZ_SCORE_ASIA
+            _tz_label = f"Asia{TZ_SCORE_ASIA:+d}"
         else:                      # 米国時間
-            _tz_label = "US+0"
+            _calc_conf += TZ_SCORE_US
+            _tz_label = f"US{TZ_SCORE_US:+d}"
         # ナンピン数ペナルティ（H.2分析: 20回ナンピン集中問題）
         _npin_count = 0
         _hist = self.portfolio.get_full_state().get("history", [])
@@ -897,6 +899,7 @@ class TrinityCouncil(NeoBaseCrew):
                     _ctype = _cond.get("type", "")
                     _matched = False
                     if _ctype == "timezone":
+                        continue  # 時間帯はconfig.pyで管理（二重適用防止 v6.5ag）
                         _tz_map = {range(0, 9): "Asia", range(9, 17): "EU", range(17, 24): "US"}
                         _current_tz = next((v for k, v in _tz_map.items() if _utc_hour in k), "")
                         _matched = (_cond.get("match") == _current_tz)
@@ -1066,8 +1069,11 @@ class TrinityCouncil(NeoBaseCrew):
                                 trade_result = {"status": "skipped", "reason": f"ナンピン上限到達 ({_open_buy_count}/{MAX_OPEN_BUYS_PER_SYMBOL}回)"}
                                 print(f"\n[Phase 5] 🛑 BUY禁止: {clean_symbol}ナンピン{_open_buy_count}回（上限{MAX_OPEN_BUYS_PER_SYMBOL}回）")
                             else:
-                                # ③ BUY額: confidenceに応じた可変ポジションサイズ
-                                if _structured_confidence >= 85:
+                                # ③ BUY額: ポジションサイズ（v6.5ag データ駆動型）
+                                from core.config import FLAT_POSITION_SIZE, FLAT_SIZE_PCT
+                                if FLAT_POSITION_SIZE:
+                                    _size_pct = FLAT_SIZE_PCT  # 一律サイズ（相関分析: 高conf=47%WR vs 低conf=83%WR）
+                                elif _structured_confidence >= 85:
                                     _size_pct = 0.10   # 非常に高い確信度 → 総資産10%
                                 elif _structured_confidence >= 70:
                                     _size_pct = 0.07   # 高い確信度 → 総資産7%
