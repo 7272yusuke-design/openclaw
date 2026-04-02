@@ -31,7 +31,7 @@ PURGE_DAYS = 180                # 180日分保持
 PURGE_INTERVAL = 86400          # 1日ごとにパージ
 
 # 収集対象銘柄（Tier1+2）
-COLLECT_SYMBOLS = ["VIRTUAL", "AIXBT", "LUNA"]
+COLLECT_SYMBOLS = ["VIRTUAL", "AIXBT", "LUNA", "BTC", "ETH"]
 
 OHLCV_INTERVAL = 3600           # 60分ごとにOHLCVキャンドル取得
 OHLCV_SYMBOLS = {
@@ -39,6 +39,13 @@ OHLCV_SYMBOLS = {
     "AIXBT":   "0xf1fdc83c3a336bdbdc9fb06e318b08eaddc82ff4",
 }
 GT_INTERVAL = 10  # GeckoTerminal Rate Limit: 10秒間隔
+
+# Binance設定（BTC/ETH Tier0）
+BINANCE_SYMBOLS = {
+    "BTC": "BTCUSDT",
+    "ETH": "ETHUSDT",
+}
+BINANCE_BASE_URL = "https://api.binance.com/api/v3"
 
 
 def get_db():
@@ -284,6 +291,119 @@ def get_db_stats() -> dict:
         return {}
 
 
+def collect_binance_ticks(conn):
+    """BTC/ETHの5分ティック価格をBinance ticker APIから取得"""
+    inserted = 0
+    now_ms = int(time.time() * 1000)
+    for symbol, pair in BINANCE_SYMBOLS.items():
+        try:
+            resp = requests.get(
+                f"{BINANCE_BASE_URL}/ticker/price",
+                params={"symbol": pair},
+                timeout=10
+            )
+            resp.raise_for_status()
+            price = float(resp.json()["price"])
+            if price <= 0:
+                continue
+            # 異常値フィルター（既存と同じロジック）
+            try:
+                row = conn.execute(
+                    "SELECT close FROM prices WHERE symbol=? ORDER BY timestamp DESC LIMIT 1",
+                    (symbol,)
+                ).fetchone()
+                if row and row[0] > 0:
+                    deviation = abs(price - row[0]) / row[0]
+                    if deviation > 0.5:
+                        logger.warning(f"⚠️ {symbol} Binance異常値棄却: ${price:.2f} (前回${row[0]:.2f}, 乖離{deviation:.1%})")
+                        continue
+            except Exception:
+                pass
+            conn.execute(
+                "INSERT OR IGNORE INTO prices (symbol, timestamp, open, high, low, close, volume) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (symbol, now_ms, price, price, price, price, 0)
+            )
+            inserted += 1
+            logger.info(f"  {symbol}: ${price:,.2f} (Binance)")
+        except Exception as e:
+            logger.warning(f"Binance tick error {symbol}: {e}")
+    conn.commit()
+    logger.info(f"Binance ticks: {inserted}/{len(BINANCE_SYMBOLS)}")
+
+
+def collect_binance_ohlcv(conn, limit=24):
+    """BTC/ETHの1時間足OHLCVをBinance klines APIから取得"""
+    total_inserted = 0
+    for symbol, pair in BINANCE_SYMBOLS.items():
+        try:
+            resp = requests.get(
+                f"{BINANCE_BASE_URL}/klines",
+                params={"symbol": pair, "interval": "1h", "limit": limit},
+                timeout=15
+            )
+            resp.raise_for_status()
+            klines = resp.json()
+            inserted = 0
+            for k in klines:
+                ts_ms = int(k[0])
+                o, h, l, c = float(k[1]), float(k[2]), float(k[3]), float(k[4])
+                vol = float(k[5])  # Base asset volume
+                conn.execute(
+                    "INSERT OR IGNORE INTO prices (symbol, timestamp, open, high, low, close, volume) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (symbol, ts_ms, o, h, l, c, vol)
+                )
+                inserted += 1
+            conn.commit()
+            total_inserted += inserted
+            logger.info(f"  Binance OHLCV {symbol}: {len(klines)} fetched, {inserted} new")
+        except Exception as e:
+            logger.warning(f"Binance OHLCV error {symbol}: {e}")
+    return total_inserted
+
+
+def backfill_binance(conn, days=30):
+    """BTC/ETHの過去N日分を一括取得（初回起動時用）"""
+    limit = days * 24  # 1h足 × 日数
+    for symbol, pair in BINANCE_SYMBOLS.items():
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM prices WHERE symbol=? AND NOT (open=high AND high=low AND low=close)",
+            (symbol,)
+        )
+        existing = cur.fetchone()[0]
+        if existing >= limit * 0.8:
+            logger.info(f"Backfill skip {symbol}: already {existing} OHLCV rows")
+            continue
+        logger.info(f"Backfilling {symbol}: {days}d ({limit} candles)...")
+        try:
+            resp = requests.get(
+                f"{BINANCE_BASE_URL}/klines",
+                params={"symbol": pair, "interval": "1h", "limit": min(limit, 1000)},
+                timeout=30
+            )
+            resp.raise_for_status()
+            klines = resp.json()
+            inserted = 0
+            for k in klines:
+                ts_ms = int(k[0])
+                o, h, l, c = float(k[1]), float(k[2]), float(k[3]), float(k[4])
+                vol = float(k[5])
+                try:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO prices (symbol, timestamp, open, high, low, close, volume) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (symbol, ts_ms, o, h, l, c, vol)
+                    )
+                    inserted += 1
+                except Exception:
+                    pass
+            conn.commit()
+            logger.info(f"  Backfill {symbol}: {inserted}/{len(klines)} inserted")
+        except Exception as e:
+            logger.error(f"Backfill error {symbol}: {e}")
+
+
 def main():
     logger.info("=== Neo Data Collector started ===")
     logger.info(f"Symbols: {COLLECT_SYMBOLS}")
@@ -292,18 +412,40 @@ def main():
     conn = get_db()
     last_purge = 0
     last_ohlcv = 0
+    last_binance_ohlcv = 0
     consecutive_errors = 0
+
+    # BTC/ETH初回バックフィル（30日分）
+    try:
+        backfill_binance(conn, days=30)
+    except Exception as e:
+        logger.error(f"Backfill error: {e}")
 
     while True:
         try:
             logger.info("--- Collecting ---")
             collect_once(conn)
 
+            # BTC/ETH 5分ティック（DexScreenerと同じサイクルで）
+            try:
+                collect_binance_ticks(conn)
+            except Exception as e:
+                logger.warning(f"Binance tick collection error: {e}")
+
             # 60分ごとにGeckoTerminal OHLCVキャンドル取得
             if time.time() - last_ohlcv > OHLCV_INTERVAL:
                 logger.info("--- OHLCV Candle Update ---")
                 collect_ohlcv_candles(conn)
                 last_ohlcv = time.time()
+
+            # 60分ごとにBinance 1h足OHLCV取得
+            if time.time() - last_binance_ohlcv > OHLCV_INTERVAL:
+                logger.info("--- Binance OHLCV Update ---")
+                try:
+                    collect_binance_ohlcv(conn, limit=24)
+                except Exception as e:
+                    logger.warning(f"Binance OHLCV error: {e}")
+                last_binance_ohlcv = time.time()
 
             # 1日ごとにパージ
             if time.time() - last_purge > PURGE_INTERVAL:
