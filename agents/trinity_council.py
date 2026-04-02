@@ -810,6 +810,50 @@ class TrinityCouncil(NeoBaseCrew):
                     _cfr_label = f"cfr{_cfr_score:+.0f}:0({_cfr_regime})"
         except Exception:
             pass
+        # === E3: EvolveR動的ルール適用 ===
+        _evolver_total = 0
+        _evolver_labels = []
+        try:
+            import json as _json_evol
+            _adj_path = "vault/evolver/scoring_adjustments.json"
+            if os.path.exists(_adj_path):
+                with open(_adj_path, encoding='utf-8') as _af:
+                    _adj_data = _json_evol.load(_af)
+                _now_iso = datetime.now(timezone.utc).isoformat()
+                for _adj in _adj_data.get("adjustments", []):
+                    # 有効期限チェック
+                    if _adj.get("expires_at", "") < _now_iso:
+                        continue
+                    # サンプルサイズチェック
+                    if _adj.get("actual_sample_size", 0) < _adj.get("min_sample_size", 3):
+                        continue
+                    # 条件マッチング
+                    _cond = _adj.get("condition", {})
+                    _ctype = _cond.get("type", "")
+                    _matched = False
+                    if _ctype == "timezone":
+                        _tz_map = {range(0, 9): "Asia", range(9, 17): "EU", range(17, 24): "US"}
+                        _current_tz = next((v for k, v in _tz_map.items() if _utc_hour in k), "")
+                        _matched = (_cond.get("match") == _current_tz)
+                    elif _ctype == "symbol":
+                        _matched = (_cond.get("match", "").upper() == clean_symbol.upper())
+                    elif _ctype == "bt_confidence":
+                        _matched = (_cond.get("match") == bt_confidence)
+                    elif _ctype == "sentiment_range":
+                        _matched = (_cond.get("min", -2) <= sentiment_score <= _cond.get("max", 2))
+                    if _matched:
+                        _val = max(-15, min(15, _adj["adjustment"]))
+                        _evolver_total += _val
+                        _evolver_labels.append(f"{_adj['rule_id']}:{_val:+d}")
+                # 全ルール合計の安全制限 ±30
+                if abs(_evolver_total) > 30:
+                    _evolver_total = 30 if _evolver_total > 0 else -30
+                _calc_conf += _evolver_total
+        except Exception as _ee:
+            print(f"  ⚠️ [E3] EvolveR動的ルール読み込み失敗: {_ee}")
+        _evolver_label = f"evol{_evolver_total:+d}({','.join(_evolver_labels)})" if _evolver_labels else "evol0"
+        if _evolver_total != 0:
+            print(f"[Phase 4b] E3 EvolveR調整: {_evolver_total:+d} ({_evolver_labels})")
         # === E2.3: Reflexion confidence_adjustment注入 ===
         _reflexion_label = "refl0"
         if _reflexion_adj != 0:
@@ -818,7 +862,7 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label})")
         _structured_confidence = _calc_conf
 
         # ============================================================

@@ -447,6 +447,13 @@ def _run_nightly_batch():
         from research.evolver_rules import run_evolver_update
         run_evolver_update()
         logger.info("[Nightly] EvolveR: ルール更新完了")
+        # 6c2. EvolveR Scoring Adjustment生成 (E3)
+        try:
+            from research.evolver_agent import generate_scoring_adjustments
+            generate_scoring_adjustments()
+            logger.info("[Nightly] E3 EvolverAgent: scoring_adjustments.json更新完了")
+        except Exception as _ea:
+            logger.error(f"[Nightly] E3 EvolverAgent失敗: {_ea}")
     except Exception as _ve:
         logger.error(f"[Nightly] EvolveR更新失敗: {_ve}")
 

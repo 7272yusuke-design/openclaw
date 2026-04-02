@@ -1,0 +1,56 @@
+{
+  "adjustments": [
+    {
+      "rule_id": "R_tz_asia_low",
+      "condition": {
+        "type": "timezone",
+        "match": "Asia"
+      },
+      "adjustment": -5,
+      "evidence": "5件中2勝(40%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 5,
+      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+    },
+    {
+      "rule_id": "R_tz_eu_high",
+      "condition": {
+        "type": "timezone",
+        "match": "EU"
+      },
+      "adjustment": 7,
+      "evidence": "12件中9勝(75%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 12,
+      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+    },
+    {
+      "rule_id": "R_tz_us_low",
+      "condition": {
+        "type": "timezone",
+        "match": "US"
+      },
+      "adjustment": -8,
+      "evidence": "6件中2勝(33%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 6,
+      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+    },
+    {
+      "rule_id": "R_wl_ratio_bad",
+      "condition": {
+        "type": "sentiment_range",
+        "min": -1.0,
+        "max": -0.3
+      },
+      "adjustment": -5,
+      "evidence": "W/L比=0.47 (Win+3.33% / Loss-7.09%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 23,
+      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+    }
+  ],
+  "generated_at": "2026-04-02T07:41:24.096365+00:00",
+  "total_adjustments": 4,
+  "source_pairs": 23
+}
