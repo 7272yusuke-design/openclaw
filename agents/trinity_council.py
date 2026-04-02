@@ -686,9 +686,36 @@ class TrinityCouncil(NeoBaseCrew):
                 _pt_z_label = f'z{_pt_z:+.1f}:-4'
             else:
                 _pt_z_label = f'z{_pt_z:+.1f}:0'
+        # Capital Flow Radar マクロスコア（v6.5z Task2.3）
+        _cfr_label = 'cfr0'
+        try:
+            import json as _json
+            _cfr_path = "vault/blackboard/macro_flow.json"
+            import os as _os
+            if _os.path.exists(_cfr_path):
+                with open(_cfr_path) as _cf:
+                    _cfr = _json.load(_cf)
+                _cfr_score = _cfr.get("score", 0)
+                _cfr_regime = _cfr.get("regime", "Neutral")
+                if _cfr_score >= 50:
+                    _calc_conf += 5
+                    _cfr_label = f"cfr{_cfr_score:+.0f}:+5({_cfr_regime})"
+                elif _cfr_score <= -50:
+                    _calc_conf -= 10
+                    _cfr_label = f"cfr{_cfr_score:+.0f}:-10({_cfr_regime})"
+                elif _cfr_score >= 20:
+                    _calc_conf += 2
+                    _cfr_label = f"cfr{_cfr_score:+.0f}:+2({_cfr_regime})"
+                elif _cfr_score <= -20:
+                    _calc_conf -= 5
+                    _cfr_label = f"cfr{_cfr_score:+.0f}:-5({_cfr_regime})"
+                else:
+                    _cfr_label = f"cfr{_cfr_score:+.0f}:0({_cfr_regime})"
+        except Exception:
+            pass
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label})")
         _structured_confidence = _calc_conf
 
 # ============================================================

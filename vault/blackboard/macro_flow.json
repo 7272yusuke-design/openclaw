@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-04-02T02:47:25.894001+00:00",
+  "score": 14.04,
+  "regime": "Neutral",
+  "details": {
+    "vix": {
+      "raw_score": 0.281,
+      "weight": 0.25,
+      "contribution": 7.03
+    },
+    "dxy": {
+      "raw_score": 0.017,
+      "weight": 0.2,
+      "contribution": 0.34
+    },
+    "sp500": {
+      "raw_score": 0.358,
+      "weight": 0.15,
+      "contribution": 5.38
+    },
+    "treasury_10y": {
+      "raw_score": -0.062,
+      "weight": 0.15,
+      "contribution": -0.93
+    },
+    "gold": {
+      "raw_score": -0.443,
+      "weight": 0.1,
+      "contribution": -4.43
+    },
+    "fear_greed": {
+      "raw_score": 0.76,
+      "weight": 0.1,
+      "contribution": 7.6
+    },
+    "btc_dominance": {
+      "raw_score": -0.19,
+      "weight": 0.05,
+      "contribution": -0.95
+    }
+  },
+  "raw": {
+    "yfinance": {
+      "sp500": {
+        "value": 6575.3198,
+        "change_pct": 0.7169
+      },
+      "vix": {
+        "value": 24.54,
+        "change_pct": -2.8119
+      },
+      "treasury_10y": {
+        "value": 4.319,
+        "change_pct": 0.1856
+      },
+      "dxy": {
+        "value": 99.943,
+        "change_pct": -0.017
+      },
+      "gold": {
+        "value": 4688.7998,
+        "change_pct": 0.8865
+      }
+    },
+    "fear_greed": {
+      "value": 12,
+      "classification": "Extreme Fear",
+      "change": 4
+    },
+    "crypto_global": {
+      "btc_dominance": 56.09,
+      "total_mcap_usd": 2385375813203.1245,
+      "mcap_change_24h": -0.95
+    }
+  }
+}
