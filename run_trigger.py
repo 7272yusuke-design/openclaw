@@ -270,7 +270,7 @@ def check_tp_sl_all_positions():
                     if introspection:
                         mem_text += "\n内省: " + introspection
                         logger.info(f"[TP/SL] 🧠 内省: {introspection}")
-                    memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "failure_category": _failure_category if not is_win else "", "tier": "2"})
+                    memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "failure_category": _failure_category if not is_win else "", "strategy_tag": hdata.get("strategy_tag", "unknown"), "tier": "2"})
 
                     # paper_trade.logに記録（Evaluatorが参照）
                     try:
@@ -434,6 +434,13 @@ def _run_nightly_batch():
     except Exception as e:
         logger.error(f"[Nightly] H.2進捗取得失敗: {e}")
 
+    # 6a2. Strategy Scores生成（Task 5: 戦略別勝率蓄積）
+    try:
+        from research.h2_trade_analysis import generate_strategy_scores
+        generate_strategy_scores()
+        logger.info("[Nightly] Strategy scores: vault/strategy_scores.json更新完了")
+    except Exception as _ss:
+        logger.error(f"[Nightly] Strategy scores生成失敗: {_ss}")
     # 6b. Voyagerスキル更新
     try:
         from research.voyager_skills import run_voyager_update

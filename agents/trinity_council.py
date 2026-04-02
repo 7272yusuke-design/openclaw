@@ -855,6 +855,26 @@ class TrinityCouncil(NeoBaseCrew):
             _calc_conf += _planning_conf_mod
             _planning_label = f"plan{_planning_conf_mod:+d}"
             print(f"[Phase 4b] Planning調整: {_planning_conf_mod:+d} (risk={_planning_result.get('risk_level','?')})")
+        # === Task 6: 戦略信頼度スコア（strategy_scores.json参照） ===
+        _strat_label = "strat0"
+        try:
+            import json as _json_strat
+            _ss_path = "vault/strategy_scores.json"
+            if os.path.exists(_ss_path):
+                with open(_ss_path) as _sf:
+                    _ss_data = _json_strat.load(_sf)
+                _ss_entry = _ss_data.get("scores", {}).get(bt_best_strategy, {})
+                _ss_tier = _ss_entry.get("tier", "mid")
+                if _ss_tier == "high":
+                    _calc_conf += 5
+                    _strat_label = f"strat+5({bt_best_strategy}:{_ss_entry.get('win_rate',0)}%)"
+                elif _ss_tier == "low":
+                    _calc_conf -= 5
+                    _strat_label = f"strat-5({bt_best_strategy}:{_ss_entry.get('win_rate',0)}%)"
+                else:
+                    _strat_label = f"strat0({bt_best_strategy}:{_ss_entry.get('win_rate','?')}%)"
+        except Exception:
+            pass
         # === E3: EvolveR動的ルール適用 ===
         _evolver_total = 0
         _evolver_labels = []
@@ -907,7 +927,7 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label}, {_strat_label})")
         _structured_confidence = _calc_conf
 
         # ============================================================
@@ -1075,6 +1095,10 @@ class TrinityCouncil(NeoBaseCrew):
                                         _pw_state["holdings"][clean_symbol]["exit_profile"] = _exit_cat
                                         self.portfolio._save_wallet()
                                         logger.info(f"Strategy tag: {bt_best_strategy} → exit_profile: {_exit_cat}")
+                                        # BUY historyにもstrategy_tag保存（H.2分析用）
+                                        if _pw_state.get("history"):
+                                            _pw_state["history"][-1]["strategy_tag"] = bt_best_strategy
+                                            self.portfolio._save_wallet()
                                         # E1.3: エントリー時コンテキスト保存（自己進化用）
                                         _entry_ctx = {
                                             "rsi_14": float(df.iloc[-1].get("rsi_14", 0)) if "df" in dir() and len(df) > 0 else 0,

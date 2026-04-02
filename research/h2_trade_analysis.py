@@ -59,6 +59,7 @@ def get_clean_pairs():
                 'result': 'win' if pnl_pct_after_fee > 0 else 'loss',
                 'buy_reason': buy.get('reason', ''),
                 'sell_reason': h.get('reason', ''),
+                'strategy_tag': buy.get('strategy_tag', 'unknown'),
                 'hold_hours': _calc_hold_hours(buy['timestamp'], h['timestamp']),
             })
     
@@ -325,6 +326,62 @@ def run_full_analysis():
     
     return {'status': 'complete', 'pairs': len(pairs)}
 
+
+
+def generate_strategy_scores():
+    """
+    戦略別勝率を集計し vault/strategy_scores.json に保存。
+    Nightly Batchから呼び出される。Phase 4bで戦略信頼度スコアとして参照。
+    """
+    pairs, _, _ = get_clean_pairs()
+    if not pairs:
+        return {"status": "no_data"}
+
+    from collections import defaultdict
+    stats = defaultdict(lambda: {"wins": 0, "losses": 0, "total_pnl": 0.0})
+
+    for p in pairs:
+        tag = p.get("strategy_tag", "unknown")
+        if tag == "unknown":
+            continue
+        bucket = stats[tag]
+        if p["result"] == "win":
+            bucket["wins"] += 1
+        else:
+            bucket["losses"] += 1
+        bucket["total_pnl"] += p["pnl_pct_after_fee"]
+
+    scores = {}
+    for tag, s in stats.items():
+        total = s["wins"] + s["losses"]
+        if total == 0:
+            continue
+        scores[tag] = {
+            "wins": s["wins"],
+            "losses": s["losses"],
+            "total": total,
+            "win_rate": round(s["wins"] / total * 100, 1),
+            "avg_pnl": round(s["total_pnl"] / total, 2),
+            "tier": "high" if s["wins"] / total >= 0.65 and total >= 3 else
+                    "low" if s["wins"] / total < 0.45 and total >= 3 else "mid",
+        }
+
+    output = {
+        "scores": scores,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "total_pairs": len(pairs),
+    }
+
+    import os
+    os.makedirs("vault", exist_ok=True)
+    with open("vault/strategy_scores.json", "w") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+
+    print(f"[H.2] Strategy scores: {len(scores)} strategies from {len(pairs)} pairs")
+    for tag, s in sorted(scores.items(), key=lambda x: -x[1]["win_rate"]):
+        print(f"  {tag}: {s['win_rate']}% ({s['wins']}W/{s['losses']}L) avg={s['avg_pnl']:+.2f}% [{s['tier']}]")
+
+    return output
 
 if __name__ == '__main__':
     report = get_progress_report()
