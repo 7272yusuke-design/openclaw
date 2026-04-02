@@ -195,6 +195,18 @@ def evaluate_performance(send_dashboard: bool = False):
     closed_accuracy = (closed_wins / closed_total * 100) if closed_total > 0 else 0.0
 
     print(f"  📁 決済済み取引: {closed_total}件 | 勝率: {closed_accuracy:.2f}%")
+    # Tier別勝率（実取引移行条件はTier0のみで判定）
+    from core.config import TIER0_SYMBOLS, VP_TIER1_SYMBOLS
+    _tier0_closed = [t for t in closed if t["symbol"] in TIER0_SYMBOLS]
+    _tier1_closed = [t for t in closed if t["symbol"] in VP_TIER1_SYMBOLS]
+    _tier0_wins = sum(1 for t in _tier0_closed if t["pnl_pct"] > 0)
+    _tier1_wins = sum(1 for t in _tier1_closed if t["pnl_pct"] > 0)
+    _tier0_acc = (_tier0_wins / len(_tier0_closed) * 100) if _tier0_closed else 0.0
+    _tier1_acc = (_tier1_wins / len(_tier1_closed) * 100) if _tier1_closed else 0.0
+    if _tier0_closed:
+        print(f"  🏦 Tier0 (BTC/ETH): {len(_tier0_closed)}件 | 勝率: {_tier0_acc:.1f}%")
+    if _tier1_closed:
+        print(f"  🪙 Tier1 (VP): {len(_tier1_closed)}件 | 勝率: {_tier1_acc:.1f}%")
 
     # 保有中ポジションの含み損益（参考情報）
     open_summary = []
@@ -232,6 +244,10 @@ def evaluate_performance(send_dashboard: bool = False):
     board_data = {
         "accuracy_score": round(closed_accuracy, 2),
         "total_evaluated_trades": closed_total,
+        "tier0_accuracy": round(_tier0_acc, 2),
+        "tier0_trades": len(_tier0_closed),
+        "tier1_accuracy": round(_tier1_acc, 2),
+        "tier1_trades": len(_tier1_closed),
         "open_positions_count": sum(len(v) for v in open_buys.values()),
         "recent_performance": closed[-5:] if closed else [],
         "open_positions": open_summary[-5:],
