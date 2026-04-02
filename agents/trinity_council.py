@@ -41,7 +41,7 @@ class TrinityCouncil(NeoBaseCrew):
         self.memory = NeoMemoryDB()
         self.portfolio = PortfolioManager()
 
-    def run(self, sentiment_score: float, context: str, target_symbol: str = "VIRTUAL"):
+    def run(self, sentiment_score: float, context: str, target_symbol: str = "VIRTUAL", analysis_only: bool = False):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n{'='*60}")
         print(f"🏛️ [Trinity Council] 召集: {target_symbol} @ {timestamp}")
@@ -729,6 +729,64 @@ class TrinityCouncil(NeoBaseCrew):
         _calc_conf = max(20, min(95, _calc_conf))
         print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label})")
         _structured_confidence = _calc_conf
+
+        # ============================================================
+        # analysis_only モード: レポート生成のみ（ACP Market Intelligence用）
+        # Phase 5〜8（取引・Discord・Moltbook・メモリ）をスキップ
+        # ============================================================
+        if analysis_only:
+            from core.config import EXIT_PROFILES, STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
+            _exit_name = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
+            _exit_data = EXIT_PROFILES.get(_exit_name, {})
+            _fb_s = finbert_score if "finbert_score" in dir() else 0.0
+            _fb_l = finbert_label if "finbert_label" in dir() else "neutral"
+            try:
+                _fng_val = market_context.split("Fear & Greed Index:")[1].split("/")[0].strip() if market_context and "Fear & Greed" in market_context else "N/A"
+            except Exception:
+                _fng_val = "N/A"
+            return {
+                "verdict": first_word,
+                "confidence": _calc_conf,
+                "key_factor": _structured_key_factor,
+                "price": current_price,
+                "scoring_breakdown": {
+                    "base": 50,
+                    "bt_confidence": bt_confidence,
+                    "sentiment_score": round(sentiment_score, 3),
+                    "accuracy": accuracy,
+                    "verdict_bias": 5 if first_word == "BUY" else 0,
+                    "timezone": _tz_label,
+                    "nanpin": _npin_label,
+                    "streak": _streak_label,
+                    "pair_z": _pt_z_label,
+                    "cfr": _cfr_label,
+                    "total": _calc_conf,
+                },
+                "bull_case": str(t1.output)[:500] if t1.output else "N/A",
+                "bear_case": str(t2.output)[:500] if t2.output else "N/A",
+                "neo_synthesis": str(t3.output)[:500] if t3.output else "N/A",
+                "sentiment_detail": {
+                    "score": round(sentiment_score, 3),
+                    "label": sentiment_label,
+                    "finbert_score": round(_fb_s, 3),
+                    "finbert_label": _fb_l,
+                    "fear_greed": _fng_val,
+                },
+                "backtest_summary": {
+                    "best_strategy": bt_best_strategy,
+                    "confidence": bt_confidence,
+                    "report": backtest_report[:300] if isinstance(backtest_report, str) else "N/A",
+                },
+                "exit_profile": {
+                    "category": _exit_name,
+                    "sl_pct": _exit_data.get("sl_pct", 5.0),
+                    "trailing_start": _exit_data.get("trailing_start", 5.0),
+                    "trailing_drop": _exit_data.get("trailing_drop", 2.5),
+                    "hard_tp_pct": _exit_data.get("hard_tp_pct", 14.0),
+                    "time_limit_hours": _exit_data.get("time_limit_hours", 96),
+                },
+                "best_strategy": bt_best_strategy,
+            }
 
 # ============================================================
         # Phase 3: 取引実行

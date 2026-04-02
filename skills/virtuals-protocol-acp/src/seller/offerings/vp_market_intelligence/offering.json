@@ -1,0 +1,24 @@
+{
+  "name": "vp_market_intelligence",
+  "description": "AI-powered market intelligence with actionable BUY/SELL/WAIT verdict. Quick mode: technicals + sentiment + backtest in ~30s. Full mode: TrinityCouncil 3-agent deliberation (Bull vs Bear vs Neo) with scoring breakdown, entry/exit zones, and strategy-specific exit profiles. Covers VIRTUAL, AIXBT, BTC, ETH. Neo's live track record included as credibility proof.",
+  "jobFee": 0.5,
+  "jobFeeType": "fixed",
+  "requiredFunds": false,
+  "requirement": {
+    "type": "object",
+    "properties": {
+      "symbol": {
+        "type": "string",
+        "enum": ["VIRTUAL", "AIXBT", "BTC", "ETH"],
+        "description": "Token to analyze"
+      },
+      "mode": {
+        "type": "string",
+        "enum": ["quick", "full"],
+        "default": "quick",
+        "description": "quick (~30s): technicals+sentiment+backtest. full (~120s): adds TrinityCouncil 3-agent deliberation with bull/bear cases and scoring breakdown"
+      }
+    },
+    "required": ["symbol"]
+  }
+}
