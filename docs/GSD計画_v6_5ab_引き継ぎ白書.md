@@ -16,7 +16,7 @@
 | Holdings | なし |
 | サービス | 全4サービス稼働中 |
 | CFO L4 | ドローダウンブロック発動中（HWM $88,494） |
-| Council | 2hローテーション: BTC → VIRTUAL → ETH → AIXBT（タイムスタンプベース） |
+| Council | 2hローテーション: BTC → VIRTUAL → ETH（3銘柄・AIXBTはTier2降格） |
 
 ---
 
