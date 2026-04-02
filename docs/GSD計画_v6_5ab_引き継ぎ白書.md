@@ -60,6 +60,31 @@
 5. **Phase 4: 実取引エンジン（Binance Spot API）** — `tools/cex_executor.py` 新設
 6. **Phase 5: 少額実取引** — $50テスト → 段階的引き上げ
 7. **Graduation Video Demo準備** — ターミナル+ACP Visualizerの録画
+8. **OpenClawアップデート計画** — Graduation完了後に実施（下記メモ参照）
+
+---
+
+## 🔒 OpenClawアップデートメモ（Graduation後に対応）
+
+| 項目 | 値 |
+|---|---|
+| 現在のバージョン | **2026.2.19**（ビルド日: 2026-02-20） |
+| 最新安定版 | **2026.3.31**（6週間・13リリース分の遅れ） |
+| Dockerイメージ | `ghcr.io/hostinger/hvps-openclaw:latest`（Hostinger管理、自動更新なし） |
+| config.json記載 | `lastTouchedVersion: 2026.2.12` |
+
+### セキュリティ評価（2026/04/02時点）
+- **CVE-2026-27646（ACP sandbox escape, 修正: 3.7）**: 理論上該当するがNeoはseller_native.tsで直接動作しておりOpenClaw ACPサンドボックス非経由。実質リスク低
+- **CVE-2026-32914（/config不正アクセス, 修正: 3.12）**: 外部公開なし。リスク低
+- その他6件のCVE: いずれもNeoの攻撃面外（Gateway UI/ブラウザ/サブエージェント未使用）
+- **結論: 緊急対応不要。Graduation完了後にアップデート推奨**
+
+### アップデート時の注意点
+- v2026.3.2〜3.22で**13件のbreaking changes**あり
+- コミュニティでも「アプデで壊れた」報告多数（ツール無効化、config形式変更等）
+- `openclaw doctor --fix`で大半は修復可能とされる
+- **手順**: バックアップ → docker-compose.ymlでバージョン指定 → テスト → 本番反映
+- **代替案**: OpenClaw本体は据え置きでACP CLI（`skills/virtuals-protocol-acp`）のみ`npm update`
 
 ---
 
