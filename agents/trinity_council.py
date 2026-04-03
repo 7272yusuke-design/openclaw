@@ -184,11 +184,15 @@ class TrinityCouncil(NeoBaseCrew):
                     _btc_180d     = _btc.get("change_180d", 0)
                     _btc_trend    = _btc.get("trend", "不明")
 
-                    # 警戒/強気メッセージ（180d構造トレンド優先・24h短期も考慮）
-                    if _btc_180d < -20 and _btc_30d < 0:
-                        btc_warning = f"\n⚠️ [BTC警戒・長期下落] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 構造的な下落トレンド継続中。BUYは極めて慎重に。"
+                    # 警戒/強気メッセージ（180d構造トレンド優先・短期安定なら底値圏評価 v6.5ah）
+                    if _btc_180d < -20 and _btc_30d < -5:
+                        btc_warning = f"\n⚠️ [BTC警戒・下落加速] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期・中期とも下落継続中。BUYは慎重に。"
+                    elif _btc_180d < -20 and _btc_30d < 0 and _btc_24h < -3:
+                        btc_warning = f"\n⚠️ [BTC警戒・短期急落] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期下落+短期急落。BUYは慎重に。"
+                    elif _btc_180d < -20 and _btc_30d < 0:
+                        btc_warning = f"\n📊 [BTC底値圏] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期大幅下落だが短期は安定。割安な仕込み機会の可能性あり。通常判断でOK。"
                     elif _btc_180d < -20 and _btc_30d >= 0:
-                        btc_warning = f"\n⚠️ [BTC注意・長期下落中の反発] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期下落トレンド中の一時反発の可能性。過信禁物。"
+                        btc_warning = f"\n📊 [BTC底打ち兆候] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期下落だが中期反転の兆候。買い機会の可能性。"
                     elif _btc_180d >= 0 and _btc_30d >= 0 and _btc_24h >= 3:
                         btc_warning = f"\n📈 [BTC強気・長期上昇] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 長期・中期・短期が全て上昇。市場全体が強気。"
                     elif _btc_24h <= -7:

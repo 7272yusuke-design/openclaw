@@ -118,113 +118,11 @@ def _extract_stats(portfolio, strategy_name):
 class CoreBacktest:
     """High-performance backtesting using vectorbt — 4戦略対応版"""
 
-    # ── 戦略1: Alpha Strategy（既存・変更なし）────────────────────────
-    @staticmethod
-    def run_alpha_strategy(df: pd.DataFrame) -> dict:
-        """Regime + RSI + Bollinger Squeeze"""
-        try:
-            close   = df["close"]
-            entries = (df["market_regime"] == 1) & (df["rsi_14"] < 55)
-            exits   = (df["market_regime"] == -1) | (df["rsi_14"] > 70)
-            return _manual_backtest(close, entries, exits, "alpha_strategy")
-        except Exception as e:
-            logger.error(f"[alpha_strategy] {e}")
-            return {"strategy": "alpha_strategy", "sharpe": 0.0, "trades": 0,
-                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+    # ═══════════════════════════════════════════════════════════
+    # 短期戦略（Short-term: 14-50本 = 2-8日保有目安）
+    # ═══════════════════════════════════════════════════════════
 
-    # 後方互換エイリアス
-    @staticmethod
-    def run_ma_cross(df: pd.DataFrame) -> dict:
-        return CoreBacktest.run_alpha_strategy(df)
-
-    # ── 戦略2: BB Reversal（新規）────────────────────────────────────
-    @staticmethod
-    def run_bb_reversal(df: pd.DataFrame) -> dict:
-        """ボリンジャーバンド逆張り: Lower割れBUY / Upper超えSELL"""
-        try:
-            close = df["close"]
-            ma    = close.rolling(20).mean()
-            std   = close.rolling(20).std()
-            upper = ma + 2 * std
-            lower = ma - 2 * std
-
-            entries = close < lower
-            exits   = close > upper
-
-            result = _manual_backtest(close, entries, exits, "bb_reversal")
-            result["description"] = "BB逆張り（Lower割れBUY / Upper超えSELL）"
-            return result
-        except Exception as e:
-            logger.error(f"[bb_reversal] {e}")
-            return {"strategy": "bb_reversal", "sharpe": 0.0, "trades": 0,
-                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
-
-    # ── 戦略3: Momentum Breakout（新規）──────────────────────────────
-    @staticmethod
-    def run_momentum_breakout(df: pd.DataFrame) -> dict:
-        """直近20本高値ブレイク + 出来高確認、5本後エグジット"""
-        try:
-            close  = df["close"]
-            high   = df["high"] if "high" in df.columns else close
-            low    = df["low"]  if "low"  in df.columns else close
-
-            # volumeがない場合は全シグナル有効扱い
-            if "volume" in df.columns and df["volume"].sum() > 0:
-                volume = df["volume"]
-                vol_ma = volume.rolling(20).mean()
-                vol_ok = volume > vol_ma * 1.5
-            else:
-                vol_ok = pd.Series(True, index=close.index)
-
-            high_roll = high.rolling(20).max().shift(1)
-            entries   = (high > high_roll) & vol_ok
-
-            # ATRベース損切 or 10本後に強制エグジット
-            atr = (high - low).rolling(14).mean()
-            stop_loss = close < (close.shift(1) - atr * 2)
-            time_exit = entries.shift(10).fillna(False).infer_objects(copy=False)
-            exits = stop_loss | time_exit
-
-            result = _manual_backtest(close, entries, exits, "momentum_breakout")
-            result["description"] = "高値ブレイク+出来高確認（5本後エグジット）"
-            return result
-        except Exception as e:
-            logger.error(f"[momentum_breakout] {e}")
-            return {"strategy": "momentum_breakout", "sharpe": 0.0, "trades": 0,
-                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
-
-    # ── 戦略4: Mean Reversion（新規）────────────────────────────────
-    @staticmethod
-    def run_mean_reversion(df: pd.DataFrame) -> dict:
-        """RSI<30 + レンジ相場エントリー / RSI>55 or -3%損切り"""
-        try:
-            close = df["close"]
-            rsi   = df["rsi_14"] if "rsi_14" in df.columns else _calc_rsi(close)
-
-            # ATRベースのレンジ判定
-            high = df["high"] if "high" in df.columns else close
-            low  = df["low"]  if "low"  in df.columns else close
-            tr   = pd.concat([
-                (high - low),
-                (high - close.shift()).abs(),
-                (low  - close.shift()).abs()
-            ], axis=1).max(axis=1)
-            atr    = tr.rolling(14).mean()
-            atr_ma = atr.rolling(30).mean()
-            is_range = atr < atr_ma  # ATR平均以下 = レンジ相場
-
-            entries = (rsi < 30) & is_range
-            exits   = (rsi > 55)
-
-            result = _manual_backtest(close, entries, exits, "mean_reversion")
-            result["description"] = "RSI<30+レンジエントリー（RSI>55 or -3%損切り）"
-            return result
-        except Exception as e:
-            logger.error(f"[mean_reversion] {e}")
-            return {"strategy": "mean_reversion", "sharpe": 0.0, "trades": 0,
-                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
-
-    @staticmethod
+    # ── 短期戦略1: MACD Cross（MACDクロス+ATRフィルター）──────
     def run_macd_cross(df: pd.DataFrame) -> dict:
         """K.2/J.4: MACDクロス戦略 + ATRフィルター（VP固有の急騰/急落に対応）"""
         try:
@@ -266,76 +164,42 @@ class CoreBacktest:
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
 
     @staticmethod
-    def run_vp_momentum(df: pd.DataFrame) -> dict:
-        """J.4: VP固有モメンタム戦略（RSI急騰 + MACD正転 + Squeeze解放）"""
-        try:
-            import pandas_ta as ta
-            close = df["close"].copy()
 
-            # RSI
-            rsi = df.get("rsi_14") if "rsi_14" in df.columns else ta.rsi(close, length=14)
-            if rsi is None:
-                rsi = pd.Series(50, index=close.index)
-
-            # MACD histogram（正転でモメンタム加速）
-            if "macd_hist" in df.columns:
-                macd_hist = df["macd_hist"]
-            else:
-                _macd = ta.macd(close, fast=12, slow=26, signal=9)
-                macd_hist = _macd.get("MACDh_12_26_9", pd.Series(0, index=close.index)) if _macd is not None else pd.Series(0, index=close.index)
-
-            # Squeeze解放（Bandwidthが拡大 = エネルギー放出）
-            if f"bb_bandwidth_20" in df.columns:
-                bw = df["bb_bandwidth_20"]
-                squeeze_release = bw > bw.shift(1)
-            else:
-                squeeze_release = pd.Series(True, index=close.index)
-
-            # エントリー: RSI40-65（過熱前）+ MACDヒスト正転 + Squeeze解放
-            entries = (rsi > 40) & (rsi < 65) & (macd_hist > 0) & (macd_hist.shift(1) <= 0)
-            # エグジット: RSI>72（過熱）or MACDヒスト反転
-            exits = (rsi > 72) | (macd_hist < 0)
-
-            entries = entries.fillna(False)
-            exits   = exits.fillna(False)
-
-            result = _manual_backtest(close, entries, exits, "vp_momentum")
-            result["description"] = "VP固有: RSI+MACDヒスト正転+Squeeze解放"
-            return result
-        except Exception as e:
-            logger.error(f"[vp_momentum] {e}")
-            return {"strategy": "vp_momentum", "sharpe": 0.0, "trades": 0,
-                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
-
-
-    # ── 戦略7: EMA Trend Filter（freqtrade-strategies参考）────────────
+    # ── 短期戦略2: Mean Reversion（RSI30+レンジエントリー）────
+    # ── 戦略4: Mean Reversion（新規）────────────────────────────────
     @staticmethod
-    def run_ema_trend(df: pd.DataFrame) -> dict:
-        """EMA20/50/200トレンドフィルター: 全EMA上向き整列でBUY、下向きでSELL"""
+    def run_mean_reversion(df: pd.DataFrame) -> dict:
+        """RSI<30 + レンジ相場エントリー / RSI>55 or -3%損切り"""
         try:
             close = df["close"]
-            ema20  = close.ewm(span=20,  adjust=False).mean()
-            ema50  = close.ewm(span=50,  adjust=False).mean()
-            ema200 = close.ewm(span=200, adjust=False).mean()
+            rsi   = df["rsi_14"] if "rsi_14" in df.columns else _calc_rsi(close)
 
-            # 強気整列: close > EMA20 > EMA50 > EMA200
-            bullish = (close > ema20) & (ema20 > ema50) & (ema50 > ema200)
-            # 前足が非整列 → 今足が整列 = エントリー
-            entries = bullish & ~bullish.shift(1).fillna(False)
-            # EMA20がEMA50を下回ったらエグジット
-            exits = ema20 < ema50
+            # ATRベースのレンジ判定
+            high = df["high"] if "high" in df.columns else close
+            low  = df["low"]  if "low"  in df.columns else close
+            tr   = pd.concat([
+                (high - low),
+                (high - close.shift()).abs(),
+                (low  - close.shift()).abs()
+            ], axis=1).max(axis=1)
+            atr    = tr.rolling(14).mean()
+            atr_ma = atr.rolling(30).mean()
+            is_range = atr < atr_ma  # ATR平均以下 = レンジ相場
 
-            entries = entries.fillna(False)
-            exits   = exits.fillna(False)
+            entries = (rsi < 30) & is_range
+            exits   = (rsi > 55)
 
-            result = _manual_backtest(close, entries, exits, "ema_trend")
-            result["description"] = "EMA20/50/200トレンド整列エントリー"
+            result = _manual_backtest(close, entries, exits, "mean_reversion")
+            result["description"] = "RSI<30+レンジエントリー（RSI>55 or -3%損切り）"
             return result
         except Exception as e:
-            logger.error(f"[ema_trend] {e}")
-            return {"strategy": "ema_trend", "sharpe": 0.0, "trades": 0,
+            logger.error(f"[mean_reversion] {e}")
+            return {"strategy": "mean_reversion", "sharpe": 0.0, "trades": 0,
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
 
+    @staticmethod
+
+    # ── 短期戦略3: gplearn Evolved（遺伝的プログラミング自動発見）──
     # ── 戦略9: gplearn Evolved（遺伝的プログラミング自動発見）──────────
     @staticmethod
     def run_gplearn_evolved(df: pd.DataFrame) -> dict:
@@ -423,32 +287,180 @@ class CoreBacktest:
             return {"strategy": "gplearn_evolved", "sharpe": 0.0, "trades": 0,
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
 
-    # ── 戦略8: RSI Bounce（freqtrade-strategies参考）────────────────
+
+    # ═══════════════════════════════════════════════════════════
+    # 中期戦略（Mid-term: 50-100本 = 8-17日保有目安）
+    # ═══════════════════════════════════════════════════════════
+
+    # ── 中期戦略1: Triple MA Cross（EMA20/50クロス+EMA100方向フィルター）──
     @staticmethod
-    def run_rsi_bounce(df: pd.DataFrame) -> dict:
-        """RSI反発BUY: RSI40割れからの反発 + RSI65超えでエグジット（VP銘柄向け緩和版）"""
+    def run_triple_ma_cross(df: pd.DataFrame) -> dict:
+        """Triple MA Cross: EMA20/50ゴールデンクロス + EMA100が方向フィルター"""
         try:
             close = df["close"]
-            rsi   = df["rsi_14"] if "rsi_14" in df.columns else _calc_rsi(close)
+            ema20 = close.ewm(span=20, adjust=False).mean()
             ema50 = close.ewm(span=50, adjust=False).mean()
+            ema100 = close.ewm(span=100, adjust=False).mean()
 
-            # RSIが40を下から上に抜けた瞬間（VP銘柄は30割れが稀なため緩和）
-            rsi_cross_up = (rsi > 40) & (rsi.shift(1) <= 40)
-            entries = rsi_cross_up & (close > ema50 * 0.95)  # EMA50の5%下まで許容
+            # エントリー: EMA20がEMA50を上抜け + EMA100が下向きでない（横ばい以上）
+            cross_up = (ema20 > ema50) & (ema20.shift(1) <= ema50.shift(1))
+            ema100_ok = ema100 >= ema100.shift(5)  # 5本前と比較して下がっていない
+            entries = cross_up & ema100_ok
 
-            # RSI65超え or EMA50を大幅に割り込んだらエグジット
-            exits = (rsi > 65) | (close < ema50 * 0.97)
+            # エグジット: EMA20がEMA50を下抜け
+            exits = (ema20 < ema50) & (ema20.shift(1) >= ema50.shift(1))
 
-            entries = entries.fillna(False)
-            exits   = exits.fillna(False)
-
-            result = _manual_backtest(close, entries, exits, "rsi_bounce")
-            result["description"] = "RSI30反発+EMA50上方フィルター"
+            result = _manual_backtest(close, entries, exits, "triple_ma_cross")
+            result["description"] = "EMA20/50クロス+EMA100方向フィルター（中期トレンド追従）"
+            result["timeframe"] = "mid"
             return result
         except Exception as e:
-            logger.error(f"[rsi_bounce] {e}")
-            return {"strategy": "rsi_bounce", "sharpe": 0.0, "trades": 0,
+            logger.error(f"[triple_ma_cross] {e}")
+            return {"strategy": "triple_ma_cross", "sharpe": 0.0, "trades": 0,
                     "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    # ── 中期戦略2: Ichimoku Cloud（一目均衡表・雲抜け+転換/基準線クロス）──
+    @staticmethod
+    def run_ichimoku_cloud(df: pd.DataFrame) -> dict:
+        """Ichimoku Cloud: 雲抜け+転換線/基準線クロス（暗号通貨で特に有効）"""
+        try:
+            close = df["close"]
+            high = df["high"]
+            low = df["low"]
+
+            # 一目均衡表の各線
+            tenkan = (high.rolling(9).max() + low.rolling(9).min()) / 2      # 転換線
+            kijun = (high.rolling(26).max() + low.rolling(26).min()) / 2     # 基準線
+            span_a = ((tenkan + kijun) / 2).shift(26)                        # 先行スパンA
+            span_b = ((high.rolling(52).max() + low.rolling(52).min()) / 2).shift(26)  # 先行スパンB
+            cloud_top = pd.concat([span_a, span_b], axis=1).max(axis=1)
+            cloud_bottom = pd.concat([span_a, span_b], axis=1).min(axis=1)
+
+            # エントリー: 終値が雲の上 + 転換線が基準線を上抜け
+            above_cloud = close > cloud_top
+            tk_cross = (tenkan > kijun) & (tenkan.shift(1) <= kijun.shift(1))
+            entries = above_cloud & tk_cross
+
+            # エグジット: 終値が雲の中に入る or 転換線が基準線を下抜け
+            exits = (close < cloud_bottom) | ((tenkan < kijun) & (tenkan.shift(1) >= kijun.shift(1)))
+
+            result = _manual_backtest(close, entries, exits, "ichimoku_cloud")
+            result["description"] = "一目均衡表・雲抜け+TK Cross（中期トレンド確認）"
+            result["timeframe"] = "mid"
+            return result
+        except Exception as e:
+            logger.error(f"[ichimoku_cloud] {e}")
+            return {"strategy": "ichimoku_cloud", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    # ── 中期戦略3: ATR Breakout（50本レンジブレイク+ATR拡大確認）──────
+    @staticmethod
+    def run_atr_breakout(df: pd.DataFrame) -> dict:
+        """ATR Breakout: 50本レンジ上限ブレイク+ATR拡大でモメンタム確認"""
+        try:
+            close = df["close"]
+            high = df["high"]
+            low = df["low"]
+
+            range_high = close.rolling(50).max().shift(1)
+            atr = (high - low).rolling(14).mean()
+            atr_avg = atr.rolling(50).mean()
+
+            # エントリー: 50本高値を上抜け + ATRが平均の1.5倍以上（モメンタム確認）
+            entries = (close > range_high) & (atr > atr_avg * 1.5)
+
+            # エグジット: ATR2倍分の損切り or 30本経過
+            stop = close < (close.shift(1) - atr * 2)
+            time_exit = entries.shift(30).fillna(False).infer_objects(copy=False)
+            exits = stop | time_exit
+
+            result = _manual_backtest(close, entries, exits, "atr_breakout")
+            result["description"] = "50本レンジブレイク+ATR拡大確認（中期ブレイクアウト）"
+            result["timeframe"] = "mid"
+            return result
+        except Exception as e:
+            logger.error(f"[atr_breakout] {e}")
+            return {"strategy": "atr_breakout", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    # ═══════════════════════════════════════════════════════════
+    # 長期戦略（Long-term: 100-300本 = 17-50日保有目安）
+    # ═══════════════════════════════════════════════════════════
+
+    # ── 長期戦略1: Macro Value（底値圏+安定化=仕込み機会）────────────
+    @staticmethod
+    def run_macro_value(df: pd.DataFrame) -> dict:
+        """Macro Value: close < SMA200 & close > SMA50 = 底値圏で安定化中"""
+        try:
+            close = df["close"]
+            sma50 = close.rolling(50).mean()
+            sma200 = close.rolling(200).mean()
+
+            # エントリー: 長期MA以下（割安）だが中期MA以上（安定化中）
+            entries = (close < sma200) & (close > sma50) & (close.shift(1) <= sma50.shift(1))
+
+            # エグジット: SMA200まで回復（適正価格到達）or SMA50割れ（安定崩壊）
+            exits = (close > sma200) | (close < sma50 * 0.97)
+
+            result = _manual_backtest(close, entries, exits, "macro_value")
+            result["description"] = "SMA200以下+SMA50以上（底値圏の仕込み機会）"
+            result["timeframe"] = "long"
+            return result
+        except Exception as e:
+            logger.error(f"[macro_value] {e}")
+            return {"strategy": "macro_value", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    # ── 長期戦略2: Golden Cross（SMA50/200ゴールデンクロス）──────────
+    @staticmethod
+    def run_golden_cross(df: pd.DataFrame) -> dict:
+        """Golden Cross: SMA50がSMA200を上抜け = 大局トレンド転換"""
+        try:
+            close = df["close"]
+            sma50 = close.rolling(50).mean()
+            sma200 = close.rolling(200).mean()
+
+            # エントリー: SMA50がSMA200を上抜け（ゴールデンクロス）
+            entries = (sma50 > sma200) & (sma50.shift(1) <= sma200.shift(1))
+
+            # エグジット: SMA50がSMA200を下抜け（デスクロス）
+            exits = (sma50 < sma200) & (sma50.shift(1) >= sma200.shift(1))
+
+            result = _manual_backtest(close, entries, exits, "golden_cross")
+            result["description"] = "SMA50/200ゴールデンクロス（大局トレンド転換）"
+            result["timeframe"] = "long"
+            return result
+        except Exception as e:
+            logger.error(f"[golden_cross] {e}")
+            return {"strategy": "golden_cross", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
+    # ── 長期戦略3: DCA Accumulation（大底圏での積み立てエントリー）───
+    @staticmethod
+    def run_dca_accumulation(df: pd.DataFrame) -> dict:
+        """DCA Accumulation: 200本最安値圏+RSI<35 = 大底での仕込み"""
+        try:
+            close = df["close"]
+            rsi = _calc_rsi(close, 14)
+            sma100 = close.rolling(100).mean()
+
+            low_200 = close.rolling(200).min()
+            # エントリー: 200本最安値から10%以内 + RSI35以下
+            near_bottom = close <= low_200 * 1.10
+            entries = near_bottom & (rsi < 35)
+
+            # エグジット: SMA100回復 or RSI65超え
+            exits = (close > sma100) | (rsi > 65)
+
+            result = _manual_backtest(close, entries, exits, "dca_accumulation")
+            result["description"] = "200本最安値圏+RSI<35（大底での仕込み）"
+            result["timeframe"] = "long"
+            return result
+        except Exception as e:
+            logger.error(f"[dca_accumulation] {e}")
+            return {"strategy": "dca_accumulation", "sharpe": 0.0, "trades": 0,
+                    "confidence": "LOW", "win_rate": 0.0, "note": str(e)[:60]}
+
 
     # ── 全戦略一括実行（Task 2.2 メインAPI）─────────────────────────
     @staticmethod
@@ -472,15 +484,18 @@ class CoreBacktest:
                 logger.warning(f'[{symbol}] optuna skip: {_oe}')
 
         strategy_map = {
-            "alpha_strategy":    CoreBacktest.run_alpha_strategy,
-            "bb_reversal":       CoreBacktest.run_bb_reversal,
-            "momentum_breakout": CoreBacktest.run_momentum_breakout,
-            "mean_reversion":    CoreBacktest.run_mean_reversion,
+            # 短期3
             "macd_cross":        CoreBacktest.run_macd_cross,
-            "vp_momentum":       CoreBacktest.run_vp_momentum,
-            "ema_trend":         CoreBacktest.run_ema_trend,
-            "rsi_bounce":        CoreBacktest.run_rsi_bounce,
+            "mean_reversion":    CoreBacktest.run_mean_reversion,
             "gplearn_evolved":   CoreBacktest.run_gplearn_evolved,
+            # 中期3
+            "triple_ma_cross":   CoreBacktest.run_triple_ma_cross,
+            "ichimoku_cloud":    CoreBacktest.run_ichimoku_cloud,
+            "atr_breakout":      CoreBacktest.run_atr_breakout,
+            # 長期3
+            "macro_value":       CoreBacktest.run_macro_value,
+            "golden_cross":      CoreBacktest.run_golden_cross,
+            "dca_accumulation":  CoreBacktest.run_dca_accumulation,
         }
 
         results = {}

@@ -44,18 +44,21 @@ class BacktestAgent:
 
             clean_symbol = target_symbol.split('/')[0].strip()
 
-            # 1. GeckoTerminal4時間足優先（high/low/closeが独立した実データ）
-            df_4h = None
-            try:
-                df_4h = MarketData.fetch_ohlcv_geckoterminal(clean_symbol, days=30)
-            except Exception:
-                pass
-            if df_4h is not None and len(df_4h) >= 50:
-                df = df_4h
-                print(f'  📊 GeckoTerminal 4h足: {len(df)}本')
+            # 1. SQLite長期データ優先（中長期戦略にSMA200等が必要 v6.5ah）
+            df = MarketData.fetch_ohlcv_custom(clean_symbol)
+            if df is not None and len(df) >= 200:
+                print(f'  📊 SQLite長期データ: {len(df)}本（中長期戦略対応）')
             else:
-                df = MarketData.fetch_ohlcv_custom(clean_symbol)
-                print(f'  📊 フォールバック: {len(df) if df is not None else 0}本')
+                # SQLite不足時はGeckoTerminalフォールバック
+                try:
+                    df_4h = MarketData.fetch_ohlcv_geckoterminal(clean_symbol, days=30)
+                    if df_4h is not None and len(df_4h) >= 50:
+                        df = df_4h
+                        print(f"  📊 GeckoTerminal 4h足: {len(df)}本")
+                except Exception:
+                    pass
+                if df is None or len(df) < 20:
+                    print(f"  📊 データ不足: {len(df) if df is not None else 0}本")
             if df is None or df.empty or len(df) < 20:
                 result["status"]     = "insufficient_data"
                 result["raw_report"] = f"⚠️ {target_symbol}: データ不足（{len(df) if df is not None else 0}本）"
@@ -81,7 +84,7 @@ class BacktestAgent:
                 "max_dd":        best.get("max_dd", "0.00%"),
                 "win_rate":      f"{best.get('win_rate', 0.0):.2f}%",
                 "total_trades":  best.get("trades", 0),
-                "confidence":    best.get("confidence", "LOW"),
+                "confidence":    max((r.get("confidence", "LOW") for r in all_r.values()), key=lambda c: {"HIGH": 3, "MED": 2, "MEDIUM": 2, "LOW": 1, "NONE": 0}.get(c, 0)),  # v6.5ah: 全戦略の最高信頼度
                 "best_strategy": best["strategy"],
                 "candles":       len(df),
                 "features":      len(feat),
