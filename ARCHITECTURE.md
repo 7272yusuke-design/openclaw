@@ -26,7 +26,7 @@ workspace/
 │   ├── scout_agent.py      ← ScoutCrew（偵察・情報収集）[trinity_council, alpha_sweep から使用]
 │   ├── sentiment_agent.py  ← SentimentCrew [trinity_council から lazy import]
 │   ├── backtest_agent.py   ← BacktestAgent [trinity_council から使用]
-│   ├── planning_agent.py   ← PlanningCrew [未使用だが将来用に保持]
+│   ├── planning_agent.py   ← PlanningCrew Phase 1e戦略リスク評価+F5資本フローフェーズ判定 [trinity_council]
 │   ├── development_agent.py← DevelopmentCrew [未使用だが将来用に保持]
 │   └── acp_executor_agent.py← ACPExecutorCrew [未使用だが将来用に保持]
 │
@@ -66,6 +66,8 @@ workspace/
 │   ├── moltbook_engager.py ← Moltbookエンゲージメント [run_trigger]
 │   ├── moltbook_tracker.py ← Moltbook統計追跡 [run_trigger]
 │   ├── discord_reporter.py ← Discord通知（Tier別勝率・戦略別出口・4-Assetローテーション対応）
+│   │── # === マクロ ===
+│   ├── macro_collector.py  ← F5マクロ資本フロー収集（yfinance+CoinGecko）[data_collector日次]
 │   │── # === その他 ===
 │   ├── neo_resource_api.py ← FastAPI Resource API [systemd]
 │   ├── deepwiki_tool.py    ← DeepWiki連携 [trinity_council]
@@ -159,12 +161,13 @@ run_trigger.py（30秒ループ）
   │
   ├─→ Trigger判定 → TrinityCouncil.run()
   │     ├─→ ScoutCrew.run()          [agents/scout_agent.py]
+│     ├─→ Phase 1e: PlanningCrew     [agents/planning_agent.py + F5マクロフェーズ判定]
   │     ├─→ build_onchain_context()   [tools/vp_onchain_data.py]
   │     ├─→ SentimentCrew.run()       [agents/sentiment_agent.py]
   │     ├─→ BacktestAgent.run()       [agents/backtest_agent.py]
   │     │     └─→ run_backtest.py     [research/backtests/]
   │     ├─→ Bull/Bear/Neo協議        [LLM呼び出し]
-  │     ├─→ Phase 4b スコアリング
+  │     ├─→ Phase 4b スコアリング（F5: macro+X(PHASE)ラベル追加）
   │     ├─→ Phase 5 ガード6段 → PaperWallet
   │     ├─→ Phase 6 Moltbook投稿
   │     └─→ Phase 7 Discord報告
@@ -236,5 +239,6 @@ npx tsx bin/acp.ts profile get            # プロフィール確認
 | EvolveRルール | `research/evolver_rules.py`内 | 6ルール |
 | N.1ペアトレード状態 | `vault/n1_pair_state.json` | Z-score・ポジション |
 | Blackboard | `vault/blackboard/live_intel.json` | エージェント間共有 |
+| マクロ資本フロー | `vault/blackboard/macro_flow.json` | F5: score/regime + macro_data(5指標) |
 | コストガード | `vault/cost_guard_*.json` | L1-L4状態 |
 | ⚠️ 空DB（使わない） | `data/market_data.db`, `data/neo_market.db` | 参照禁止 |

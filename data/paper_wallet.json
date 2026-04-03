@@ -725,9 +725,10 @@
       "price": 0.642896989204046,
       "amount_token": 6808.252447128513,
       "amount_usd": 4399.0,
-      "reason": "Trinity Council BUY verdict (accuracy: 59.46%, confidence: HIGH)"
+      "reason": "Trinity Council BUY verdict (accuracy: 59.46%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-03T12:13:40.930287+00:00"
+  "last_updated": "2026-04-03T12:33:14.596021+00:00"
 }
