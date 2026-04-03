@@ -18,7 +18,8 @@ def run_strategic_assessment(symbol: str, current_price: float,
                               sentiment_score: float, sentiment_label: str,
                               bt_confidence: str = "NONE",
                               formatted_precedents: str = "",
-                              failure_summary: str = "") -> dict:
+                              failure_summary: str = "",
+                              btc_context: str = "") -> dict:
     """
     内部データに基づく戦略リスク評価を実行。
     
@@ -92,8 +93,18 @@ def run_strategic_assessment(symbol: str, current_price: float,
 【直近の失敗パターン】
 {failure_summary}
 
+【BTC市場コンテキスト】
+{btc_context if btc_context else "データなし"}
+
 【過去の教訓】
 {formatted_precedents[:500]}
+
+【重要な評価指針】
+リスク評価だけでなく「割安で仕込むチャンス」も必ず評価せよ。
+- 長期下落(-30%以上)は、底値圏での買い機会でもある
+- 180d大幅下落 + 30d横ばい/微減 = 底打ちの兆候の可能性
+- 短期指標(24h/30d)が安定していれば、長期下落だけで過度にリスクを上げるな
+- confidence_modifierは「機会 vs リスク」のバランスで決めよ（リスク一辺倒は禁止）
 
 以下のJSON形式のみで回答せよ（余計なテキスト不可）:
 {{"risk_level": "LOW/MEDIUM/HIGH/CRITICAL",

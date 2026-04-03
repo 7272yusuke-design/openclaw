@@ -1,32 +1,32 @@
 {
-  "timestamp": "2026-04-02T02:47:25.894001+00:00",
-  "score": 14.04,
+  "timestamp": "2026-04-02T19:03:13.095077+00:00",
+  "score": 3.31,
   "regime": "Neutral",
   "details": {
     "vix": {
-      "raw_score": 0.281,
+      "raw_score": -0.22,
       "weight": 0.25,
-      "contribution": 7.03
+      "contribution": -5.5
     },
     "dxy": {
-      "raw_score": 0.017,
+      "raw_score": -0.365,
       "weight": 0.2,
-      "contribution": 0.34
+      "contribution": -7.31
     },
     "sp500": {
-      "raw_score": 0.358,
+      "raw_score": -0.029,
       "weight": 0.15,
-      "contribution": 5.38
+      "contribution": -0.44
     },
     "treasury_10y": {
-      "raw_score": -0.062,
+      "raw_score": 0.108,
       "weight": 0.15,
-      "contribution": -0.93
+      "contribution": 1.62
     },
     "gold": {
-      "raw_score": -0.443,
+      "raw_score": 0.908,
       "weight": 0.1,
-      "contribution": -4.43
+      "contribution": 9.08
     },
     "fear_greed": {
       "raw_score": 0.76,
@@ -34,32 +34,32 @@
       "contribution": 7.6
     },
     "btc_dominance": {
-      "raw_score": -0.19,
+      "raw_score": -0.35,
       "weight": 0.05,
-      "contribution": -0.95
+      "contribution": -1.75
     }
   },
   "raw": {
     "yfinance": {
       "sp500": {
-        "value": 6575.3198,
-        "change_pct": 0.7169
+        "value": 6571.4502,
+        "change_pct": -0.0589
       },
       "vix": {
-        "value": 24.54,
-        "change_pct": -2.8119
+        "value": 25.08,
+        "change_pct": 2.2005
       },
       "treasury_10y": {
-        "value": 4.319,
-        "change_pct": 0.1856
+        "value": 4.305,
+        "change_pct": -0.3241
       },
       "dxy": {
-        "value": 99.943,
-        "change_pct": -0.017
+        "value": 100.014,
+        "change_pct": 0.3653
       },
       "gold": {
-        "value": 4688.7998,
-        "change_pct": 0.8865
+        "value": 4696.2998,
+        "change_pct": -1.8168
       }
     },
     "fear_greed": {
@@ -68,9 +68,9 @@
       "change": 4
     },
     "crypto_global": {
-      "btc_dominance": 56.09,
-      "total_mcap_usd": 2385375813203.1245,
-      "mcap_change_24h": -0.95
+      "btc_dominance": 56.23,
+      "total_mcap_usd": 2383079132869.8735,
+      "mcap_change_24h": -1.75
     }
   }
 }

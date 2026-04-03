@@ -461,6 +461,7 @@ class TrinityCouncil(NeoBaseCrew):
                 bt_confidence=bt_confidence if 'bt_confidence' in dir() else "NONE",
                 formatted_precedents=formatted_precedents,
                 failure_summary=_failure_summary,
+                btc_context=btc_context,
             )
             _planning_conf_mod = _planning_result.get("confidence_modifier", 0)
         except Exception as _pe:
@@ -854,6 +855,7 @@ class TrinityCouncil(NeoBaseCrew):
         # === Phase 1e Planning confidence_modifier注入 ===
         _planning_label = "plan0"
         if _planning_conf_mod != 0:
+            _planning_conf_mod = max(-10, min(10, _planning_conf_mod))  # v6.5ah: 上限±10（-15は過剰抑制）
             _calc_conf += _planning_conf_mod
             _planning_label = f"plan{_planning_conf_mod:+d}"
             print(f"[Phase 4b] Planning調整: {_planning_conf_mod:+d} (risk={_planning_result.get('risk_level','?')})")

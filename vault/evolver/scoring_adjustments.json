@@ -10,7 +10,7 @@
       "evidence": "5件中2勝(40%)",
       "min_sample_size": 3,
       "actual_sample_size": 5,
-      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+      "expires_at": "2026-05-02T17:01:36.475844+00:00"
     },
     {
       "rule_id": "R_tz_eu_high",
@@ -22,7 +22,7 @@
       "evidence": "12件中9勝(75%)",
       "min_sample_size": 3,
       "actual_sample_size": 12,
-      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+      "expires_at": "2026-05-02T17:01:36.475844+00:00"
     },
     {
       "rule_id": "R_tz_us_low",
@@ -34,7 +34,7 @@
       "evidence": "6件中2勝(33%)",
       "min_sample_size": 3,
       "actual_sample_size": 6,
-      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+      "expires_at": "2026-05-02T17:01:36.475844+00:00"
     },
     {
       "rule_id": "R_wl_ratio_bad",
@@ -47,10 +47,10 @@
       "evidence": "W/L比=0.47 (Win+3.33% / Loss-7.09%)",
       "min_sample_size": 3,
       "actual_sample_size": 23,
-      "expires_at": "2026-05-02T07:41:24.096365+00:00"
+      "expires_at": "2026-05-02T17:01:36.475844+00:00"
     }
   ],
-  "generated_at": "2026-04-02T07:41:24.096365+00:00",
+  "generated_at": "2026-04-02T17:01:36.475844+00:00",
   "total_adjustments": 4,
   "source_pairs": 23
 }
