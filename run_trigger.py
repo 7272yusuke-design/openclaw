@@ -133,13 +133,15 @@ def check_tp_sl_all_positions():
                 sell_label = "Hard TP"
                 logger.warning(f"[TP/SL] 🎯 固定上限利確: {clean_symbol} +{pnl['pnl_pct']:.1f}% (profile: {_exit_cat})")
 
-            # === 第3層: テクニカル出口（RSI > 65 + 含み益 > 1.5%） ===
+            # === 第3層: テクニカル出口（RSI > 閾値 + 含み益 > 1.5%）v6.5ai: プロファイル別RSI ===
             elif pnl['pnl_pct'] > 1.5:
-                rsi_val = _calc_rsi(clean_symbol)
-                if rsi_val is not None and rsi_val > 65:
-                    sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit (profile: {_exit_cat})"
-                    sell_label = "RSI Exit"
-                    logger.warning(f"[TP/SL] 📊 テクニカル出口: {clean_symbol} RSI={rsi_val:.1f} +{pnl['pnl_pct']:.1f}%")
+                _rsi_exit_threshold = _exit_p.get("rsi_exit")
+                if _rsi_exit_threshold is not None:  # long profile: rsi_exit=None → スキップ
+                    rsi_val = _calc_rsi(clean_symbol)
+                    if rsi_val is not None and rsi_val > _rsi_exit_threshold:
+                        sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit (RSI>{_rsi_exit_threshold}, profile: {_exit_cat})"
+                        sell_label = "RSI Exit"
+                        logger.warning(f"[TP/SL] 📊 テクニカル出口: {clean_symbol} RSI={rsi_val:.1f}>{_rsi_exit_threshold} +{pnl['pnl_pct']:.1f}% (profile: {_exit_cat})")
 
             # === 第4層: 時間制約（戦略別） ===
             if not sell_reason:

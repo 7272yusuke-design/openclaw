@@ -75,7 +75,7 @@ workspace/
 │
 ├── research/               ← 研究・分析
 │   ├── backtests/
-│   │   ├── run_backtest.py ← 9戦略バックテスト [trinity_council Phase 2]
+│   │   ├── run_backtest.py ← 9戦略バックテスト 3:3:3構成 [trinity_council Phase 2]
 │   │   └── param_optimizer.py
 │   ├── gplearn_strategy.py ← 遺伝的プログラミング戦略
 │   ├── voyager_skills.py   ← Voyager（パターン学習・ChromaDB）
