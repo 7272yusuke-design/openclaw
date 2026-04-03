@@ -450,6 +450,13 @@ def main():
             # 1日ごとにパージ
             if time.time() - last_purge > PURGE_INTERVAL:
                 purge_old(conn)
+                # F5: マクロ資本フローデータ日次収集
+                try:
+                    from tools.macro_collector import collect_macro_data
+                    collect_macro_data()
+                    logger.info('Macro data collection completed')
+                except Exception as e:
+                    logger.warning(f'Macro data collection failed (skipped): {e}')
                 last_purge = time.time()
 
             consecutive_errors = 0

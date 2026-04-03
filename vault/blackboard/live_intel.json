@@ -25,23 +25,9 @@
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 59.46,
-    "total_evaluated_trades": 74,
+    "accuracy_score": 60.53,
+    "total_evaluated_trades": 76,
     "recent_performance": [
-      {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.710096559010379,
-        "exit_price": 0.702473342830841,
-        "amount_usd": 605.937846720034,
-        "pnl_pct": -1.07
-      },
-      {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.700488346393398,
-        "exit_price": 0.702473342830841,
-        "amount_usd": 2675.02,
-        "pnl_pct": 0.28
-      },
       {
         "symbol": "VIRTUAL",
         "entry_price": 0.701323160899733,
@@ -62,11 +48,25 @@
         "exit_price": 0.702473342830841,
         "amount_usd": 2666.76,
         "pnl_pct": 2.32
+      },
+      {
+        "symbol": "VIRTUAL",
+        "entry_price": 0.642896989204046,
+        "exit_price": 0.702473342830841,
+        "amount_usd": 1697.0533915494034,
+        "pnl_pct": 9.27
+      },
+      {
+        "symbol": "VIRTUAL",
+        "entry_price": 0.642896989204046,
+        "exit_price": 0.677838767587002,
+        "amount_usd": 2701.9466084505966,
+        "pnl_pct": 5.44
       }
     ],
-    "last_evaluated": "2026-04-03T01:54:21.746116"
+    "last_evaluated": "2026-04-03T08:39:54.268125"
   },
   "last_periodic_symbol": "AIXBT",
-  "last_unified_council_ts": 1775181200.5672352,
-  "last_unified_council_symbol": "ETH"
+  "last_unified_council_ts": 1775217249.9202452,
+  "last_unified_council_symbol": "VIRTUAL"
 }

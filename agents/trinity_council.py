@@ -456,7 +456,7 @@ class TrinityCouncil(NeoBaseCrew):
 
         # 1e. PlanningCrew 戦略リスク評価
         _planning_result = {}
-        _planning_conf_mod = 0
+        _capital_flow_phase = "RISK_ON_RIDE"
         try:
             from agents.planning_agent import run_strategic_assessment
             print(f"\n[Phase 1e] 戦略リスク評価中...")
@@ -470,7 +470,7 @@ class TrinityCouncil(NeoBaseCrew):
                 failure_summary=_failure_summary,
                 btc_context=btc_context,
             )
-            _planning_conf_mod = _planning_result.get("confidence_modifier", 0)
+            _capital_flow_phase = _planning_result.get("capital_flow_phase", "RISK_ON_RIDE")
         except Exception as _pe:
             print(f"  ⚠️ [Phase 1e] PlanningCrew失敗: {str(_pe)[:60]}")
 
@@ -483,7 +483,8 @@ class TrinityCouncil(NeoBaseCrew):
                 f"リスク: {', '.join(_pr.get('risk_factors',[])[:3])}, "
                 f"機会: {', '.join(_pr.get('opportunity_factors',[])[:3])}, "
                 f"最悪: {_pr.get('worst_case','')}, "
-                f"推奨ポジション: {_pr.get('recommended_position_pct',5)}%"
+                f"マクロ: {_pr.get('macro_summary','')}, "
+                f"資本フロー: {_capital_flow_phase}"
             )
 
         # 1f. 実データバックテスト (v2)
@@ -859,13 +860,18 @@ class TrinityCouncil(NeoBaseCrew):
                     _cfr_label = f"cfr{_cfr_score:+.0f}:0({_cfr_regime})"
         except Exception:
             pass
-        # === Phase 1e Planning confidence_modifier注入 ===
-        _planning_label = "plan0"
-        if _planning_conf_mod != 0:
-            _planning_conf_mod = max(-10, min(10, _planning_conf_mod))  # v6.5ah: 上限±10（-15は過剰抑制）
-            _calc_conf += _planning_conf_mod
-            _planning_label = f"plan{_planning_conf_mod:+d}"
-            print(f"[Phase 4b] Planning調整: {_planning_conf_mod:+d} (risk={_planning_result.get('risk_level','?')})")
+        # === F5: capital_flow_phase スコアリング注入 ===
+        _macro_adj_map = {
+            "RISK_OFF_ACCUMULATE": 5,
+            "RISK_ON_RIDE": 0,
+            "RISK_ON_DISTRIBUTE": -5,
+            "RISK_OFF_EXIT": -10,
+        }
+        _macro_adj = _macro_adj_map.get(_capital_flow_phase, 0)
+        _calc_conf += _macro_adj
+        _planning_label = f"macro{_macro_adj:+d}({_capital_flow_phase})"
+        if _macro_adj != 0:
+            print(f"[Phase 4b] F5マクロ調整: {_macro_adj:+d} (phase={_capital_flow_phase})")
         # === Task 6: 戦略信頼度スコア（strategy_scores.json参照） ===
         _strat_label = "strat0"
         try:
@@ -918,6 +924,8 @@ class TrinityCouncil(NeoBaseCrew):
                         _matched = (_cond.get("match", "").upper() == clean_symbol.upper())
                     elif _ctype == "bt_confidence":
                         _matched = (_cond.get("match") == bt_confidence)
+                    elif _ctype == "capital_flow_phase":
+                        _matched = (_cond.get("match") == _capital_flow_phase)
                     elif _ctype == "sentiment_range":
                         _matched = (_cond.get("min", -2) <= sentiment_score <= _cond.get("max", 2))
                     if _matched:
@@ -1106,16 +1114,16 @@ class TrinityCouncil(NeoBaseCrew):
                                     # 戦略タグをholdingsに保存（出口プロファイル用）
                                     from core.config import STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
                                     _exit_cat = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
-                                    _pw_state = self.portfolio.state
+                                    _pw_state = self.portfolio.get_full_state()
                                     if clean_symbol in _pw_state.get("holdings", {}):
                                         _pw_state["holdings"][clean_symbol]["strategy_tag"] = bt_best_strategy
                                         _pw_state["holdings"][clean_symbol]["exit_profile"] = _exit_cat
-                                        self.portfolio._save_wallet()
+                                        self.portfolio.wallet._save_wallet()
                                         logger.info(f"Strategy tag: {bt_best_strategy} → exit_profile: {_exit_cat}")
                                         # BUY historyにもstrategy_tag保存（H.2分析用）
                                         if _pw_state.get("history"):
                                             _pw_state["history"][-1]["strategy_tag"] = bt_best_strategy
-                                            self.portfolio._save_wallet()
+                                            self.portfolio.wallet._save_wallet()
                                         # E1.3: エントリー時コンテキスト保存（自己進化用）
                                         _entry_ctx = {
                                             "rsi_14": float(df.iloc[-1].get("rsi_14", 0)) if "df" in dir() and len(df) > 0 else 0,
@@ -1134,8 +1142,10 @@ class TrinityCouncil(NeoBaseCrew):
                                                 "streak": _streak_label,
                                                 "pt_z": _pt_z_label,
                                                 "cfr": _cfr_label,
+                                                "macro": _planning_label,
                                                 "total": _calc_conf,
                                             },
+                                            "capital_flow_phase": _capital_flow_phase,
                                             "timestamp": datetime.now(timezone.utc).isoformat(),
                                         }
                                         try:
@@ -1146,7 +1156,7 @@ class TrinityCouncil(NeoBaseCrew):
                                             _entry_ctx["btc_24h"] = 0
                                             _entry_ctx["btc_trend"] = "unknown"
                                         _pw_state["holdings"][clean_symbol]["entry_context"] = _entry_ctx
-                                        self.portfolio._save_wallet()
+                                        self.portfolio.wallet._save_wallet()
                                         logger.info(f"Entry context saved for {clean_symbol}: conf={_calc_conf}, bt={bt_confidence}")
                                 else:
                                     trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}

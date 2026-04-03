@@ -1,6 +1,20 @@
 {
-  "usd_balance": 87979.90860490016,
-  "holdings": {},
+  "usd_balance": 83580.90860490016,
+  "holdings": {
+    "VIRTUAL": {
+      "amount": 6808.252447128513,
+      "avg_price": 0.6461276273407498,
+      "entry_time": "2026-04-03T05:55:09.788122+00:00",
+      "strategy_tag": "atr_breakout",
+      "exit_profile": "mid",
+      "entry_context": {
+        "note": "manually_patched_due_to_portfolio_state_bug",
+        "confidence": 60,
+        "bt_confidence": "HIGH",
+        "bt_best_strategy": "atr_breakout"
+      }
+    }
+  },
   "history": [
     {
       "timestamp": "2026-03-17T20:19:19.159910",
@@ -703,8 +717,17 @@
       "amount_token": 190139.81531578008,
       "amount_usd": 4246.061528573068,
       "reason": "Stop Loss at -3.2% (limit: -3.0%)"
+    },
+    {
+      "timestamp": "2026-04-03T05:55:09.788122+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.642896989204046,
+      "amount_token": 6808.252447128513,
+      "amount_usd": 4399.0,
+      "reason": "Trinity Council BUY verdict (accuracy: 59.46%, confidence: HIGH)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-02T03:23:33.464181+00:00"
+  "last_updated": "2026-04-03T12:13:40.930287+00:00"
 }
