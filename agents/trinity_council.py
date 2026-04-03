@@ -233,11 +233,14 @@ class TrinityCouncil(NeoBaseCrew):
                 finbert_score = 0.0
                 finbert_label = "neutral"
                 print(f"  ⚠️ ニュース取得失敗: {_nce}")
-            # H.2: ニュース過多警戒（6件以上はノイズが多く誤判断リスクが高い）
+            # H.2: ニュース過多警戒（v6.5ai: 閾値10件に引き上げ。6件は常態で常時発火していた）
             news_noise_warning = ""
-            if vp_count >= 6:
-                news_noise_warning = f"\n⚠️ [H.2警告] ニュース件数={vp_count}件（6件以上は市場ノイズが多い状態。過去データでBUY accuracy=46.7%に低下。慎重な判断を推奨）"
-                print(f"  ⚠️ [H.2] ニュース過多警戒: {vp_count}件 → BUY精度低下リスク")
+            if vp_count >= 10:
+                news_noise_warning = f"\n⚠️ [H.2警告] ニュース件数={vp_count}件（10件以上は市場ノイズが非常に多い状態。シグナルの信頼性を慎重に評価せよ）"
+                print(f"  ⚠️ [H.2] ニュース過多警戒: {vp_count}件 → ノイズ注意")
+            elif vp_count >= 7:
+                news_noise_warning = f"\n📰 [H.2] ニュース件数={vp_count}件（やや多い。個別ニュースの重要度を精査すること）"
+                print(f"  📰 [H.2] ニュース件数: {vp_count}件（通常範囲）")
             if btc_warning:
                 print(f"  {btc_warning.strip()}")
             s_result = sentiment_crew.run(
@@ -596,7 +599,7 @@ class TrinityCouncil(NeoBaseCrew):
                     # === 通常モード: 従来のSOUL原則 ===
                     f'【判断の拒否権（SOUL原則）】\n'
                     f'BullがBUYを推奨していても、以下のいずれかに該当する場合は迷わずWAITを主張せよ。これは義務であり、最終決定権者としての責任だ。\n'
-                    f'1. センチメントスコアが-0.2以下かつニュース件数が6件以上（ノイズ過多）\n'
+                    f'1. センチメントスコアが-0.2以下かつニュース件数が10件以上（ノイズ過多）\n'
                     f'2. バックテスト信頼度がNONEまたはLOWかつ過去教訓に同銘柄の損切記録がある\n'
                     f'3. クジラ動向が「Accumulating（買い集め中）」と報告されている（ダマシの可能性）\n'
                     f'4. 直近の損切内省に「同じパターン」への言及がある（同じ罠に2度落ちるな）\n'
