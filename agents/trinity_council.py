@@ -906,6 +906,8 @@ class TrinityCouncil(NeoBaseCrew):
                     _matched = False
                     if _ctype == "timezone":
                         continue  # 時間帯はconfig.pyで管理（二重適用防止 v6.5ag）
+                    elif _ctype == "sentiment_range":
+                        continue  # センチメントはPhase 4bで直接反映済み（二重適用防止 v6.5ai）
                         _tz_map = {range(0, 9): "Asia", range(9, 17): "EU", range(17, 24): "US"}
                         _current_tz = next((v for k, v in _tz_map.items() if _utc_hour in k), "")
                         _matched = (_cond.get("match") == _current_tz)
