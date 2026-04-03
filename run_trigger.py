@@ -38,6 +38,31 @@ def check_tp_sl_all_positions():
         return False
     sell_executed = False
     memory = NeoMemoryDB()
+    # === F2: BTC急落リスクチェック（5層出口の前に判定）v6.5ai ===
+    _f2_level = 0
+    _btc_24h_chg_f2 = 0.0
+    try:
+        import sqlite3 as _sq_f2
+        _conn_f2 = _sq_f2.connect("vault/market_db/prices.sqlite")
+        _cur_f2 = _conn_f2.cursor()
+        _cur_f2.execute("SELECT close FROM prices WHERE symbol='BTC' ORDER BY timestamp DESC LIMIT 1")
+        _r1 = _cur_f2.fetchone()
+        _cur_f2.execute("SELECT close FROM prices WHERE symbol='BTC' AND timestamp <= datetime('now', '-24 hours') ORDER BY timestamp DESC LIMIT 1")
+        _r2 = _cur_f2.fetchone()
+        _conn_f2.close()
+        if _r1 and _r2 and _r2[0] > 0:
+            _btc_24h_chg_f2 = (_r1[0] - _r2[0]) / _r2[0] * 100
+            if _btc_24h_chg_f2 <= -12:
+                _f2_level = 3
+                logger.warning(f"\N{POLICE CARS REVOLVING LIGHT} [F2 L3] BTC急落 {_btc_24h_chg_f2:.1f}% — 全ポジション緊急売却モード")
+            elif _btc_24h_chg_f2 <= -8:
+                _f2_level = 2
+                logger.warning(f"\u26a0\ufe0f [F2 L2] BTC大幅下落 {_btc_24h_chg_f2:.1f}% — 含み益ポジション利確モード")
+            elif _btc_24h_chg_f2 <= -5:
+                _f2_level = 1
+                logger.info(f"\U0001f4c9 [F2 L1] BTC下落 {_btc_24h_chg_f2:.1f}% — SL引き締めモード(x0.5)")
+    except Exception:
+        pass
 
     # RSI計算用ヘルパー（SQLiteの5分足から14期間RSI）
     def _calc_rsi(symbol, period=14):
@@ -105,9 +130,20 @@ def check_tp_sl_all_positions():
 
             sell_reason = ""
             sell_label = ""
+            # === F2: BTC急落リスク適用 v6.5ai ===
+            if _f2_level >= 3:
+                sell_reason = f"F2 L3 Emergency: BTC {_btc_24h_chg_f2:.1f}% — forced liquidation (profile: {_exit_cat})"
+                sell_label = "F2-L3"
+                logger.warning(f"[F2 L3] {clean_symbol} 緊急売却")
+            elif _f2_level >= 2 and pnl['pnl_pct'] > 0:
+                sell_reason = f"F2 L2 Profit-take: BTC {_btc_24h_chg_f2:.1f}% + profit {pnl['pnl_pct']:+.1f}% (profile: {_exit_cat})"
+                sell_label = "F2-L2"
+                logger.warning(f"[F2 L2] {clean_symbol} 含み益利確 +{pnl['pnl_pct']:.1f}%")
+            elif _f2_level >= 1:
+                sl_pct = sl_pct * 0.5  # SL引き締め
 
             # === 第1層: 固定SL（戦略別） ===
-            if pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
+            if not sell_reason and pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
                 sell_reason = f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%, profile: {_exit_cat})"
                 sell_label = "SL"
                 logger.warning(f"[TP/SL] 🛑 損切トリガー: {clean_symbol} {pnl['pnl_pct']:.1f}% (profile: {_exit_cat})")
