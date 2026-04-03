@@ -151,8 +151,8 @@ workspace/
 ```
 run_trigger.py（30秒ループ）
   │
-  ├─→ Phase 0: 5層売却チェック（戦略別出口プロファイル、Council非依存）
-  │     └ exit_profile: mean_reversion / trend_follow / evolved
+  ├─→ Phase 0: F2 BTC急落リスク(L1-L3) → 5層売却チェック（戦略別出口short/mid/long、Council非依存）
+  │     └ exit_profile: short / mid / long（v6.5ai 3:3:3対応）
   │
   ├─→ 2hローテーション（BTC→VIRTUAL→ETH→AIXBT タイムスタンプベース）
   │     └ Blackboard "last_unified_council_ts" で永続化（リスタート耐性）
