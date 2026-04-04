@@ -28,9 +28,9 @@
     "accuracy_score": 0.0,
     "total_evaluated_trades": 0,
     "recent_performance": [],
-    "last_evaluated": "2026-04-04T04:18:18.899256"
+    "last_evaluated": "2026-04-04T05:58:51.836567"
   },
   "last_periodic_symbol": "AIXBT",
-  "last_unified_council_ts": 1775274963.731528,
-  "last_unified_council_symbol": "BTC"
+  "last_unified_council_ts": 1775282185.8818803,
+  "last_unified_council_symbol": "VIRTUAL"
 }

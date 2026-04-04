@@ -64,6 +64,63 @@ def check_tp_sl_all_positions():
     except Exception:
         pass
 
+    # === F2b: マクロ急変検知（SPY/Gold — 30分間隔キャッシュ）v6.5ak ===
+    # BTCより先に動くマクロ指標で「先回り」するお盆フレームワークの即時版
+    _f2b_level = 0
+    try:
+        import time as _time_f2b
+        _f2b_cache_path = "vault/blackboard/f2b_macro_cache.json"
+        _f2b_interval = 1800  # 30分
+        _f2b_data = None
+        _need_fetch = True
+        if os.path.exists(_f2b_cache_path):
+            try:
+                import json as _json_f2b
+                with open(_f2b_cache_path) as _fc:
+                    _f2b_data = _json_f2b.load(_fc)
+                if _time_f2b.time() - _f2b_data.get("ts", 0) < _f2b_interval:
+                    _need_fetch = False
+            except Exception:
+                pass
+        if _need_fetch:
+            try:
+                import yfinance as _yf_f2b
+                import json as _json_f2b
+                _spy_t = _yf_f2b.Ticker("SPY")
+                _spy_h = _spy_t.history(period="2d", interval="1h")
+                _gold_t = _yf_f2b.Ticker("GC=F")
+                _gold_h = _gold_t.history(period="2d", interval="1h")
+                _spy_now = float(_spy_h["Close"].iloc[-1]) if len(_spy_h) > 0 else 0
+                _spy_prev = float(_spy_h["Close"].iloc[-24]) if len(_spy_h) >= 25 else float(_spy_h["Close"].iloc[0])
+                _gold_now = float(_gold_h["Close"].iloc[-1]) if len(_gold_h) > 0 else 0
+                _gold_prev = float(_gold_h["Close"].iloc[-24]) if len(_gold_h) >= 25 else float(_gold_h["Close"].iloc[0])
+                _spy_chg = ((_spy_now - _spy_prev) / _spy_prev * 100) if _spy_prev > 0 else 0
+                _gold_chg = ((_gold_now - _gold_prev) / _gold_prev * 100) if _gold_prev > 0 else 0
+                _f2b_data = {"spy": _spy_now, "spy_chg": round(_spy_chg, 2), "gold": _gold_now, "gold_chg": round(_gold_chg, 2), "ts": _time_f2b.time()}
+                os.makedirs(os.path.dirname(_f2b_cache_path), exist_ok=True)
+                with open(_f2b_cache_path, "w") as _fc:
+                    _json_f2b.dump(_f2b_data, _fc)
+            except Exception as _yfe:
+                logger.debug(f"[F2b] yfinance取得失敗: {_yfe}")
+        if _f2b_data:
+            _spy_chg_val = _f2b_data.get("spy_chg", 0)
+            _gold_chg_val = _f2b_data.get("gold_chg", 0)
+            # SPY急落 + Gold急騰 = リスクオフ加速（お盆の傾き）
+            if _spy_chg_val <= -5 and _gold_chg_val >= 3:
+                _f2b_level = 3
+                logger.warning(f"[F2b L3] マクロ急変: SPY {_spy_chg_val:+.1f}% + Gold {_gold_chg_val:+.1f}% — 全ポジション緊急売却")
+            elif _spy_chg_val <= -3 and _gold_chg_val >= 1.5:
+                _f2b_level = 2
+                logger.warning(f"[F2b L2] マクロ警戒: SPY {_spy_chg_val:+.1f}% + Gold {_gold_chg_val:+.1f}% — 含み益利確モード")
+            elif _spy_chg_val <= -2:
+                _f2b_level = 1
+                logger.info(f"[F2b L1] SPY下落 {_spy_chg_val:+.1f}% — SL引き締めモード")
+            # F2とF2bの最大レベルを採用
+            if _f2b_level > _f2_level:
+                _f2_level = _f2b_level
+    except Exception:
+        pass
+
     # RSI計算用ヘルパー（SQLiteの5分足から14期間RSI）
     def _calc_rsi(symbol, period=14):
         try:
