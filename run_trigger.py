@@ -166,6 +166,46 @@ def check_tp_sl_all_positions():
                 except Exception as _s2e:
                     pass
 
+            # === S3: 戦略書動的出口 ===
+            if _strategy and current_price > 0:
+                try:
+                    _s3_entry = float(hdata.get("avg_price", 0))
+                    _s3_bear = _strategy.get("bear_scenario", {})
+                    _s3_bull = _strategy.get("bull_scenario", {})
+                    _s3_stop = float(_s3_bear.get("stop_price", 0))
+                    _s3_target = float(_s3_bull.get("target_price", 0))
+
+                    # S3-1: 戦略SLで固定SLを上書き（固定SLの2倍が安全上限）
+                    if _s3_entry > 0 and _s3_stop > 0:
+                        _strat_sl_pct = (_s3_entry - _s3_stop) / _s3_entry * 100
+                        _max_sl = sl_pct * 2  # 固定SLの2倍まで許容
+                        if 0 < _strat_sl_pct <= _max_sl:
+                            sl_pct = _strat_sl_pct
+
+                    # S3-2: bear trigger接近(70%) → exit_profile 1段階引き締め
+                    if _s3_entry > 0 and _s3_stop > 0 and _s3_entry > _s3_stop:
+                        _s3_bear_prog = (_s3_entry - current_price) / (_s3_entry - _s3_stop) * 100
+                        if _s3_bear_prog >= 70:
+                            from core.config import EXIT_PROFILES
+                            _tighten_map = {"long": "mid", "mid": "short"}
+                            _new_cat = _tighten_map.get(_exit_cat)
+                            if _new_cat:
+                                _new_p = EXIT_PROFILES.get(_new_cat)
+                                if _new_p:
+                                    _trail_start = _new_p["trailing_start"]
+                                    _trail_drop = _new_p["trailing_drop"]
+                                    _hard_tp = _new_p["hard_tp_pct"]
+                                    _time_limit = _new_p["time_limit_hours"]
+                                    logger.warning(f"[S3] {clean_symbol} exit引き締め: {_exit_cat}→{_new_cat} (bear={_s3_bear_prog:.0f}%)")
+
+                    # S3-3: bull target到達(100%) → トレール早期開始
+                    if _s3_entry > 0 and _s3_target > _s3_entry:
+                        _s3_bull_prog = (current_price - _s3_entry) / (_s3_target - _s3_entry) * 100
+                        if _s3_bull_prog >= 100 and pnl['pnl_pct'] > 0:
+                            _trail_start = min(_trail_start, max(2.0, pnl['pnl_pct'] * 0.8))
+                except Exception:
+                    pass
+
             sell_reason = ""
             sell_label = ""
             # === F2: BTC急落リスク適用 v6.5ai ===
