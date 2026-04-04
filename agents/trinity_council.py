@@ -370,6 +370,9 @@ class TrinityCouncil(NeoBaseCrew):
                     f'\"confidence_adjustment\": -10から+10の整数（バイアス該当なら下げ、学習改善あれば上げ）,'
                     f'\"adjustment_reason\": \"修正値の根拠（30字以内・Neoの思考傾向に言及）\",'
                     f'\"instruction_for_next\": \"次回Councilで意識すべき思考の罠（50字以内・市場予測ではなく判断プロセスの注意点）\",'
+                    f'\"strategy_constraint_violated\": \"戦略制約違反があればその内容（なければnull）\",'
+                    f'\"evidence_reliability_score\": 1から5の整数,'
+                    f'\"evidence_weakness\": \"根拠の最大弱点（25字以内）\",'
                     f'\"previous_instruction_followed\": true/false/null}}'
                 )
                 _ref_resp = _ref_model.generate_content(_ref_prompt)
@@ -389,11 +392,16 @@ class TrinityCouncil(NeoBaseCrew):
                 _ref_reason = _ref_parsed.get("adjustment_reason", "")
                 _ref_next = _ref_parsed.get("instruction_for_next", "")
                 _ref_followed = _ref_parsed.get("previous_instruction_followed", None)
+                _ref_strat_violated = _ref_parsed.get("strategy_constraint_violated")
+                _ref_ev_score = _ref_parsed.get("evidence_reliability_score", 3)
+                _ref_ev_weakness = _ref_parsed.get("evidence_weakness", "")
                 reflexion_insight = (
                     f"思考バイアス: {', '.join(_ref_biases[:3])}\n"
                     f"今回該当: {_ref_pattern}\n"
                     f"confidence調整: {_reflexion_adj:+d} ({_ref_reason})\n"
                     f"次回注意: {_ref_next}"
+                    f"戦略制約違反: {_ref_strat_violated or 'なし'}\n"
+                    f"根拠信頼性: {_ref_ev_score}/5 ({_ref_ev_weakness})\n"
                 )
                 # E2.4: Reflexion結果をChromaDBに保存（閉ループ用）
                 try:
