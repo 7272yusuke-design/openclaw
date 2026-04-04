@@ -331,6 +331,26 @@ def check_tp_sl_all_positions():
                                 _hold_hours = round((datetime.now(timezone.utc) - _etime).total_seconds() / 3600, 1)
                         except Exception:
                             pass
+                        # S4: 戦略書データ準備
+                        _strat_section = ""
+                        _entry_strat = _ectx.get("strategy")
+                        if _entry_strat:
+                            _s4_bull = _entry_strat.get("bull_scenario", {})
+                            _s4_bear = _entry_strat.get("bear_scenario", {})
+                            _s4_target = _s4_bull.get("target_price", 0)
+                            _s4_stop = _s4_bear.get("stop_price", 0)
+                            _s4_inv = _entry_strat.get("invalidation", {}).get("conditions", [])
+                            _strat_section = (
+                                f"\n【戦略書（エントリー時に立案）】\n"
+                                f"- テーゼ: {_entry_strat.get('thesis', 'N/A')}\n"
+                                f"- TF: {_entry_strat.get('thesis_timeframe', 'N/A')}\n"
+                                f"- 楽観: {_s4_bull.get('narrative', 'N/A')} (target=${_s4_target})\n"
+                                f"- 楽観根拠: {', '.join(str(e)[:40] for e in _s4_bull.get('evidence', [])[:3])}\n"
+                                f"- 悲観: {_s4_bear.get('narrative', 'N/A')} (stop=${_s4_stop})\n"
+                                f"- 悲観根拠: {', '.join(str(e)[:40] for e in _s4_bear.get('evidence', [])[:3])}\n"
+                                f"- 無効化条件: {', '.join(str(c)[:40] for c in _s4_inv[:2])}\n"
+                                f"- 結果: 現在価格${current_price:.6f} vs target=${_s4_target} / stop=${_s4_stop}\n"
+                            )
                         try:
                             from core.model_factory import ModelFactory
                             _model = ModelFactory.get_genai_model("fast")
@@ -344,7 +364,8 @@ def check_tp_sl_all_positions():
                                 f"- エントリー時BT信頼度: {_entry_bt} / センチメント: {_entry_sent}\n"
                                 f"- エントリー時BTC: {_entry_btc} / 決済時BTC 24h: {_cur_btc_24h}%\n"
                                 f"- エントリー時confidence: {_entry_conf} / key_factor: {_entry_kf}\n"
-                                f"- 決済理由: {sell_reason}\n\n"
+                                f"- 決済理由: {sell_reason}\n"
+                                f"{_strat_section}\n"
                                 f"【分析手順（Step by Step）】\n"
                                 f"Step 1: エントリー時の判断根拠を列挙し、どれが正しくどれが間違いだったか仕分けよ\n"
                                 f"Step 2: 見落としていたシグナル（RSI乖離、BTC連動、センチメント過信等）を特定せよ\n"
@@ -358,7 +379,9 @@ def check_tp_sl_all_positions():
                                 f'"missed_signal": "...",'
                                 f'"market_context_gap": "...",'
                                 f'"next_time_rule": "...",'
-                                f'"confidence_was_justified": true/false}}'
+                                f'"confidence_was_justified": true/false,'
+                                f'"scenario_outcome": "bull | bear | unexpected",'
+                                f'"strategy_quality_score": 1-10}}'
                             )
                             _resp = _model.generate_content(_prompt)
                             _raw = _resp.text.strip()
@@ -371,14 +394,17 @@ def check_tp_sl_all_positions():
                             _clean = _clean.strip()
                             _parsed = _json.loads(_clean)
                             _failure_category = _parsed.get("failure_category", "").split("|")[0].strip().split(" ")[0].strip()
+                            _scenario_outcome = _parsed.get("scenario_outcome", "unexpected")
+                            _strategy_quality = _parsed.get("strategy_quality_score", 5)
                             introspection = (
                                 f"[{_failure_category}] "
                                 f"判断ミス: {_parsed.get('entry_mistake', 'N/A')} | "
                                 f"見落とし: {_parsed.get('missed_signal', 'N/A')} | "
                                 f"乖離: {_parsed.get('market_context_gap', 'N/A')} | "
-                                f"次回: {_parsed.get('next_time_rule', 'N/A')}"
+                                f"次回: {_parsed.get('next_time_rule', 'N/A')} | "
+                                f"scenario={_scenario_outcome} quality={_strategy_quality}/10"
                             )
-                            logger.info(f"[E1] 構造化内省成功: category={_failure_category}")
+                            logger.info(f"[E1] 構造化内省成功: category={_failure_category}, scenario={_scenario_outcome}, quality={_strategy_quality}")
                         except Exception as _ie:
                             logger.error(f"[E1] 構造化内省失敗（フォールバック）: {_ie}")
                             introspection = f"SL発火 {pnl['pnl_pct']:+.1f}% ({sell_reason})"
@@ -389,7 +415,11 @@ def check_tp_sl_all_positions():
                     if introspection:
                         mem_text += "\n内省: " + introspection
                         logger.info(f"[TP/SL] 🧠 内省: {introspection}")
-                    memory.store(mem_text, metadata={"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "failure_category": _failure_category if not is_win else "", "strategy_tag": hdata.get("strategy_tag", "unknown"), "tier": "2"})
+                    _s4_meta = {"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "failure_category": _failure_category if not is_win else "", "strategy_tag": hdata.get("strategy_tag", "unknown"), "tier": "2"}
+                    if not is_win and '_scenario_outcome' in dir():
+                        _s4_meta["scenario_outcome"] = _scenario_outcome
+                        _s4_meta["strategy_quality_score"] = str(_strategy_quality)
+                    memory.store(mem_text, metadata=_s4_meta)
 
                     # paper_trade.logに記録（Evaluatorが参照）
                     try:
