@@ -953,6 +953,171 @@ class TrinityCouncil(NeoBaseCrew):
         _structured_confidence = _calc_conf
 
         # ============================================================
+        # Phase 3b: 戦略書生成（Phase S1 — verdict=BUY時のみ）
+        # LLMを「戦略家」として活用し、ポジションごとの戦略書を生成
+        # ============================================================
+        _position_strategy = None
+        if first_word == "BUY" and current_price > 0:
+            try:
+                print(f"\n[Phase 3b] 戦略書生成中...")
+                _strategy_model = self.pro_model
+
+                # BTC情報取得
+                _strat_btc = {}
+                try:
+                    _strat_btc = MarketData.fetch_btc_trend() or {}
+                except Exception:
+                    pass
+
+                # マクロ情報取得
+                _strat_macro = {}
+                try:
+                    import json as _json_sm
+                    _macro_path = "vault/blackboard/macro_flow.json"
+                    if os.path.exists(_macro_path):
+                        with open(_macro_path) as _mf:
+                            _strat_macro = _json_sm.load(_mf).get("macro_data", {})
+                except Exception:
+                    pass
+
+                # テクニカル指標
+                _strat_rsi = float(df.iloc[-1].get("rsi_14", 0)) if "df" in dir() and df is not None and len(df) > 0 else 0
+                _strat_macd = "unknown"
+                try:
+                    if "df" in dir() and df is not None and len(df) > 0:
+                        _macd_val = float(df.iloc[-1].get("macd", 0))
+                        _macd_sig = float(df.iloc[-1].get("macd_signal", 0))
+                        _strat_macd = "bullish" if _macd_val > _macd_sig else "bearish"
+                except Exception:
+                    pass
+
+                # Voyagerパターンマッチ
+                _voyager_matches = []
+                try:
+                    _vm = self.memory.recall(query=f"{clean_symbol} voyager_skill pattern", n_results=3, where={"category": "voyager_skill"})
+                    _vm_docs = _vm.get("documents", [[]])[0] if _vm else []
+                    _voyager_matches = [d[:80] for d in _vm_docs if isinstance(d, str)]
+                except Exception:
+                    pass
+
+                _macro_line = "マクロデータなし"
+                if _strat_macro:
+                    _macro_line = f"SPY30d: {_strat_macro.get('spy_30d', 'N/A')}%, DXY30d: {_strat_macro.get('dxy_30d', 'N/A')}%, Gold30d: {_strat_macro.get('gold_30d', 'N/A')}%, US10Y30d: {_strat_macro.get('us10y_30d', 'N/A')}%"
+
+                _strategy_prompt = f"""あなたは自律取引AIエージェントNeoの戦略立案者だ。
+BUY判断が下された。このポジションの戦略書を作成せよ。
+
+【判断基準】
+「上がるか下がるか」の予測ではなく、「根拠ある楽観シナリオ+利確戦略」と「根拠ある悲観シナリオ+ヘッジ戦略」を設計せよ。
+各シナリオの根拠は最低3つ、うち1つ以上は定量データ（勝率・RSI値・変動率等）を含むこと。
+根拠は異なるデータソースから取得すること（同じソースの繰り返し不可）。
+
+【銘柄・価格】
+{clean_symbol} @ ${current_price:.6f}
+
+【バックテスト結果】
+{backtest_report[:800]}
+
+【テクニカル】
+RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
+
+【センチメント】
+{sentiment_label} (score={sentiment_score:.2f})
+
+【マクロ環境】
+資本フローフェーズ: {_capital_flow_phase}
+{_macro_line}
+
+【BTC市場】
+価格: ${_strat_btc.get('price', 0):,.0f} | 24h: {_strat_btc.get('change_24h', 0):+.1f}% | 30d: {_strat_btc.get('change_30d', 0):+.1f}%
+
+【オンチェーン】
+{onchain_context[:300] if onchain_context else "データなし"}
+
+【Voyagerパターン】
+{chr(10).join(_voyager_matches) if _voyager_matches else "マッチなし"}
+
+【EvolveRルール適用中】
+{', '.join(_evolver_labels) if _evolver_labels else "なし"}
+
+【Reflexion】
+{reflexion_insight[:200] if reflexion_insight else "なし"}
+
+【戦略リスク評価】
+{_planning_context[:200] if _planning_context else "なし"}
+
+【ペアトレード】
+{pair_trade_context[:200] if pair_trade_context else "なし"}
+
+以下のJSON形式のみで回答（余計なテキスト厳禁）:
+{{"thesis": "核心テーゼ（50字以内、具体的数値を含む）",
+"thesis_timeframe": "short or mid or long",
+"bull_scenario": {{
+  "narrative": "楽観シナリオ展開（80字以内）",
+  "evidence": ["根拠1（データソース:値）", "根拠2（データソース:値）", "根拠3以上"],
+  "target_price": 数値,
+  "target_pct": 数値,
+  "target_days": 整数,
+  "take_profit_plan": "段階的利確戦略（具体的価格・条件を含む）"
+}},
+"bear_scenario": {{
+  "narrative": "悲観シナリオ展開（80字以内）",
+  "evidence": ["根拠1（データソース:値）", "根拠2（データソース:値）", "根拠3以上"],
+  "stop_price": 数値,
+  "risk_pct": 数値,
+  "hedge_plan": "具体的ヘッジ戦略（条件→アクション）"
+}},
+"invalidation": {{
+  "conditions": ["戦略前提崩壊条件1", "条件2"],
+  "action": "無効化時のアクション"
+}}}}"""
+
+                _strat_resp = _strategy_model.generate_content(_strategy_prompt)
+                _strat_raw = _strat_resp.text.strip()
+
+                # JSONパース
+                import json as _json_sp
+                _strat_clean = _strat_raw
+                if "```" in _strat_clean:
+                    _parts = _strat_clean.split("```")
+                    if len(_parts) >= 3:
+                        _strat_clean = _parts[1].replace("json", "", 1).strip()
+                if "{" in _strat_clean:
+                    _strat_clean = _strat_clean[_strat_clean.index("{"):_strat_clean.rindex("}") + 1]
+                _strat_parsed = _json_sp.loads(_strat_clean)
+
+                # 根拠品質チェック
+                _bull_ev = _strat_parsed.get("bull_scenario", {}).get("evidence", [])
+                _bear_ev = _strat_parsed.get("bear_scenario", {}).get("evidence", [])
+                _has_num = lambda evs: any(any(c.isdigit() for c in str(e)) for e in evs)
+
+                if len(_bull_ev) >= 3 and len(_bear_ev) >= 3 and _has_num(_bull_ev) and _has_num(_bear_ev):
+                    # evidence_snapshot自動付加
+                    _strat_parsed["evidence_snapshot"] = {
+                        "bt_confidence": bt_confidence,
+                        "bt_best_strategy": bt_best_strategy,
+                        "sentiment": {"score": round(sentiment_score, 3), "label": sentiment_label},
+                        "macro": {"capital_flow_phase": _capital_flow_phase},
+                        "btc": {"price": _strat_btc.get("price", 0), "change_24h": _strat_btc.get("change_24h", 0), "change_30d": _strat_btc.get("change_30d", 0)},
+                        "technicals": {"rsi_14": round(_strat_rsi, 1), "macd_signal": _strat_macd},
+                        "voyager_matches": _voyager_matches[:3],
+                        "evolver_adjustments": _evolver_labels[:5] if _evolver_labels else [],
+                        "reflexion_instruction": reflexion_insight[:200] if reflexion_insight else "",
+                    }
+                    if _strat_macro:
+                        _strat_parsed["evidence_snapshot"]["macro"].update({k: v for k, v in _strat_macro.items() if isinstance(v, (int, float, str))})
+                    _position_strategy = _strat_parsed
+                    _s_thesis = _strat_parsed.get("thesis", "")[:60]
+                    _s_tp = _strat_parsed.get("bull_scenario", {}).get("target_pct", 0)
+                    _s_sl = _strat_parsed.get("bear_scenario", {}).get("risk_pct", 0)
+                    print(f"[Phase 3b] ✅ 戦略書生成完了: {_s_thesis} (target:{_s_tp:+.1f}% / stop:{_s_sl:.1f}%)")
+                else:
+                    print(f"[Phase 3b] ⚠️ 根拠品質不足: bull_ev={len(_bull_ev)}, bear_ev={len(_bear_ev)} → 戦略書なしで続行")
+
+            except Exception as _se:
+                print(f"[Phase 3b] ⚠️ 戦略書生成失敗: {str(_se)[:80]} → 既存フローで続行")
+
+        # ============================================================
         # analysis_only モード: レポート生成のみ（ACP Market Intelligence用）
         # Phase 5〜8（取引・Discord・Moltbook・メモリ）をスキップ
         # ============================================================
@@ -1155,9 +1320,12 @@ class TrinityCouncil(NeoBaseCrew):
                                         except Exception:
                                             _entry_ctx["btc_24h"] = 0
                                             _entry_ctx["btc_trend"] = "unknown"
+                                        # Phase S1: 戦略書をentry_contextに保存
+                                        if _position_strategy:
+                                            _entry_ctx["strategy"] = _position_strategy
                                         _pw_state["holdings"][clean_symbol]["entry_context"] = _entry_ctx
                                         self.portfolio.wallet._save_wallet()
-                                        logger.info(f"Entry context saved for {clean_symbol}: conf={_calc_conf}, bt={bt_confidence}")
+                                        logger.info(f"Entry context saved for {clean_symbol}: conf={_calc_conf}, bt={bt_confidence}, strategy={'yes' if _position_strategy else 'no'}")
                                 else:
                                     trade_result = {"status": "skipped", "reason": f"投入額${trade_amount_usd:.2f}が最低額$10未満"}
                                     print(f"\n[Phase 5] ⏭️ BUY判定だが投入額不足: ${trade_amount_usd:.2f}")
@@ -1211,12 +1379,20 @@ class TrinityCouncil(NeoBaseCrew):
         # 取引結果テキスト
         if trade_action == "BUY" and trade_result and trade_result.get("status") == "success":
             tx = trade_result.get("tx", {})
+            _strategy_line = ""
+            if _position_strategy:
+                _s_thesis = _position_strategy.get("thesis", "")[:60]
+                _s_tf = _position_strategy.get("thesis_timeframe", "?")
+                _s_tp = _position_strategy.get("bull_scenario", {}).get("target_pct", 0)
+                _s_sl = _position_strategy.get("bear_scenario", {}).get("risk_pct", 0)
+                _strategy_line = f"\n🎯 戦略: {_s_thesis}\n📐 TF={_s_tf} | TP={_s_tp:+.1f}% | SL={_s_sl:.1f}%"
             trade_text = (
                 f"✅ **BUY EXECUTED**\n"
                 f"💰 Amount: ${trade_amount_usd:.2f} USDC\n"
                 f"📊 Price: ${current_price:.6f}\n"
                 f"🪙 Tokens: {tx.get('amount_token', 0):.4f} {clean_symbol}\n"
                 f"📁 New Balance: ${self.portfolio.get_balance().get('USDC', 0):.2f} USDC"
+                f"{_strategy_line}"
             )
         elif trade_action == "SELL" and trade_result and trade_result.get("status") == "success":
             trade_text = (
