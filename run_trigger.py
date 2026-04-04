@@ -30,7 +30,7 @@ def check_tp_sl_all_positions():
     Returns: True if any SELL was executed (triggers cooldown)"""
     from tools.paper_wallet import PaperWallet
     from core.memory_db import NeoMemoryDB
-    import sqlite3
+    import sqlite3, os
     from datetime import datetime, timezone
     pw = PaperWallet()
     holdings = pw.state.get("holdings", {})
@@ -100,8 +100,9 @@ def check_tp_sl_all_positions():
                 os.makedirs(os.path.dirname(_f2b_cache_path), exist_ok=True)
                 with open(_f2b_cache_path, "w") as _fc:
                     _json_f2b.dump(_f2b_data, _fc)
+                logger.info(f"[F2b] キャッシュ更新: SPY {_spy_chg:+.1f}% Gold {_gold_chg:+.1f}%")
             except Exception as _yfe:
-                logger.debug(f"[F2b] yfinance取得失敗: {_yfe}")
+                logger.warning(f"[F2b] yfinance取得失敗: {_yfe}")
         if _f2b_data:
             _spy_chg_val = _f2b_data.get("spy_chg", 0)
             _gold_chg_val = _f2b_data.get("gold_chg", 0)
@@ -118,8 +119,8 @@ def check_tp_sl_all_positions():
             # F2とF2bの最大レベルを採用
             if _f2b_level > _f2_level:
                 _f2_level = _f2b_level
-    except Exception:
-        pass
+    except Exception as _f2b_outer_e:
+        logger.warning(f"[F2b] 外部エラー: {_f2b_outer_e}")
 
     # RSI計算用ヘルパー（SQLiteの5分足から14期間RSI）
     def _calc_rsi(symbol, period=14):
