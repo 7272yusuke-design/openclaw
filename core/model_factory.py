@@ -17,6 +17,18 @@ _DEFAULTS = {
     "fast":     "gemini-2.0-flash",
 }
 
+class _GenaiModelWrapper:
+    """google.genai SDK用ラッパー — 旧generate_content()インターフェースを維持"""
+    def __init__(self, api_key: str, model_name: str):
+        from google import genai
+        self._client = genai.Client(api_key=api_key)
+        self._model_name = model_name
+
+    def generate_content(self, prompt: str, **kwargs):
+        return self._client.models.generate_content(
+            model=self._model_name, contents=prompt, **kwargs
+        )
+
 class ModelFactory:
     """LLMモデルの一元管理"""
 
@@ -36,12 +48,10 @@ class ModelFactory:
 
     @staticmethod
     def get_genai_model(tier: str = "fast"):
-        """google.generativeai GenerativeModelインスタンスを返す"""
-        import google.generativeai as genai
+        """google.genai SDK経由のGenerativeModelラッパーを返す（v6.5am移行）"""
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        genai.configure(api_key=api_key)
         model_name = ModelFactory.get_model_name(tier)
-        return genai.GenerativeModel(model_name)
+        return _GenaiModelWrapper(api_key=api_key, model_name=model_name)
 
     @staticmethod
     def get_openrouter_config(tier: str = "standard") -> dict:
