@@ -231,9 +231,20 @@ class CostGuard:
             from tools.paper_wallet import PaperWallet
             pw = PaperWallet()
             total = pw.state.get("usd_balance", 0)
-            # ポジション評価額も加算
+            # ポジション評価額も加算（時価で計算）
             for sym, holding in pw.state.get("holdings", {}).items():
-                total += float(holding.get("current_value", 0))
+                if isinstance(holding, dict):
+                    _amt = float(holding.get("amount", 0))
+                else:
+                    _amt = float(holding)
+                if _amt > 0:
+                    try:
+                        from tools.market_data import MarketData
+                        _td = MarketData.fetch_token_data(sym)
+                        _price = float(_td.get("priceUsd", 0)) if _td else 0
+                        total += _amt * _price
+                    except Exception:
+                        pass
 
             hwm = self._breaker.get("hwm", self.INITIAL_CAPITAL)
             self.update_hwm(total)
