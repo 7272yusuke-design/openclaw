@@ -128,6 +128,44 @@ def check_tp_sl_all_positions():
             _hard_tp = _exit_p["hard_tp_pct"]
             _time_limit = _exit_p["time_limit_hours"]
 
+            # === S2: 戦略書シナリオモニタリング（Phase 0）===
+            _strategy = hdata.get("entry_context", {}).get("strategy") if isinstance(hdata.get("entry_context"), dict) else None
+            if _strategy and current_price > 0:
+                try:
+                    _s_thesis = _strategy.get("thesis", "?")[:50]
+                    _s_entry = float(_strategy.get("entry_price", hdata.get("avg_price", 0)))
+                    _s_bull = _strategy.get("bull_scenario", {})
+                    _s_bear = _strategy.get("bear_scenario", {})
+                    _s_target = float(_s_bull.get("target_price", 0))
+                    _s_stop = float(_s_bear.get("stop_price", 0))
+                    # bull進行度: entry→targetの何%まで来たか
+                    _bull_prog = 0
+                    if _s_target > _s_entry and _s_entry > 0:
+                        _bull_prog = (current_price - _s_entry) / (_s_target - _s_entry) * 100
+                    # bear進行度: entry→stopの何%まで来たか
+                    _bear_prog = 0
+                    if _s_entry > _s_stop and _s_entry > 0:
+                        _bear_prog = (_s_entry - current_price) / (_s_entry - _s_stop) * 100
+                    # invalidation条件チェック
+                    _inv_conditions = _strategy.get("invalidation", {}).get("conditions", [])
+                    # 60サイクル(30分)ごとにログ出力（毎30秒は過剰）
+                    _s2_cycle = getattr(check_tp_sl_all_positions, '_s2_cycle', 0)
+                    check_tp_sl_all_positions._s2_cycle = _s2_cycle + 1
+                    if _s2_cycle % 60 == 0:
+                        _s_tf = _strategy.get("thesis_timeframe", "?")
+                        logger.info(
+                            f"[S2] {clean_symbol} 戦略モニタ: {_s_thesis} | "
+                            f"TF={_s_tf} | bull={_bull_prog:.0f}% | bear={_bear_prog:.0f}% | "
+                            f"PnL={pnl['pnl_pct']:+.1f}% | "
+                            f"target=${_s_target:.4f} stop=${_s_stop:.4f}"
+                        )
+                        if _bear_prog >= 70:
+                            logger.warning(f"[S2] ⚠️ {clean_symbol} bear trigger接近: {_bear_prog:.0f}% → stop=${_s_stop:.4f}")
+                        if _bull_prog >= 80:
+                            logger.info(f"[S2] 🎯 {clean_symbol} bull target接近: {_bull_prog:.0f}% → target=${_s_target:.4f}")
+                except Exception as _s2e:
+                    pass
+
             sell_reason = ""
             sell_label = ""
             # === F2: BTC急落リスク適用 v6.5ai ===
