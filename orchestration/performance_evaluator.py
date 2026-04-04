@@ -87,18 +87,19 @@ def _parse_wallet_history():
             symbol = h.get("symbol", "").split("/")[0].strip().upper()
             price = float(h.get("price", 0))
             amount_usd = float(h.get("amount_usd", 0))
+            amount_token = float(h.get("amount_token", 0))
             timestamp = h.get("timestamp", "")
             
-            if action == "BUY" and amount_usd > 0:
-                buys[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd})
-            elif action == "SELL" and amount_usd > 0:
-                sells[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd})
+            if action == "BUY" and amount_token > 0:
+                buys[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd, "amount_token": amount_token})
+            elif action == "SELL" and amount_token > 0:
+                sells[symbol].append({"timestamp": timestamp, "price": price, "amount_usd": amount_usd, "amount_token": amount_token})
         
         # ゴーストBUY除外: holdingsにないシンボルはSELL分だけBUYを残す
         for symbol in list(buys.keys()):
             if symbol not in holdings:
-                sell_total_usd = sum(s["amount_usd"] for s in sells.get(symbol, []))
-                if sell_total_usd == 0:
+                sell_total_token = sum(s["amount_token"] for s in sells.get(symbol, []))
+                if sell_total_token == 0:
                     # SELLもない → 全BUYがリセットで無効化
                     removed = len(buys[symbol])
                     del buys[symbol]
@@ -106,11 +107,11 @@ def _parse_wallet_history():
                 else:
                     # SELLがある → SELLでカバーされるBUYのみ残す（FIFO）
                     trimmed_buys = []
-                    cumulative_usd = 0
+                    cumulative_token = 0
                     for b in buys[symbol]:
-                        cumulative_usd += b["amount_usd"]
+                        cumulative_token += b["amount_token"]
                         trimmed_buys.append(b)
-                        if cumulative_usd >= sell_total_usd:
+                        if cumulative_token >= sell_total_token:
                             break
                     removed = len(buys[symbol]) - len(trimmed_buys)
                     if removed > 0:
@@ -138,11 +139,12 @@ def _calc_closed_trades(buys, sells):
 
         remaining_buys = list(buy_queue)
         for sell in sell_list:
-            sell_usd_left = sell["amount_usd"]
-            while sell_usd_left > 0 and remaining_buys:
+            sell_token_left = sell["amount_token"]
+            while sell_token_left > 0.0001 and remaining_buys:
                 buy = remaining_buys[0]
-                matched_usd = min(buy["amount_usd"], sell_usd_left)
+                matched_token = min(buy["amount_token"], sell_token_left)
                 pnl_pct = (sell["price"] - buy["price"]) / buy["price"] * 100
+                matched_usd = round(matched_token * buy["price"], 2)
                 closed.append({
                     "symbol": symbol,
                     "entry_price": buy["price"],
@@ -150,9 +152,9 @@ def _calc_closed_trades(buys, sells):
                     "amount_usd": matched_usd,
                     "pnl_pct": round(pnl_pct, 2)
                 })
-                sell_usd_left -= matched_usd
-                buy["amount_usd"] -= matched_usd
-                if buy["amount_usd"] <= 0:
+                sell_token_left -= matched_token
+                buy["amount_token"] -= matched_token
+                if buy["amount_token"] <= 0.0001:
                     remaining_buys.pop(0)
 
         if remaining_buys:
