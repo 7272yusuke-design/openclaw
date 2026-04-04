@@ -1004,6 +1004,37 @@ class TrinityCouncil(NeoBaseCrew):
                 if _strat_macro:
                     _macro_line = f"SPY30d: {_strat_macro.get('spy_30d', 'N/A')}%, DXY30d: {_strat_macro.get('dxy_30d', 'N/A')}%, Gold30d: {_strat_macro.get('gold_30d', 'N/A')}%, US10Y30d: {_strat_macro.get('us10y_30d', 'N/A')}%"
 
+                # ATR計算（ボラティリティベースSL/TP算出用）
+                _strat_atr = 0.0
+                _strat_atr_pct = 0.0
+                try:
+                    if "df" in dir() and df is not None and len(df) >= 15:
+                        _highs = df["high"].astype(float).iloc[-14:]
+                        _lows = df["low"].astype(float).iloc[-14:]
+                        _closes = df["close"].astype(float).iloc[-15:-1]
+                        _tr = []
+                        for _i in range(len(_highs)):
+                            _tr.append(max(_highs.iloc[_i] - _lows.iloc[_i],
+                                          abs(_highs.iloc[_i] - _closes.iloc[_i]),
+                                          abs(_lows.iloc[_i] - _closes.iloc[_i])))
+                        _strat_atr = sum(_tr) / len(_tr) if _tr else 0
+                        _strat_atr_pct = (_strat_atr / current_price * 100) if current_price > 0 else 0
+                except Exception:
+                    pass
+
+                # ポートフォリオリスク制約計算
+                _strat_total_assets = current_usdc
+                try:
+                    for _ps, _pa in self.portfolio.get_balance().items():
+                        if _ps == "USDC":
+                            continue
+                        _pd = MarketData.fetch_token_data(_ps)
+                        if _pd and _pd.get("status") == "success":
+                            _strat_total_assets += float(_pa) * float(_pd.get("priceUsd", 0)) if not isinstance(_pa, dict) else float(_pa.get("amount", 0)) * float(_pd.get("priceUsd", 0))
+                except Exception:
+                    pass
+                _strat_max_loss_usd = _strat_total_assets * 0.03  # 3%ルール
+
                 _strategy_prompt = f"""あなたは自律取引AIエージェントNeoの戦略立案者だ。
 BUY判断が下された。このポジションの戦略書を作成せよ。
 
@@ -1011,6 +1042,15 @@ BUY判断が下された。このポジションの戦略書を作成せよ。
 「上がるか下がるか」の予測ではなく、「根拠ある楽観シナリオ+利確戦略」と「根拠ある悲観シナリオ+ヘッジ戦略」を設計せよ。
 各シナリオの根拠は最低3つ、うち1つ以上は定量データ（勝率・RSI値・変動率等）を含むこと。
 根拠は異なるデータソースから取得すること（同じソースの繰り返し不可）。
+
+【ハードリスク制約（違反不可）】
+- 最大ポジション損失: ${_strat_max_loss_usd:,.0f}（総資産${_strat_total_assets:,.0f}の3%）
+- stop_priceは上記損失制約内に収めよ。risk_pctが-6%を超えるSL設定は却下
+- ATR(14): ${_strat_atr:.6f} ({_strat_atr_pct:.2f}%) — SL/TPはATRを基準に設計せよ
+  - 推奨SL: 1.5〜2.5×ATR = {_strat_atr_pct*1.5:.1f}%〜{_strat_atr_pct*2.5:.1f}%
+  - 推奨TP: 2〜4×ATR = {_strat_atr_pct*2:.1f}%〜{_strat_atr_pct*4:.1f}%
+- リスク/リワード比: 最低1.5以上（TP%÷SL%≧1.5）
+- invalidation条件とstop_priceは具体的な数値・条件で明記必須（曖昧なら却下）
 
 【銘柄・価格】
 {clean_symbol} @ ${current_price:.6f}
@@ -1091,7 +1131,11 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 _bear_ev = _strat_parsed.get("bear_scenario", {}).get("evidence", [])
                 _has_num = lambda evs: any(any(c.isdigit() for c in str(e)) for e in evs)
 
-                if len(_bull_ev) >= 3 and len(_bear_ev) >= 3 and _has_num(_bull_ev) and _has_num(_bear_ev):
+                _target_pct = abs(float(_strat_parsed.get("bull_scenario", {}).get("target_pct", 0)))
+                _risk_pct = abs(float(_strat_parsed.get("bear_scenario", {}).get("risk_pct", 0)))
+                _rr_ratio = (_target_pct / _risk_pct) if _risk_pct > 0 else 0
+                _risk_ok = _risk_pct <= 6.0  # ハード制約: -6%超は却下
+                if len(_bull_ev) >= 3 and len(_bear_ev) >= 3 and _has_num(_bull_ev) and _has_num(_bear_ev) and _risk_ok:
                     # evidence_snapshot自動付加
                     _strat_parsed["evidence_snapshot"] = {
                         "bt_confidence": bt_confidence,
@@ -1110,9 +1154,15 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                     _s_thesis = _strat_parsed.get("thesis", "")[:60]
                     _s_tp = _strat_parsed.get("bull_scenario", {}).get("target_pct", 0)
                     _s_sl = _strat_parsed.get("bear_scenario", {}).get("risk_pct", 0)
-                    print(f"[Phase 3b] ✅ 戦略書生成完了: {_s_thesis} (target:{_s_tp:+.1f}% / stop:{_s_sl:.1f}%)")
+                    print(f"[Phase 3b] ✅ 戦略書生成完了: {_s_thesis} (target:{_s_tp:+.1f}% / stop:{_s_sl:.1f}% / RR={_rr_ratio:.2f} / ATR={_strat_atr_pct:.1f}%)")
                 else:
-                    print(f"[Phase 3b] ⚠️ 根拠品質不足: bull_ev={len(_bull_ev)}, bear_ev={len(_bear_ev)} → 戦略書なしで続行")
+                    _rej_reason = []
+                    if len(_bull_ev) < 3: _rej_reason.append(f"bull_ev={len(_bull_ev)}<3")
+                    if len(_bear_ev) < 3: _rej_reason.append(f"bear_ev={len(_bear_ev)}<3")
+                    if not _risk_ok: _rej_reason.append(f"risk={_risk_pct:.1f}%>6%")
+                    if not _has_num(_bull_ev): _rej_reason.append("bull定量データなし")
+                    if not _has_num(_bear_ev): _rej_reason.append("bear定量データなし")
+                    print(f"[Phase 3b] ⚠️ 品質不足: {', '.join(_rej_reason)} (RR={_rr_ratio:.2f}) → 戦略書なしで続行")
 
             except Exception as _se:
                 print(f"[Phase 3b] ⚠️ 戦略書生成失敗: {str(_se)[:80]} → 既存フローで続行")
