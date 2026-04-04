@@ -1517,6 +1517,20 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
             "symbol": clean_symbol,
             "tier": "Tier0 (BTC/ETH)" if clean_symbol in ("BTC", "ETH") else "Tier1 (VP銘柄)",
             "exit_profile": "",
+            "strategy": _position_strategy,
+            "scoring_breakdown": {
+                "base": 50,
+                "bt": bt_confidence,
+                "sent": round(sentiment_score, 3),
+                "acc": accuracy,
+                "bias": 5 if trade_action == "BUY" else 0,
+                "tz": _tz_label,
+                "nanpin": _npin_label,
+                "streak": _streak_label,
+                "pair_z": _pt_z_label,
+                "cfr": _cfr_label,
+                "total": _structured_confidence,
+            },
         }
         # exit_profile情報をBUY時に追加
         if trade_action == "BUY" and trade_result and trade_result.get("status") == "success":

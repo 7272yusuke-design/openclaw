@@ -68,15 +68,56 @@ class DiscordReporter:
         bull_text = _clean_opinion(d.get("bull"))
         bear_text = _clean_opinion(d.get("bear"))
         
+        # --- 戦略書セクション（Phase S対応） ---
+        _strat = d.get("strategy")
+        _strat_text = ""
+        if _strat:
+            _bull_s = _strat.get("bull_scenario", {})
+            _bear_s = _strat.get("bear_scenario", {})
+            _inv = _strat.get("invalidation", {})
+            _tp_pct = _bull_s.get("target_pct", 0)
+            _sl_pct = _bear_s.get("risk_pct", 0)
+            _rr = abs(_tp_pct / _sl_pct) if _sl_pct != 0 else 0
+            _strat_text = (
+                f"📌 **{_strat.get('thesis', '?')}**\n"
+                f"⏱️ TF: {_strat.get('thesis_timeframe', '?')} | 想定期間: {_bull_s.get('target_days', '?')}日\n"
+                f"🎯 TP: ${_bull_s.get('target_price', 0):.4f} ({_tp_pct:+.1f}%)\n"
+                f"🛡️ SL: ${_bear_s.get('stop_price', 0):.4f} ({_sl_pct:.1f}%)\n"
+                f"📐 RR比: {_rr:.2f}\n"
+                f"📈 利確戦略: {_bull_s.get('take_profit_plan', 'N/A')[:100]}\n"
+                f"📉 ヘッジ戦略: {_bear_s.get('hedge_plan', 'N/A')[:100]}\n"
+                f"⛔ 無効化条件: {', '.join(_inv.get('conditions', []))[:120]}"
+            )
+
+        # --- スコアリング内訳 ---
+        _sb = d.get("scoring_breakdown", {})
+        _score_text = "N/A"
+        if _sb:
+            _score_parts = []
+            _score_parts.append(f"Base: {_sb.get('base', 50)}")
+            if _sb.get('bt'): _score_parts.append(f"BT: {_sb['bt']}")
+            if _sb.get('sent'): _score_parts.append(f"Sent: {_sb['sent']}")
+            if _sb.get('acc'): _score_parts.append(f"Acc: {_sb['acc']}%")
+            if _sb.get('bias'): _score_parts.append(f"Bias: +{_sb['bias']}")
+            if _sb.get('tz') and _sb['tz'] != 'none': _score_parts.append(f"TZ: {_sb['tz']}")
+            if _sb.get('nanpin') and _sb['nanpin'] != 'none': _score_parts.append(f"Nanpin: {_sb['nanpin']}")
+            if _sb.get('streak') and _sb['streak'] != 'none': _score_parts.append(f"Streak: {_sb['streak']}")
+            if _sb.get('pair_z') and _sb['pair_z'] != 'none': _score_parts.append(f"PairZ: {_sb['pair_z']}")
+            if _sb.get('cfr') and _sb['cfr'] != 'none': _score_parts.append(f"CFR: {_sb['cfr']}")
+            _score_text = f"**Confidence: {_sb.get('total', '?')}** | " + " | ".join(_score_parts)
+
         # --- フィールド組み立て ---
         fields = [
             {"name": "📊 市況データ", "value": cls._truncate(market_text, 500), "inline": False},
             {"name": "💼 ポジション", "value": cls._truncate(pos_text, 300), "inline": False},
-            {"name": "🐂 強気派の意見", "value": cls._truncate(bull_text, 500), "inline": False},
-            {"name": "🐻 弱気派の意見", "value": cls._truncate(bear_text, 500), "inline": False},
-            {"name": "📈 バックテスト", "value": cls._truncate(d.get("backtest_summary", "N/A"), 400), "inline": False},
-            {"name": "🤖 Neoの最終判断", "value": cls._truncate(d.get("verdict", "Pending"), 800), "inline": False},
         ]
+        if _strat_text:
+            fields.append({"name": "🎯 ポジション戦略書", "value": cls._truncate(_strat_text, 600), "inline": False})
+        else:
+            fields.append({"name": "🐂 強気派の意見", "value": cls._truncate(bull_text, 500), "inline": False})
+            fields.append({"name": "🐻 弱気派の意見", "value": cls._truncate(bear_text, 500), "inline": False})
+        fields.append({"name": "📐 スコアリング", "value": cls._truncate(_score_text, 400), "inline": False})
+        fields.append({"name": "🤖 Neoの最終判断", "value": cls._truncate(d.get("verdict", "Pending"), 800), "inline": False})
         
         # N.1ペアトレードフィールド（存在する場合のみ追加）
         if d.get("pair_trade"):
@@ -276,11 +317,32 @@ class DiscordReporter:
             for pos in summary.get("positions", []):
                 pnl_emoji = "📈" if pos["pnl_pct"] >= 0 else "📉"
                 lines_pf.append(
-                    f"{pnl_emoji} {pos['symbol']}: {pos['amount']:,.0f}枚"
+                    f"{pnl_emoji} **{pos['symbol']}**: {pos['amount']:,.0f}枚"
                     f" @ ${pos['avg_price']:.6f} → ${pos['current_price']:.6f}"
-                    f" ({pos['pnl_pct']:+.2f}%)"
+                    f" | {pos['pnl_pct']:+.2f}% (${pos.get('pnl_usd', 0):+,.2f})"
                 )
-            lines_pf.append(f"💰 **総資産: ${summary['total_value_usd']:,.2f}** ({summary['total_pnl_usd']:+,.2f})")
+                # 戦略書情報を追加（entry_contextから取得）
+                _sym = pos.get("symbol", "")
+                _hdata = w.state.get("holdings", {}).get(_sym, {})
+                _ec = _hdata.get("entry_context", {}) if isinstance(_hdata, dict) else {}
+                _strat = _ec.get("strategy")
+                if _strat:
+                    _bull_s = _strat.get("bull_scenario", {})
+                    _bear_s = _strat.get("bear_scenario", {})
+                    _tp = _bull_s.get("target_price", 0)
+                    _sl = _bear_s.get("stop_price", 0)
+                    _entry = float(_hdata.get("avg_price", 0))
+                    _cur = pos.get("current_price", 0)
+                    _bull_prog = ((_cur - _entry) / (_tp - _entry) * 100) if _tp > _entry > 0 else 0
+                    _bear_prog = ((_entry - _cur) / (_entry - _sl) * 100) if _entry > _sl > 0 and _entry > 0 else 0
+                    _days = _bull_s.get("target_days", "?")
+                    lines_pf.append(
+                        f"   📌 {_strat.get('thesis', '?')[:50]}"
+                    )
+                    lines_pf.append(
+                        f"   🎯 TP: ${_tp:.4f} ({_bull_prog:.0f}%到達) | 🛡️ SL: ${_sl:.4f} ({_bear_prog:.0f}%接近) | ⏱️ {_days}日想定"
+                    )
+            lines_pf.append(f"💰 **総資産: ${summary['total_value_usd']:,.2f}** (${summary['total_pnl_usd']:+,.2f})")
             portfolio_str = "\n".join(lines_pf)
         except Exception as _pe:
             portfolio_str = f"取得失敗: {str(_pe)[:50]}"
