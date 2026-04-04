@@ -649,17 +649,30 @@ def _run_nightly_batch():
     except Exception as _ss:
         logger.error(f"[Nightly] Strategy scores生成失敗: {_ss}")
     # 6b. Voyagerスキル更新
+    voyager_nightly_text = ""
     try:
         from research.voyager_skills import run_voyager_update
-        run_voyager_update()
+        _voyager_skills = run_voyager_update()
+        if _voyager_skills:
+            _voy_lines = [f"{s['skill_name']}: 勝率{s['win_rate']}% ({s['sample_size']}件)" for s in _voyager_skills[:5]]
+            voyager_nightly_text = "\n\n🔭 **Voyager学習**: " + " / ".join(_voy_lines)
+        else:
+            voyager_nightly_text = "\n\n🔭 **Voyager**: データ不足（スキップ）"
         logger.info("[Nightly] Voyager: スキル更新完了")
     except Exception as _ve:
         logger.error(f"[Nightly] Voyager更新失敗: {_ve}")
 
     # 6c. EvolveRルール更新
+    evolver_nightly_text = ""
     try:
         from research.evolver_rules import run_evolver_update
-        run_evolver_update()
+        _evolver_rules = run_evolver_update()
+        if _evolver_rules:
+            _sev_icon = {"high": "🔴", "warning": "🟡", "info": "🟢"}
+            _evo_lines = [f"{_sev_icon.get(r['severity'], '⚪')} {r['rule'][:60]}" for r in _evolver_rules[:5]]
+            evolver_nightly_text = "\n\n🧬 **EvolveR進化**: " + " / ".join(_evo_lines)
+        else:
+            evolver_nightly_text = "\n\n🧬 **EvolveR**: データ不足（スキップ）"
         logger.info("[Nightly] EvolveR: ルール更新完了")
         # 6c2. EvolveR Scoring Adjustment生成 (E3)
         try:
@@ -734,7 +747,20 @@ def _run_nightly_batch():
             f"{wait_quality_text}"
             f"{h2_progress_text}"
             f"{gplearn_nightly_text}"
+            f"{voyager_nightly_text}"
+            f"{evolver_nightly_text}"
         )
+        # 直近教訓をサマリーに追加（ChromaDBから）
+        try:
+            from core.memory_db import NeoMemoryDB
+            _nm = NeoMemoryDB()
+            _lessons = _nm.recall(query="trade lesson insight failure", n_results=3, where={"category": "trade_result"})
+            _lesson_docs = _lessons.get("documents", [[]])[0] if _lessons else []
+            if _lesson_docs:
+                _lesson_lines = [f"• {d[:80]}" for d in _lesson_docs if isinstance(d, str)]
+                summary += "\n\n📝 **直近の教訓**:\n" + "\n".join(_lesson_lines[:3])
+        except Exception:
+            pass
         # Nightly専用チャンネルに送信
         import requests as _req
         _nightly_url = DiscordReporter.NIGHTLY_WEBHOOK or DiscordReporter.LOG_WEBHOOK
