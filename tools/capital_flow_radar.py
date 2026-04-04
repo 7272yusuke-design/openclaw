@@ -223,11 +223,22 @@ def run_capital_flow_radar() -> dict:
         },
     }
 
-    # Blackboard書き込み
+    # Blackboard書き込み（既存のmacro_dataを保持してマージ）
     try:
         os.makedirs(os.path.dirname(BLACKBOARD_PATH), exist_ok=True)
+        _existing_bb = {}
+        if os.path.exists(BLACKBOARD_PATH):
+            try:
+                with open(BLACKBOARD_PATH, "r") as _ef:
+                    _existing_bb = json.load(_ef)
+            except Exception:
+                pass
+        _preserved_macro = _existing_bb.get("macro_data")
+        result_merged = {**result}
+        if _preserved_macro:
+            result_merged["macro_data"] = _preserved_macro
         with open(BLACKBOARD_PATH, "w") as f:
-            json.dump(result, f, indent=2, default=str)
+            json.dump(result_merged, f, indent=2, default=str)
         logger.info(f"Blackboard更新: {BLACKBOARD_PATH}")
     except Exception as e:
         logger.error(f"Blackboard write error: {e}")

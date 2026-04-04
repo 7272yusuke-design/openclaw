@@ -72,5 +72,40 @@
       "total_mcap_usd": 2385415256681.152,
       "mcap_change_24h": 0.22
     }
+  },
+  "macro_data": {
+    "spy": {
+      "value": 655.83,
+      "change_1d": 0.09,
+      "change_7d": 1.66,
+      "change_30d": -3.34,
+      "ticker": "SPY"
+    },
+    "dxy": {
+      "value": 100.186,
+      "change_1d": 0.16,
+      "change_7d": 0.04,
+      "change_30d": 1.43,
+      "ticker": "DX-Y.NYB"
+    },
+    "gold": {
+      "value": 4651.5,
+      "change_1d": -2.75,
+      "change_7d": 6.31,
+      "change_30d": -8.93,
+      "ticker": "GC=F"
+    },
+    "us10y": {
+      "value": 4.313,
+      "change_1d": -0.14,
+      "change_7d": -2.33,
+      "change_30d": 6.34,
+      "ticker": "^TNX"
+    },
+    "btc_dominance": {
+      "value": 56.13,
+      "total_market_cap_usd": 2383927442968.0503
+    },
+    "collected_at": "2026-04-04T05:05:49.290741+00:00"
   }
 }
