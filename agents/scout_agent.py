@@ -53,7 +53,8 @@ class MarketTool(BaseTool):
             # 特徴量ビルド → バックテスト
             try:
                 feat_df = FeatureBuilder.build_from_memory(ohlcv_df)
-                bt_result = CoreBacktest.run_alpha_strategy(feat_df)
+                bt_result_full = CoreBacktest.run_all_strategies(feat_df, symbol=self.symbol if hasattr(self, "symbol") else "UNKNOWN", use_optuna=False)
+                bt_result = bt_result_full.get('best', bt_result_full)  # bestを取り出す
                 total_trades = bt_result.get('trades', 0)
                 sharpe_raw = bt_result.get('sharpe_raw', bt_result.get('sharpe', 0.0))
                 

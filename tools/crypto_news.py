@@ -33,7 +33,7 @@ RSS_SOURCES = {
     "TheBlock":      "https://www.theblock.co/rss.xml",
     "Decrypt":       "https://decrypt.co/feed",
     "BlockworksDefi": "https://blockworks.co/feed",
-    "DLNews":         "https://www.dlnews.com/arc/outboundfeeds/rss/",
+    # DLNews: RSS 404で廃止 (v6.5ap)
 }
 
 
