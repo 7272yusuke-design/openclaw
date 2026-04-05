@@ -1,5 +1,5 @@
 {
-  "usd_balance": 79185.69860490016,
+  "usd_balance": 74794.47860490016,
   "holdings": {
     "VIRTUAL": {
       "amount": 13693.757011726724,
@@ -32,6 +32,100 @@
         "btc_24h": 0.55,
         "btc_trend": "\u9577\u671f\u4e0b\u843d\u30c8\u30ec\u30f3\u30c9\ud83d\udd34"
       }
+    },
+    "ETH": {
+      "amount": 2.123651302838979,
+      "avg_price": 2067.7688442211056,
+      "entry_time": "2026-04-05T02:00:06.887574+00:00",
+      "strategy_tag": "triple_ma_cross",
+      "exit_profile": "mid",
+      "entry_context": {
+        "rsi_14": 0,
+        "sentiment_score": -0.25,
+        "sentiment_label": "bearish",
+        "bt_confidence": "HIGH",
+        "confidence": 57,
+        "key_factor": "SharpeRatio",
+        "scoring_breakdown": {
+          "base": 50,
+          "bt": "HIGH",
+          "sent": -0.25,
+          "acc": 0.0,
+          "tz": "Asia+3",
+          "npin": "npin0:0",
+          "streak": "streak0",
+          "pt_z": "z0",
+          "cfr": "cfr+23:+2(Neutral)",
+          "macro": "macro-3(RISK_OFF_EXIT)",
+          "total": 57
+        },
+        "capital_flow_phase": "RISK_OFF_EXIT",
+        "timestamp": "2026-04-05T02:00:06.889844+00:00",
+        "btc_24h": 0.35,
+        "btc_trend": "\u9577\u671f\u4e0b\u843d\u30c8\u30ec\u30f3\u30c9\ud83d\udd34",
+        "strategy": {
+          "thesis": "EMA20/50\u30af\u30ed\u30b9\u6226\u7565\u3067\u3001\u77ed\u671f\u53cd\u767a\u72d9\u3044\u3002TP:2069, SL:2045",
+          "thesis_timeframe": "short",
+          "bull_scenario": {
+            "narrative": "EMA20/50\u30b4\u30fc\u30eb\u30c7\u30f3\u30af\u30ed\u30b9\u767a\u751f\u3067\u77ed\u671f\u4e0a\u6607\u30c8\u30ec\u30f3\u30c9\u5165\u308a\u3002BTC\u53cd\u767a\u3001EU\u6642\u9593\u5e2f\u306eETH\u8cb7\u3044\u5897\u3057\u3067\u76ee\u6a19\u4fa1\u683c\u306b\u5230\u9054\u3002",
+            "evidence": [
+              "EMA20/50\u30af\u30ed\u30b9\uff08\u30d0\u30c3\u30af\u30c6\u30b9\u30c8:Sharpe 5.908\uff09",
+              "BTC\u304c67,500\u30c9\u30eb\u7a81\u7834\uff08BTC\u5e02\u5834:\u73fe\u5728\u4fa1\u683c\uff09",
+              "EU\u6642\u9593\u5e2fETH\u52dd\u7387\u9ad8\uff08Reflexion:\u904e\u53bb\u30c7\u30fc\u30bf\uff09"
+            ],
+            "target_price": 2069.49,
+            "target_pct": 0.59,
+            "target_days": 3,
+            "take_profit_plan": "2065\u306750%\u5229\u78ba\u3001\u6b8b\u308a50%\u306f2069\u3067\u5229\u78ba\u30022060\u7a81\u7834\u3067SL\u3092\u30a8\u30f3\u30c8\u30ea\u30fc\u4fa1\u683c\u306b\u79fb\u52d5\u3002"
+          },
+          "bear_scenario": {
+            "narrative": "BTC\u304c\u4e0b\u843d\u30c8\u30ec\u30f3\u30c9\u7d99\u7d9a\u3001\u30ea\u30b9\u30af\u30aa\u30d5\u30e0\u30fc\u30c9\u5f37\u307e\u308a\u3001ETH\u3082\u9023\u52d5\u3057\u3066\u4e0b\u843d\u3002\u5f31\u6c17\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u304c\u52a0\u901f\u3057\u3001\u640d\u5931\u62e1\u5927\u3002",
+            "evidence": [
+              "ETH\u5f31\u6c17\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\uff08\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8: score=-0.25\uff09",
+              "BTC\u9577\u671f\u4e0b\u843d\u30c8\u30ec\u30f3\u30c9\uff08BTC\u5e02\u5834:30d -1.5%\uff09",
+              "\u8cc7\u672c\u30d5\u30ed\u30fc: RISK_OFF_EXIT\uff08\u30de\u30af\u30ed\u74b0\u5883:\u8cc7\u672c\u30d5\u30ed\u30fc\u30d5\u30a7\u30fc\u30ba\uff09"
+            ],
+            "stop_price": 2045.0,
+            "risk_pct": -0.6,
+            "hedge_plan": "ETH\u304c2050\u30c9\u30eb\u3092\u4e0b\u56de\u3063\u305f\u3089\u3001\u30dd\u30b8\u30b7\u30e7\u30f3\u30b5\u30a4\u30ba\u306e25%\u76f8\u5f53\u306e\u30b7\u30e7\u30fc\u30c8\u30dd\u30b8\u30b7\u30e7\u30f3\u3092ETH\u3067\u8ffd\u52a0\u3002BTC\u304c66,500\u30c9\u30eb\u3092\u4e0b\u56de\u3063\u305f\u3089\u3001\u6b8b\u308a\u306e75%\u76f8\u5f53\u306e\u30b7\u30e7\u30fc\u30c8\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u8ffd\u52a0\u3002"
+          },
+          "invalidation": {
+            "conditions": [
+              "BTC\u304c68,000\u30c9\u30eb\u4ee5\u4e0a\u306b\u6025\u9a30",
+              "ETH\u304c\u30aa\u30f3\u30c1\u30a7\u30fc\u30f3\u306eDEX\u4fa1\u683c2928.6600\u4ee5\u4e0a\u306b\u6025\u9a30"
+            ],
+            "action": "\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u76f4\u3061\u306b\u30af\u30ed\u30fc\u30ba\u3057\u3001\u640d\u5931\u3092\u78ba\u5b9a\u3002\u5e02\u5834\u306e\u6025\u5909\u306b\u5bfe\u5fdc\u3059\u308b\u305f\u3081\u3001\u624b\u52d5\u3067\u72b6\u6cc1\u3092\u518d\u8a55\u4fa1\u3002"
+          },
+          "evidence_snapshot": {
+            "bt_confidence": "HIGH",
+            "bt_best_strategy": "triple_ma_cross",
+            "sentiment": {
+              "score": -0.25,
+              "label": "bearish"
+            },
+            "macro": {
+              "capital_flow_phase": "RISK_OFF_EXIT",
+              "collected_at": "2026-04-04T12:42:05.800667+00:00"
+            },
+            "btc": {
+              "price": 67110.29,
+              "change_24h": 0.39,
+              "change_30d": -1.47
+            },
+            "technicals": {
+              "rsi_14": 0,
+              "macd_signal": "unknown"
+            },
+            "voyager_matches": [
+              "Voyager Skill: aixbt_trade_pattern \u2014 AIXBT: \u52dd\u738758% \u5e73\u5747\u640d\u76ca-1.23%",
+              "Voyager Skill: aixbt_trade_pattern \u2014 AIXBT: \u52dd\u738758% \u5e73\u5747\u640d\u76ca-1.23%",
+              "Voyager Skill: aixbt_trade_pattern \u2014 AIXBT: \u52dd\u738758% \u5e73\u5747\u640d\u76ca-1.23%"
+            ],
+            "evolver_adjustments": [],
+            "reflexion_instruction": ""
+          }
+        }
+      }
     }
   },
   "history": [
@@ -54,8 +148,18 @@
       "amount_usd": 4395.21,
       "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: HIGH)",
       "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-05T02:00:06.887574+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2057.43,
+      "amount_token": 2.123651302838979,
+      "amount_usd": 4391.22,
+      "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: HIGH)",
+      "strategy_tag": "triple_ma_cross"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-04T05:58:32.032275+00:00"
+  "last_updated": "2026-04-05T02:00:07.103300+00:00"
 }

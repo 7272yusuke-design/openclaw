@@ -474,6 +474,30 @@ def check_tp_sl_all_positions():
                         mem_text += "\n内省: " + introspection
                         logger.info(f"[TP/SL] 🧠 内省: {introspection}")
                     _s4_meta = {"symbol": clean_symbol, "category": "trade_result", "result": result_tag, "pnl_pct": str(pnl['pnl_pct']), "exit_type": sell_label, "failure_category": _failure_category if not is_win else "", "strategy_tag": hdata.get("strategy_tag", "unknown"), "tier": "2"}
+                    # entry_contextからスコアリング要素をtrade_resultに引き継ぎ（パターンマイニング用）
+                    _ec = hdata.get('entry_context', {}) if isinstance(hdata, dict) else {}
+                    _sb = _ec.get('scoring_breakdown', {})
+                    if _sb:
+                        _s4_meta['conf_total'] = str(_sb.get('total', ''))
+                        _s4_meta['bt'] = str(_sb.get('bt', ''))
+                        _s4_meta['tz'] = str(_sb.get('tz', ''))
+                        _s4_meta['cfr'] = str(_sb.get('cfr', ''))
+                        _s4_meta['macro'] = str(_sb.get('macro', ''))
+                        _s4_meta['npin'] = str(_sb.get('npin', ''))
+                        _s4_meta['streak'] = str(_sb.get('streak', ''))
+                        _s4_meta['sent'] = str(_sb.get('sent', ''))
+                    _s4_meta['capital_flow_phase'] = str(_ec.get('capital_flow_phase', ''))
+                    _s4_meta['btc_trend'] = str(_ec.get('btc_trend', ''))
+                    # 時間帯・曜日を自動付与
+                    try:
+                        from datetime import datetime as _dt2
+                        _entry_ts = _ec.get('timestamp', '')
+                        if _entry_ts:
+                            _edt = _dt2.fromisoformat(_entry_ts)
+                            _s4_meta['entry_hour'] = str(_edt.hour)
+                            _s4_meta['entry_weekday'] = str(_edt.strftime('%a'))
+                    except Exception:
+                        pass
                     if not is_win and '_scenario_outcome' in dir():
                         _s4_meta["scenario_outcome"] = _scenario_outcome
                         _s4_meta["strategy_quality_score"] = str(_strategy_quality)
