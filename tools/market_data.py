@@ -235,6 +235,17 @@ class MarketData:
                 return cg_result
             logger.warning(f"CoinGecko failed for {clean_symbol}, falling back to DexScreener")
 
+            # CoinGecko失敗時: DexScreenerの歪み価格を避けるためキャッシュ優先
+            try:
+                cached = NeoUtils.read_json(cache_file)
+                if cached and float(cached.get("priceUsd", 0)) > 0:
+                    _cache_age = time.time() - cached.get("timestamp", 0)
+                    if _cache_age < 1800:  # 30分以内のキャッシュなら使う
+                        logger.info(f"Using cached price for {clean_symbol} (age={_cache_age:.0f}s)")
+                        return cached
+            except Exception:
+                pass
+
         # DexScreener（VP銘柄 or CoinGeckoフォールバック）
         try:
             params = {"q": query}
