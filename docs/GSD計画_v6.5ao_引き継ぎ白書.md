@@ -15,7 +15,7 @@
 | Holdings | VIRTUAL 13,694枚 @ $0.6422（exit=mid）/ ETH 2.12枚 @ $2,067.77（exit=mid） |
 | サービス | 全4サービス稼働中 |
 | CFO L4 | 正常 |
-| Council | 2hローテーション: BTC → VIRTUAL → ETH（3銘柄） |
+| Council | **1h**ローテーション: BTC → VIRTUAL → ETH（3銘柄） |
 | bt_confidence | **HIGH** |
 | 設計転換 | 入口ゲート→出口管理（BUY閾値30, conf連動サイズ） |
 | 自己進化 | E1-E3+Phase1e+F5+Phase S(S1-S4)+F2b — 8層進化スタック |
@@ -39,6 +39,13 @@
 - **追加12項目**: conf_total, bt, tz, cfr, macro, npin, streak, sent, capital_flow_phase, btc_trend, entry_hour, entry_weekday
 - 50-100件蓄積後にefficient-aprioriでアソシエーションルール抽出予定
 - `efficient-apriori` パッケージインストール済み
+
+---
+
+### Task 3: Council間隔 2h→1h化
+- `UNIFIED_COUNCIL_INTERVAL_SEC`: 7200→3600
+- 各銘柄3時間に1回チェック（旧: 6時間に1回）
+- gemini-2.5-flashでコスト影響軽微
 
 ---
 
