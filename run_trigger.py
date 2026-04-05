@@ -254,7 +254,12 @@ def check_tp_sl_all_positions():
                                     _trail_drop = _new_p["trailing_drop"]
                                     _hard_tp = _new_p["hard_tp_pct"]
                                     _time_limit = _new_p["time_limit_hours"]
-                                    logger.warning(f"[S3] {clean_symbol} exit引き締め: {_exit_cat}→{_new_cat} (bear={_s3_bear_prog:.0f}%)")
+                                    if not hasattr(check_tp_sl_all_positions, '_s3_logged'):
+                                        check_tp_sl_all_positions._s3_logged = {}
+                                    _s3_log_key = f"{clean_symbol}_{_exit_cat}_{_new_cat}"
+                                    if _s3_log_key not in check_tp_sl_all_positions._s3_logged:
+                                        logger.warning(f"[S3] {clean_symbol} exit引き締め: {_exit_cat}→{_new_cat} (bear={_s3_bear_prog:.0f}%)")
+                                        check_tp_sl_all_positions._s3_logged[_s3_log_key] = True
 
                     # S3-3: bull target到達(100%) → トレール早期開始
                     if _s3_entry > 0 and _s3_target > _s3_entry:

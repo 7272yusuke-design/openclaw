@@ -968,7 +968,6 @@ class TrinityCouncil(NeoBaseCrew):
         if first_word == "BUY" and current_price > 0:
             try:
                 print(f"\n[Phase 3b] 戦略書生成中...")
-                from core.model_factory import ModelFactory
                 _strategy_model = ModelFactory.get_genai_model("critical")
 
                 # BTC情報取得
