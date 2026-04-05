@@ -584,7 +584,7 @@ class TrinityCouncil(NeoBaseCrew):
         )
         agent_neo = Agent(
             role='最高司令官ネオ',
-            goal='まずBullとBearの主張を対比し、双方の最も強い論点と最も弱い論点を特定せよ。その上で最も決定的な1点を選び、最終判断を回答の1行目にJSON形式 {"verdict": "BUYかWAIT", "confidence": 20-95の確信度, "key_factor": "実際の根拠1語"} で1回のみ出力し、2行目以降に根拠を述べよ。65をデフォルトにするな。データに基づき正直に採点せよ。',
+            goal='BullとBearの主張から楽観シナリオと悲観シナリオの両方を策定せよ。BTC下落・マクロ悪化は買わない理由ではなく、SL引き締め・期間短縮・サイズ縮小で対応する材料である。両シナリオが策定できればBUY（出口はS2/S3モニタリングで動的管理される）。WAITは市場閉鎖級の異常事態のみ。回答の1行目にJSON {"verdict": "BUYかWAIT", "confidence": 戦略の質20-95, "key_factor": "戦略の核テーゼ1語"} で1回のみ出力し、2行目以降に楽観/悲観シナリオと出口条件を述べよ。',
             backstory=(
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}{_wait_quality_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
