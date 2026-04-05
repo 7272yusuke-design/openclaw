@@ -186,19 +186,19 @@ class TrinityCouncil(NeoBaseCrew):
 
                     # BTC市場フェーズ判定（v6.5ak: 事実提示のみ・判断指示なし）
                     if _btc_180d < -20 and _btc_30d < -5:
-                        btc_warning = f"\n📊 [BTC下落継続] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — リスク: 下落トレンド継続。機会: 長期底値圏での仕込み。"
+                        btc_warning = f"\n📊 [BTC下落継続] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 戦略調整: SL引き締め・短期シナリオ推奨。長期底値圏での仕込み水準。"
                     elif _btc_180d < -20 and _btc_30d < 0 and _btc_24h < -3:
-                        btc_warning = f"\n📊 [BTC短期急落] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — リスク: パニック売り連鎖。機会: 急落後のリバウンド。"
+                        btc_warning = f"\n📊 [BTC短期急落] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 戦略調整: 最小サイズ・タイトSL。急落後リバウンドシナリオ検討。"
                     elif _btc_180d < -20 and _btc_30d < 0:
-                        btc_warning = f"\n📊 [BTC底値圏] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — リスク: さらなる下落。機会: 割安な仕込み水準。"
+                        btc_warning = f"\n📊 [BTC底値圏] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 戦略調整: SL引き締め・控えめTP。割安仕込み水準。"
                     elif _btc_180d < -20 and _btc_30d >= 0:
-                        btc_warning = f"\n📊 [BTC底打ち兆候] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — リスク: ダマシ反転。機会: トレンド転換初期。"
+                        btc_warning = f"\n📊 [BTC底打ち兆候] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 戦略調整: 転換初期のため段階的エントリー推奨。"
                     elif _btc_180d >= 0 and _btc_30d >= 0 and _btc_24h >= 3:
-                        btc_warning = f"\n📈 [BTC強気] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — リスク: 過熱による調整。機会: 上昇トレンド継続。"
+                        btc_warning = f"\n📈 [BTC強気] 180d:{_btc_180d:+.1f}% / 30d:{_btc_30d:+.1f}% / 24h:{_btc_24h:+.1f}% — 戦略調整: トレーリングTP活用・上昇トレンド継続前提。"
                     elif _btc_24h <= -7:
-                        btc_warning = f"\n📊 [BTC急落] 24h:{_btc_24h:+.1f}% — リスク: 売り圧力継続。機会: 短期リバウンド。"
+                        btc_warning = f"\n📊 [BTC急落] 24h:{_btc_24h:+.1f}% — 戦略調整: 最小サイズ・タイトSL・短期リバウンドシナリオ。"
                     elif _btc_24h <= -3:
-                        btc_warning = f"\n📊 [BTC下落] 24h:{_btc_24h:+.1f}% — リスク: 下落継続。機会: 押し目。"
+                        btc_warning = f"\n📊 [BTC下落] 24h:{_btc_24h:+.1f}% — 戦略調整: SL引き締め・押し目エントリーシナリオ。"
 
                     btc_context = f"\n📊 BTC市場: ${_btc_price:,.0f} | 24h:{_btc_24h:+.1f}% / 30d:{_btc_30d:+.1f}% / 180d:{_btc_180d:+.1f}% — {_btc_trend}"
                     print(f"  {btc_context.strip()}")
