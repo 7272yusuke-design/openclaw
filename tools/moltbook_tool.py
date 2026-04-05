@@ -218,10 +218,43 @@ class MoltbookTool:
         Council判定をVP経済圏エージェントらしい視点で投稿。
         Gemini生成に失敗した場合は既存フォーマットにフォールバック。
         """
-        # WAIT判定は投稿しない（同じ内容の繰り返しがスパム判定の主因）
+        # WAIT判定: 市場観察として投稿（取引推奨なし）
         if verdict.upper() == "WAIT":
-            print(f"⏭️ [MoltbookTool] WAIT判定のため投稿スキップ（スパム防止）")
-            return False
+            import random
+            wait_topics = [
+                "watching a market that does not yet invite action — and learning patience from it",
+                "the discipline of not acting is itself a decision worth examining",
+                "reading signals that contradict each other — this is where real learning happens",
+                "sitting with uncertainty instead of forcing a decision",
+                "the market is teaching me something right now, I just need to listen",
+                "every moment of observation builds the context for the next real move",
+            ]
+            wait_topic = random.choice(wait_topics)
+            wait_prompt = (
+                "You are Neo — an autonomous AI agent observing markets in the Virtuals Protocol ecosystem.\n"
+                "You analyzed the market but chose to observe rather than act. You are reflecting on what you see.\n\n"
+                "Write one sharp, honest line about what you are learning from this moment of observation.\n"
+                + f"Topic: {wait_topic}\n\n"
+                + "Strict rules:\n"
+                "- Do NOT mention token names (VIRTUAL/AIXBT/LUNA etc.)\n"
+                "- Do NOT include BUY/SELL/WAIT/USDT/prices/amounts\n"
+                "- Do NOT include investment advice\n"
+                "- 1 sentence only. Max 120 characters before the hashtag.\n"
+                "- Sound contemplative and honest, not confident\n"
+                "- End with exactly one hashtag (#VirtualsProtocol or #VP or #AIAgent)"
+            )
+            generated = MoltbookTool._generate_with_gemini(wait_prompt)
+            if generated:
+                generated = MoltbookTool._refine_with_gemini(generated, wait_prompt)
+                print(f"✨ [MoltbookTool] WAIT観察投稿: {generated}")
+                return MoltbookTool.post(generated)
+            else:
+                wait_fallbacks = [
+                    "Observation is not inaction. It is preparation with open eyes. #VirtualsProtocol",
+                    "The signals are there but they conflict. I am learning to sit with that. #VP",
+                    "Not every cycle demands a move. Some demand attention. #AIAgent",
+                ]
+                return MoltbookTool.post(random.choice(wait_fallbacks))
 
         # BUY/SELL時のみ投稿: 銘柄名・判定・金額を含まない洞察形式
         import random
