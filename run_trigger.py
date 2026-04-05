@@ -24,6 +24,8 @@ from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES, LEARNING_SHARPE_T
 from core.cost_guard import CostGuard
 
 # --- TP/SLサイクルチェック（Council非依存・毎30秒） ---
+_s3_dedup_cache = {}  # S3 exit引き締めログ重複排除
+
 def check_tp_sl_all_positions():
     """保有中ポジションの利確/損切を毎サイクルチェック（Council召集不要）
     売却4層: SL固定(-3%) → TP固定(+7%) → テクニカル出口(RSI>65+含み益) → 時間制約(96h)
@@ -254,12 +256,10 @@ def check_tp_sl_all_positions():
                                     _trail_drop = _new_p["trailing_drop"]
                                     _hard_tp = _new_p["hard_tp_pct"]
                                     _time_limit = _new_p["time_limit_hours"]
-                                    if not hasattr(check_tp_sl_all_positions, '_s3_logged'):
-                                        check_tp_sl_all_positions._s3_logged = {}
                                     _s3_log_key = f"{clean_symbol}_{_exit_cat}_{_new_cat}"
-                                    if _s3_log_key not in check_tp_sl_all_positions._s3_logged:
+                                    if _s3_log_key not in _s3_dedup_cache:
                                         logger.warning(f"[S3] {clean_symbol} exit引き締め: {_exit_cat}→{_new_cat} (bear={_s3_bear_prog:.0f}%)")
-                                        check_tp_sl_all_positions._s3_logged[_s3_log_key] = True
+                                        _s3_dedup_cache[_s3_log_key] = True
 
                     # S3-3: bull target到達(100%) → トレール早期開始
                     if _s3_entry > 0 and _s3_target > _s3_entry:
