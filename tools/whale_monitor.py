@@ -22,7 +22,7 @@ VP_CONTRACTS = {
 }
 
 BASE_PUBLIC_RPC     = "https://mainnet.base.org"  # 制限なし・無料
-WHALE_THRESHOLD_USD = 50_000  # $50K以上を大口と判定
+WHALE_THRESHOLD_USD = 10_000  # $10K以上を大口と判定（VIRTUAL $0.64で約15,600枚）
 BLOCKS_TO_SCAN      = 300     # 約10分（Base: 2秒/block）
 CACHE_FILE          = Path("data/whale_cache.json")
 CACHE_TTL           = 300     # 5分キャッシュ
@@ -118,18 +118,26 @@ def fetch_whale_events(symbol: str = "VIRTUAL") -> dict:
         dex_addrs = {"0xcf77a3ba9a5ca399b7c97c74d54e5b1beb874e43"}
 
         large_txs = []
+        seen_pairs = {}  # 同一ペア往復フィルタ
         for e in events:
-            amt_usd  = (e["args"]["value"] / 10**decimals) * price_usd
+            amt_tokens = e["args"]["value"] / 10**decimals
+            amt_usd  = amt_tokens * price_usd
             from_a   = e["args"]["from"].lower()
             to_a     = e["args"]["to"].lower()
             if from_a in dex_addrs or to_a in dex_addrs:
                 continue
             if amt_usd >= WHALE_THRESHOLD_USD:
+                # 同一ペア往復検出（A→BとB→Aを両方カウントしない）
+                pair_key = tuple(sorted([from_a[:10], to_a[:10]]))
+                seen_pairs[pair_key] = seen_pairs.get(pair_key, 0) + 1
+                if seen_pairs[pair_key] > 2:
+                    continue  # 3回以上の往復はボット/内部移動とみなしスキップ
                 large_txs.append({
-                    "from":       e["args"]["from"][:10] + "...",
-                    "to":         e["args"]["to"][:10] + "...",
-                    "amount_usd": round(amt_usd),
-                    "tx_hash":    (e["transactionHash"].hex() if hasattr(e["transactionHash"], "hex") else e["transactionHash"])[:16] + "...",
+                    "from":         e["args"]["from"][:10] + "...",
+                    "to":           e["args"]["to"][:10] + "...",
+                    "amount_usd":   round(amt_usd),
+                    "amount_tokens": round(amt_tokens),
+                    "tx_hash":      (e["transactionHash"].hex() if hasattr(e["transactionHash"], "hex") else e["transactionHash"])[:16] + "...",
                 })
 
         vol    = sum(t["amount_usd"] for t in large_txs)
