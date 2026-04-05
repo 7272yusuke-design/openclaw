@@ -701,80 +701,72 @@ def _run_nightly_batch():
     # 6e. Graduation Boost宣伝はnightly_research内で土曜に自動投稿
     # （旧ACP Provider宣伝は廃止 → VP Guide毎日投稿+Graduation Boost土曜投稿に転換）
 
-    # 7. Discord日次サマリー
+    # 7. Discord日次サマリー（自己進化日報 — embed fields構造化）
     logger.info("[Nightly] Step 7/8: Discord日次サマリー送信")
     try:
-        from core.blackboard import NeoBlackboard
-        board = NeoBlackboard.load()
-        perf = board.get("performance_summary", {})
-        opps = board.get("active_opportunities", {})
-        accuracy = perf.get("accuracy_score", 0.0)
-        total_trades = perf.get("total_evaluated_trades", 0)
-        opp_count = len(opps)
         elapsed = round(time.time() - batch_start, 1)
+        _trunc = lambda s, n=300: (str(s)[:n-3] + "...") if len(str(s)) > n else str(s)
 
-        # Moltbook反響レポート取得
-        moltbook_report = ""
-        try:
-            from tools.moltbook_tracker import run_tracking
-            moltbook_report = "\n\n" + run_tracking()
-        except Exception as e:
-            logger.error(f"[Nightly] MoltbookTracker失敗: {e}")
+        fields = []
 
-        # Moltbookエンゲージメントレポート取得
-        engage_report = ""
-        try:
-            from tools.moltbook_engager import MoltbookEngager
-            engage_report = "\n\n" + MoltbookEngager.get_engagement_report()
-        except Exception as e:
-            logger.error(f"[Nightly] MoltbookEngager統計失敗: {e}")
+        # --- 自己進化セクション（Nightlyでしか報告されない情報） ---
+        if voyager_nightly_text.strip():
+            _voy_clean = voyager_nightly_text.strip()
+            for _prefix in ["🔭 **Voyager学習**: ", "🔭 **Voyager**: "]:
+                _voy_clean = _voy_clean.replace(_prefix, "")
+            fields.append({"name": "🔭 Voyager学習", "value": _trunc(_voy_clean, 400), "inline": False})
+        if evolver_nightly_text.strip():
+            _evo_clean = evolver_nightly_text.strip()
+            for _prefix in ["🧬 **EvolveR進化**: ", "🧬 **EvolveR**: "]:
+                _evo_clean = _evo_clean.replace(_prefix, "")
+            fields.append({"name": "🧬 EvolveR進化", "value": _trunc(_evo_clean, 400), "inline": False})
+        if gplearn_nightly_text.strip():
+            _gp_clean = gplearn_nightly_text.strip().replace("🧬 **gplearn G4**: ", "")
+            fields.append({"name": "🧬 gplearn G4", "value": _trunc(_gp_clean, 300), "inline": False})
 
-        # Tier別勝率
-        _t0_acc = perf.get("tier0_accuracy", 0)
-        _t0_n = perf.get("tier0_trades", 0)
-        _t1_acc = perf.get("tier1_accuracy", 0)
-        _t1_n = perf.get("tier1_trades", 0)
-        _tier_line = f"  🏦 T0(BTC/ETH): {_t0_acc:.1f}%({_t0_n}件) | 🪙 T1(VP): {_t1_acc:.1f}%({_t1_n}件)"
+        # --- WAIT品質（Nightlyでしか報告されない） ---
+        if wait_quality_text.strip():
+            fields.append({"name": "⏸️ WAIT品質", "value": _trunc(wait_quality_text.strip(), 300), "inline": False})
 
-        summary = (
-            f"📅 **日次バッチ完了** — {today}\n"
-            f"⏱️ 実行時間: {elapsed}秒\n"
-            f"🎯 総合勝率: {accuracy}% ({total_trades}件)\n{_tier_line}\n"
-            f"🔍 Alpha機会: {opp_count}件\n"
-            f"✅ Sweep / Evaluator / Dashboard 完了"
-            f"{moltbook_report}"
-            f"{engage_report}"
-            f"{wait_quality_text}"
-            f"{h2_progress_text}"
-            f"{gplearn_nightly_text}"
-            f"{voyager_nightly_text}"
-            f"{evolver_nightly_text}"
-        )
-        # 直近教訓をサマリーに追加（ChromaDBから）
+        # --- 直近教訓（ChromaDBから） ---
         try:
             from core.memory_db import NeoMemoryDB
             _nm = NeoMemoryDB()
             _lessons = _nm.recall(query="trade lesson insight failure", n_results=3, where={"category": "trade_result"})
             _lesson_docs = _lessons.get("documents", [[]])[0] if _lessons else []
             if _lesson_docs:
-                _lesson_lines = [f"• {d[:80]}" for d in _lesson_docs if isinstance(d, str)]
-                summary += "\n\n📝 **直近の教訓**:\n" + "\n".join(_lesson_lines[:3])
+                _lesson_lines = [f"• {d[:100]}" for d in _lesson_docs[:3] if isinstance(d, str)]
+                fields.append({"name": "📝 直近の教訓", "value": "\n".join(_lesson_lines), "inline": False})
         except Exception:
             pass
+
+        # フィールドがゼロなら最低限のステータスを追加
+        if not fields:
+            fields.append({"name": "✅ ステータス", "value": "全ステップ正常完了（進化データ蓄積中）", "inline": False})
+
         # Nightly専用チャンネルに送信
         import requests as _req
         _nightly_url = DiscordReporter.NIGHTLY_WEBHOOK or DiscordReporter.LOG_WEBHOOK
         _payload = {
             "embeds": [{
-                "title": "🌙 Nightly Batch Report",
-                "description": summary,
-                "color": 0x9b59b6
+                "title": f"🌙 Nightly Batch Report — {today}",
+                "description": f"⏱️ 実行時間: {elapsed}秒 | 自己進化サイクル完了",
+                "color": 0x9b59b6,
+                "fields": fields,
+                "footer": {"text": "Neo自己進化日報 | Voyager+EvolveR+gplearn"},
             }]
         }
         _req.post(_nightly_url, json=_payload, timeout=10)
         logger.info(f"[Nightly] === バッチ完了 ({elapsed}秒) ===")
     except Exception as e:
         logger.error(f"[Nightly] サマリー送信失敗: {e}")
+
+    # 7b. Moltbook活動レポート（独立embed送信）
+    logger.info("[Nightly] Step 7b: Moltbook活動レポート送信")
+    try:
+        DiscordReporter.send_moltbook_report()
+    except Exception as e:
+        logger.error("[Nightly] Moltbookレポート送信失敗: " + str(e))
 
     # Step 8: radar_output.log 自動切り詰め（最新10000行を保持）
     logger.info("[Nightly] Step 8/8: ログ自動切り詰め")

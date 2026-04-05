@@ -259,6 +259,96 @@ class DiscordReporter:
             logger.error(f"❌ Discord送信失敗: {e}")
             return False
 
+
+    @classmethod
+    def send_moltbook_report(cls):
+        """Moltbook活動レポート — 反響+エンゲージメント統合"""
+        from datetime import datetime, timezone, timedelta
+        JST = timezone(timedelta(hours=9))
+        fields = []
+        # --- 反響データ（tracker） ---
+        try:
+            import json as _json, os as _os
+            stats_path = "data/moltbook_stats.json"
+            if _os.path.exists(stats_path):
+                with open(stats_path) as f:
+                    history = _json.load(f)
+                if history:
+                    latest = history[-1]
+                    prev = history[-2] if len(history) >= 2 else latest
+                    karma_diff = latest.get("karma", 0) - prev.get("karma", 0)
+                    follower_diff = latest.get("follower_count", 0) - prev.get("follower_count", 0)
+                    _kd = "+" + str(karma_diff) if karma_diff >= 0 else str(karma_diff)
+                    _fd = "+" + str(follower_diff) if follower_diff >= 0 else str(follower_diff)
+                    _karma = latest.get("karma", 0)
+                    _followers = latest.get("follower_count", 0)
+                    _posts = latest.get("posts_count", 0)
+                    _avg_up = latest.get("avg_upvotes", 0)
+                    ov_parts = []
+                    ov_parts.append("karma: **" + str(_karma) + "** (" + _kd + ")")
+                    ov_parts.append("followers: **" + str(_followers) + "** (" + _fd + ")")
+                    ov_parts.append("posts: " + str(_posts) + " | avg upvotes: " + str(_avg_up))
+                    overview = chr(10).join(ov_parts)
+                    fields.append({"name": "📊 アカウント概要", "value": overview, "inline": False})
+                    bp = latest.get("best_post", {})
+                    if bp.get("upvotes", 0) > 0:
+                        _bp_text = str(bp["upvotes"]) + "upvotes - " + bp.get("preview", "?")[:60]
+                        fields.append({"name": "🏆 最高反響", "value": _bp_text, "inline": False})
+        except Exception as e:
+            logger.error("Moltbook tracker data error: " + str(e))
+        # --- エンゲージメント活動（engager） ---
+        try:
+            from tools.moltbook_engager import MoltbookEngager
+            stats = MoltbookEngager.get_engagement_stats()
+            upvoted_ids = MoltbookEngager._load_json_set(MoltbookEngager.UPVOTED_FILE)
+            _comments = stats.get("total_comments_received", 0)
+            _commenters = len(stats.get("unique_commenters", []))
+            _replied = stats.get("total_replied", 0)
+            _unreplied = stats.get("total_unreplied", 0)
+            _upvoted = len(upvoted_ids)
+            eg_parts = []
+            eg_parts.append("受信コメント: " + str(_comments) + "件 (" + str(_commenters) + "人)")
+            eg_parts.append("返信済: " + str(_replied) + "件 / 未返信: " + str(_unreplied) + "件")
+            eg_parts.append("Upvote実施: " + str(_upvoted) + "件（累計）")
+            if _unreplied > 0:
+                eg_parts.append("⚠️ 未返信" + str(_unreplied) + "件あり")
+            fields.append({"name": "🤝 エンゲージメント", "value": chr(10).join(eg_parts), "inline": False})
+            convos = stats.get("recent_conversations", [])
+            if convos:
+                convo_lines = []
+                for c in convos[:3]:
+                    mark = "✅" if c.get("replied") else "⏳"
+                    convo_lines.append(mark + " [" + c.get("author", "?") + "] " + c.get("comment_preview", "")[:50])
+                fields.append({"name": "💬 直近の会話", "value": chr(10).join(convo_lines), "inline": False})
+        except Exception as e:
+            logger.error("Moltbook engager data error: " + str(e))
+        # --- submolt別分析 ---
+        try:
+            from tools.moltbook_tracker import analyze_best_topics
+            analysis = analyze_best_topics()
+            if analysis and analysis.get("submolt_ranking"):
+                sm_lines = []
+                for s in analysis["submolt_ranking"][:4]:
+                    sm_lines.append(s["submolt"] + ": avg " + str(s["avg_upvotes"]) + "up (" + str(s["count"]) + "件)")
+                fields.append({"name": "📈 submolt別パフォーマンス", "value": chr(10).join(sm_lines), "inline": False})
+        except Exception:
+            pass
+        if not fields:
+            fields.append({"name": "ℹ️ ステータス", "value": "データ蓄積中", "inline": False})
+        embed = {
+            "title": "📣 Moltbook活動レポート",
+            "color": 0xe67e22,
+            "fields": fields,
+            "footer": {"text": "Neo Moltbook Analytics"},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        payload = {"embeds": [embed]}
+        _url = cls.NIGHTLY_WEBHOOK or cls.LOG_WEBHOOK
+        success = cls._post(_url, payload)
+        if success:
+            logger.info("✅ Moltbook report sent to Discord")
+        return success
+
     @classmethod
     def send_performance_dashboard(cls, accuracy, total_trades, recent_performance, win_count=None):
         """精度追跡ダッシュボード v3 — 学習進捗・TP/SL閾値・ポートフォリオ"""
