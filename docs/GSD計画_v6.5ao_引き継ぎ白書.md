@@ -78,6 +78,11 @@
 4. conf連動サイズが正しく適用されているか確認
 5. WAIT時Moltbook投稿が正しく動作するか確認
 
+### 重要発見 — DexScreener ETH/BTC価格乖離
+- DexScreenerのETH価格がBase chain低流動性プールから$2,929を返す（CoinGecko正解: $2,043、+43%乖離）
+- CoinGecko 429フォールバック時にCouncilでこの歪んだ価格が使われるリスクあり
+- **対策案**: ETH/BTCの価格取得はCoinGecko優先＋DexScreener使用時に乖離チェック追加
+
 ### 検証待ち
 6. S2/S3: BUY後の戦略書モニタリング・動的出口の動作確認
 7. E1検証: SL発火でscenario_outcome+strategy_quality_score確認
