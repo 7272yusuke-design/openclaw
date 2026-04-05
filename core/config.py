@@ -95,7 +95,7 @@ LEARNING_SHARPE_THRESHOLD = 0.5  # 学習モード中の緩和Sharpeしきい値
 # 相関分析ベース設定（v6.5ag — データ駆動型調整）
 # ============================================================
 # confidence→サイズ連動を無効化（データ: 高conf=47%勝率 vs 低conf=83%勝率）
-FLAT_POSITION_SIZE = True      # True=全BUY一律5%, False=従来のconf連動(3-10%)
+FLAT_POSITION_SIZE = False     # v6.5an: conf連動サイズに切替（30-39:2%, 40-49:3%, 50-59:5%, 60-69:7%, 70+:10%）
 FLAT_SIZE_PCT = 0.05           # FLAT_POSITION_SIZE=True時のサイズ
 
 # 時間帯スコア修正（データ: Asia67% > EU62% > US33%）
