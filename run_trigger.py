@@ -549,7 +549,7 @@ SWEEP_INTERVAL   = 120        # Sweepサイクル間隔（30秒×120=60分）
 EVAL_INTERVAL    = 720        # Evaluatorサイクル間隔（30秒×720=6時間）
 CFR_INTERVAL     = 720        # Capital Flow Radar間隔（30秒×720=6時間）
 ENGAGE_INTERVAL  = 240
-UNIFIED_COUNCIL_INTERVAL_SEC = 7200  # 2時間ごと（秒）— タイムスタンプベース・リスタート耐性あり
+UNIFIED_COUNCIL_INTERVAL_SEC = 3600  # 1時間ごと（秒）— タイムスタンプベース・リスタート耐性あり
 HEARTBEAT_INTERVAL = 60       # 稼働報告間隔（30秒×60=30分）        # Moltbookエンゲージメント間隔（30秒×240=2時間）
 NIGHTLY_HOUR     = 2           # Nightly Batch実行時刻（JST 02:00 — now_jst_hourと比較）
 
