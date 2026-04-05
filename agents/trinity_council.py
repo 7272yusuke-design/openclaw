@@ -784,8 +784,8 @@ class TrinityCouncil(NeoBaseCrew):
                 elif _h.get("action") == "SELL":
                     break
         if _npin_count >= 2:
-            _calc_conf -= 10
-            _npin_label = f"npin{_npin_count}:-10"
+            _calc_conf -= 5   # v6.5an: -10→-5 戦略書ありなら戦略的ナンピン許容
+            _npin_label = f"npin{_npin_count}:-5"
         else:
             _npin_label = f"npin{_npin_count}:0"
         # 直近連敗ペナルティ（H.2分析: 6連敗あり）+ 時間減衰（v6.5q）
@@ -872,8 +872,8 @@ class TrinityCouncil(NeoBaseCrew):
         _macro_adj_map = {
             "RISK_OFF_ACCUMULATE": 5,
             "RISK_ON_RIDE": 0,
-            "RISK_ON_DISTRIBUTE": -5,
-            "RISK_OFF_EXIT": -10,
+            "RISK_ON_DISTRIBUTE": -2,  # v6.5an: -5→-2 リスクは戦略SL/出口で管理
+            "RISK_OFF_EXIT": -3,       # v6.5an: -10→-3 同上（二重減点排除）
         }
         _macro_adj = _macro_adj_map.get(_capital_flow_phase, 0)
         _calc_conf += _macro_adj
@@ -1291,7 +1291,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                         print(f"\n[Phase 5] 🛑 BUY禁止: Tier1合計保有{_tier1_ratio:.1%}が上限50%超 (相関係数≈0.72)")
                     else:
                         # ②c confidence閾値ガード: 確信度40未満ならBUY禁止
-                        MIN_CONFIDENCE_FOR_BUY = 50  # v6.5i H.2分析: 40→50引き上げ（低confidence BUY抑制）
+                        MIN_CONFIDENCE_FOR_BUY = 30  # v6.5an: 50→30 BUYゲートではなくサイズで制御（出口防御で管理）
                         if _structured_confidence > 0 and _structured_confidence < MIN_CONFIDENCE_FOR_BUY:
                             trade_action = "WAIT"
                             trade_result = {"status": "skipped", "reason": f"confidence不足 ({_structured_confidence} < {MIN_CONFIDENCE_FOR_BUY}) — 低確信度ガード"}
@@ -1321,9 +1321,11 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                                 elif _structured_confidence >= 70:
                                     _size_pct = 0.07   # 高い確信度 → 総資産7%
                                 elif _structured_confidence >= 55:
-                                    _size_pct = 0.05   # 中程度 → 総資産5%（従来と同じ）
+                                    _size_pct = 0.05   # 中程度 → 総資産5%
+                                elif _structured_confidence >= 40:
+                                    _size_pct = 0.03   # やや低い → 総資産3%
                                 else:
-                                    _size_pct = 0.03   # 低い確信度 → 総資産3%（最小限）
+                                    _size_pct = 0.02   # v6.5an: 低確信度(30-39) → 総資産2%（学習用最小エントリー）
                                 trade_amount_usd = round(min(total_assets * _size_pct, current_usdc * 0.10), 2)
                                 if trade_amount_usd >= 10.0:
                                     print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (conf={_structured_confidence} → {_size_pct:.0%} / USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")

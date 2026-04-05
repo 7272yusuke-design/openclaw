@@ -100,6 +100,6 @@ FLAT_SIZE_PCT = 0.05           # FLAT_POSITION_SIZE=True時のサイズ
 
 # 時間帯スコア修正（データ: Asia67% > EU62% > US33%）
 # 旧: Asia-10, EU+10, US+0 → 新: Asia+5, EU+5, US-10
-TZ_SCORE_ASIA = 5              # 旧-10 → データでは67%勝率
-TZ_SCORE_EU = 5                # 旧+10 → データでは62%勝率（維持方向だが控えめに）
-TZ_SCORE_US = -10              # 旧+0  → データでは33%勝率
+TZ_SCORE_ASIA = 3              # v6.5an: 振れ幅縮小（出口防御で管理）
+TZ_SCORE_EU = 3                # v6.5an: 振れ幅縮小（出口防御で管理）
+TZ_SCORE_US = -3               # v6.5an: -10→-3 リスクは出口側で管理（二重減点排除）
