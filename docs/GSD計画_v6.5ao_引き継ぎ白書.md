@@ -1,7 +1,7 @@
 # 📐 GSD計画 v6.5ao 引き継ぎ白書
 
 > **更新日時**: 2026/04/05 11:00 JST
-> **セッション**: v6.5ap（K.3クジラ監視デバッグ・参考情報データ品質調査）
+> **セッション**: v6.5ap（参考情報データ品質調査・Scout/Reflexion/S3バグ修正）
 > **自己採点**: 85/100（報告体系改善完了。データ拡充の仕込み完了、蓄積待ち）
 
 ---
@@ -48,6 +48,19 @@
 - **往復フィルタ追加**: 同一アドレスペア3回以上の往復をスキップ（8件→3件に正常化）
 - **参考情報品質調査結果**: FinBERT✅ / 恐怖指数✅ / capital_flow_phase✅ / クジラ❌→✅修正済み
 - **BTC/ETH**: Base chain上にネイティブトークンなし。CFR+F2/F2bで十分カバー、K.3対応不要と判断
+
+### Task 5: Scout run_alpha_strategy修正（v6.5ap）
+- **原因**: CoreBacktest.run_alpha_strategy は存在しないメソッド → Sharpeが全銘柄で常時0.0
+- **修正**: run_all_strategies + best抽出に変更。Alpha Sweepでも同じバグが発生していた
+- DLNews RSS（404）をcrypto_news.pyから除去
+
+### Task 6: E2 Reflexion ModelFactory スコープバグ修正（v6.5ap）
+- **原因**: Phase 3b（971行）でローカルimport → Python 3.12が関数全体でModelFactoryをローカル変数扱い → 351行のReflexionで未定義エラー
+- **修正**: 冗長なローカルimport削除（29行のトップレベルimportのみに統一）
+
+### Task 7: S3 exit引き締めログスパム抑制（v6.5ap）
+- **原因**: 30秒サイクル毎に同じS3警告を出力（bear≧70%の間ずっと）
+- **修正**: モジュールレベル _s3_dedup_cache で初回のみ出力に変更
 
 ### Task 3: Council間隔 2h→1h化
 - `UNIFIED_COUNCIL_INTERVAL_SEC`: 7200→3600
