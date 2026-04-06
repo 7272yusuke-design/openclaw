@@ -1016,7 +1016,9 @@ class TrinityCouncil(NeoBaseCrew):
                 _strat_atr = 0.0
                 _strat_atr_pct = 0.0
                 try:
-                    if "df" in dir() and df is not None and len(df) >= 15:
+                    _atr_df = MarketData.fetch_ohlcv_custom(target_symbol, days=7)
+                    if _atr_df is not None and len(_atr_df) >= 15:
+                        df = _atr_df
                         _highs = df["high"].astype(float).iloc[-14:]
                         _lows = df["low"].astype(float).iloc[-14:]
                         _closes = df["close"].astype(float).iloc[-15:-1]
@@ -1143,7 +1145,8 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 _risk_pct = abs(float(_strat_parsed.get("bear_scenario", {}).get("risk_pct", 0)))
                 _rr_ratio = (_target_pct / _risk_pct) if _risk_pct > 0 else 0
                 _risk_ok = _risk_pct <= 6.0  # ハード制約: -6%超は却下
-                if len(_bull_ev) >= 3 and len(_bear_ev) >= 3 and _has_num(_bull_ev) and _has_num(_bear_ev) and _risk_ok:
+                _rr_ok = _rr_ratio >= 1.5  # ハード制約: RR比1.5未満は却下
+                if len(_bull_ev) >= 3 and len(_bear_ev) >= 3 and _has_num(_bull_ev) and _has_num(_bear_ev) and _risk_ok and _rr_ok:
                     # evidence_snapshot自動付加
                     _strat_parsed["evidence_snapshot"] = {
                         "bt_confidence": bt_confidence,
@@ -1168,6 +1171,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                     if len(_bull_ev) < 3: _rej_reason.append(f"bull_ev={len(_bull_ev)}<3")
                     if len(_bear_ev) < 3: _rej_reason.append(f"bear_ev={len(_bear_ev)}<3")
                     if not _risk_ok: _rej_reason.append(f"risk={_risk_pct:.1f}%>6%")
+                    if not _rr_ok: _rej_reason.append(f"RR={_rr_ratio:.2f}<1.5")
                     if not _has_num(_bull_ev): _rej_reason.append("bull定量データなし")
                     if not _has_num(_bear_ev): _rej_reason.append("bear定量データなし")
                     print(f"[Phase 3b] ⚠️ 品質不足: {', '.join(_rej_reason)} (RR={_rr_ratio:.2f}) → 戦略書なしで続行")
