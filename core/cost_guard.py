@@ -41,7 +41,7 @@ class CostGuard:
     SL_COOLDOWN_HOURS = 6
 
     # --- Layer 4: ドローダウン ---
-    DRAWDOWN_LIMIT_PCT = 5.0  # HWMから-5%で停止
+    DRAWDOWN_LIMIT_PCT = 8.0  # HWMから-8%で停止（Paper学習期間用・本番移行時に5%に戻す）
     INITIAL_CAPITAL = 88494.0  # Paper取引開始時実績ベース
 
     def __init__(self):
