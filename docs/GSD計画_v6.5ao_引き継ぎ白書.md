@@ -58,6 +58,13 @@
 - **原因**: Phase 3b（971行）でローカルimport → Python 3.12が関数全体でModelFactoryをローカル変数扱い → 351行のReflexionで未定義エラー
 - **修正**: 冗長なローカルimport削除（29行のトップレベルimportのみに統一）
 
+### Task 8: CoinGecko 429時キャッシュ優先フォールバック（v6.5ap）
+- DexScreenerのETH価格がBase chain低流動性プールから+43%乖離した歪み値を返す問題を発見
+- CoinGecko失敗時、DexScreenerに行く前に30分以内のキャッシュを返す仕組みを追加
+
+### Task 9: WAIT品質検証・H.2取引分析の対象銘柄修正（v6.5ap）
+- TARGET_SYMBOLS/VALID_SYMBOLS: VIRTUAL/AIXBT → VIRTUAL/ETH/BTC（Council対象に合わせた）
+
 ### Task 7: S3 exit引き締めログスパム抑制（v6.5ap）
 - **原因**: 30秒サイクル毎に同じS3警告を出力（bear≧70%の間ずっと）
 - **修正**: モジュールレベル _s3_dedup_cache で初回のみ出力に変更
