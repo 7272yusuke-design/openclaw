@@ -245,6 +245,29 @@ class MarketData:
                         return cached
             except Exception:
                 pass
+            # Binanceフォールバック（BTC/ETH等の主要銘柄 — DexScreener Base chain歪み回避）
+            _binance_map = {"BTC": "BTCUSDT", "ETH": "ETHUSDT", "SOL": "SOLUSDT", "BNB": "BNBUSDT"}
+            if clean_symbol in _binance_map:
+                try:
+                    _br = requests.get("https://api.binance.com/api/v3/ticker/24hr",
+                                       params={"symbol": _binance_map[clean_symbol]}, timeout=10)
+                    _br.raise_for_status()
+                    _bd = _br.json()
+                    _bp = float(_bd.get("lastPrice", 0))
+                    if _bp > 0:
+                        _binance_result = {
+                            "status": "success", "symbol": clean_symbol, "name": clean_symbol,
+                            "priceUsd": str(_bp),
+                            "priceChange": {"h24": float(_bd.get("priceChangePercent", 0))},
+                            "volume": {"h24": float(_bd.get("quoteVolume", 0))},
+                            "liquidity": {}, "txns": {}, "whale_sentiment": "Neutral",
+                            "timestamp": time.time()
+                        }
+                        NeoUtils.write_json(cache_file, _binance_result)
+                        logger.info(f"Using Binance fallback for {clean_symbol}: ${_bp:,.2f}")
+                        return _binance_result
+                except Exception as _be:
+                    logger.warning(f"Binance price fallback failed for {clean_symbol}: {_be}")
 
         # DexScreener（VP銘柄 or CoinGeckoフォールバック）
         try:
