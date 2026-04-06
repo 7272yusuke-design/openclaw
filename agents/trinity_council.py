@@ -1060,6 +1060,11 @@ BUY判断が下された。このポジションの戦略書を作成せよ。
   - 推奨SL: 1.5〜2.5×ATR = {_strat_atr_pct*1.5:.1f}%〜{_strat_atr_pct*2.5:.1f}%
   - 推奨TP: 2〜4×ATR = {_strat_atr_pct*2:.1f}%〜{_strat_atr_pct*4:.1f}%
 - リスク/リワード比: 最低1.5以上（TP%÷SL%≧1.5）
+【exit_stagesルール】
+- bull_scenario.exit_stages: 段階的利確。trigger_pctはentry価格からの変動%、sell_pctは残ポジションの何%を売るか
+  - 例: [{"trigger_pct": 2.0, "sell_pct": 50, "note": "半利確"}, {"trigger_pct": 4.0, "sell_pct": 100, "note": "全利確"}]
+  - 最低2段階、最大4段階。最終stageはsell_pct=100必須
+- bear_scenario.exit_stages: 損切り。通常1段階（trigger_pctは負数、sell_pct=100）
 - invalidation条件とstop_priceは具体的な数値・条件で明記必須（曖昧なら却下）
 
 【銘柄・価格】
@@ -1108,14 +1113,19 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
   "target_price": 数値,
   "target_pct": 数値,
   "target_days": 整数,
-  "take_profit_plan": "段階的利確戦略（具体的価格・条件を含む）"
+  "exit_stages": [
+    {{"trigger_pct": 数値, "sell_pct": 50, "note": "理由"}},
+    {{"trigger_pct": 数値, "sell_pct": 100, "note": "理由"}}
+  ]
 }},
 "bear_scenario": {{
   "narrative": "悲観シナリオ展開（80字以内）",
   "evidence": ["根拠1（データソース:値）", "根拠2（データソース:値）", "根拠3以上"],
   "stop_price": 数値,
   "risk_pct": 数値,
-  "hedge_plan": "具体的ヘッジ戦略（条件→アクション）"
+  "exit_stages": [
+    {{"trigger_pct": 数値, "sell_pct": 100, "note": "損切り理由"}}
+  ]
 }},
 "invalidation": {{
   "conditions": ["戦略前提崩壊条件1", "条件2"],
@@ -1143,6 +1153,21 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
 
                 _target_pct = abs(float(_strat_parsed.get("bull_scenario", {}).get("target_pct", 0)))
                 _risk_pct = abs(float(_strat_parsed.get("bear_scenario", {}).get("risk_pct", 0)))
+                # exit_stagesバリデーション・フォールバック
+                _bull_stages = _strat_parsed.get("bull_scenario", {}).get("exit_stages", [])
+                _bear_stages = _strat_parsed.get("bear_scenario", {}).get("exit_stages", [])
+                # bull_stagesが無いか不正な場合はデフォルト生成
+                if not _bull_stages or not isinstance(_bull_stages, list) or len(_bull_stages) < 2:
+                    _half_tp = round(_target_pct * 0.5, 1) if _target_pct > 0 else 1.5
+                    _bull_stages = [
+                        {"trigger_pct": _half_tp, "sell_pct": 50, "note": "auto: half TP"},
+                        {"trigger_pct": round(_target_pct, 1) if _target_pct > 0 else 3.0, "sell_pct": 100, "note": "auto: full TP"}
+                    ]
+                    _strat_parsed.setdefault("bull_scenario", {})["exit_stages"] = _bull_stages
+                # bear_stagesが無い場合はデフォルト生成
+                if not _bear_stages or not isinstance(_bear_stages, list):
+                    _bear_stages = [{"trigger_pct": -round(_risk_pct, 1) if _risk_pct > 0 else -3.0, "sell_pct": 100, "note": "auto: SL"}]
+                    _strat_parsed.setdefault("bear_scenario", {})["exit_stages"] = _bear_stages
                 _rr_ratio = (_target_pct / _risk_pct) if _risk_pct > 0 else 0
                 _risk_ok = _risk_pct <= 6.0  # ハード制約: -6%超は却下
                 _rr_ok = _rr_ratio >= 1.5  # ハード制約: RR比1.5未満は却下

@@ -283,6 +283,46 @@ def check_tp_sl_all_positions():
             elif _f2_level >= 1:
                 sl_pct = sl_pct * 0.5  # SL引き締め
 
+            # === 第0層: 戦略書exit_stages判定 ===
+            _sell_fraction = 1.0  # デフォルト全量
+            if not sell_reason and _strategy:
+                _bull_stages = _strategy.get('bull_scenario', {}).get('exit_stages', [])
+                _bear_stages = _strategy.get('bear_scenario', {}).get('exit_stages', [])
+                _completed = hdata.get('completed_stages', [])
+                # Bear exit_stages（損切り）
+                for _si, _stg in enumerate(_bear_stages):
+                    _stg_id = f'bear_{_si}'
+                    if _stg_id in _completed:
+                        continue
+                    _trig = float(_stg.get('trigger_pct', -999))
+                    if pnl['pnl_pct'] <= _trig:
+                        _sf = min(100, max(1, int(_stg.get('sell_pct', 100)))) / 100.0
+                        _sell_fraction = _sf
+                        sell_reason = f"Strategy Bear Stage {_si}: {pnl['pnl_pct']:+.1f}% <= {_trig:+.1f}% (sell {_sf*100:.0f}%, {_stg.get('note','')})";
+                        sell_label = 'Strategy SL'
+                        _completed.append(_stg_id)
+                        logger.warning(f'[Exit Stage] 📉 {clean_symbol} bear stage {_si}: {pnl["pnl_pct"]:+.1f}% (sell {_sf*100:.0f}%)')
+                        break
+                # Bull exit_stages（利確）
+                if not sell_reason:
+                    for _si, _stg in enumerate(_bull_stages):
+                        _stg_id = f'bull_{_si}'
+                        if _stg_id in _completed:
+                            continue
+                        _trig = float(_stg.get('trigger_pct', 999))
+                        if pnl['pnl_pct'] >= _trig:
+                            _sf = min(100, max(1, int(_stg.get('sell_pct', 100)))) / 100.0
+                            _sell_fraction = _sf
+                            sell_reason = f"Strategy Bull Stage {_si}: {pnl['pnl_pct']:+.1f}% >= {_trig:+.1f}% (sell {_sf*100:.0f}%, {_stg.get('note','')})";
+                            sell_label = 'Strategy TP'
+                            _completed.append(_stg_id)
+                            logger.info(f'[Exit Stage] 📈 {clean_symbol} bull stage {_si}: {pnl["pnl_pct"]:+.1f}% (sell {_sf*100:.0f}%)')
+                            break
+                # completed_stagesを保存
+                if _completed and clean_symbol in pw.state.get('holdings', {}):
+                    pw.state['holdings'][clean_symbol]['completed_stages'] = _completed
+                    pw._save()
+
             # === 第1層: 固定SL（戦略別） ===
             if not sell_reason and pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
                 sell_reason = f"Stop Loss at {pnl['pnl_pct']:.1f}% (limit: -{sl_pct}%, profile: {_exit_cat})"
@@ -339,7 +379,7 @@ def check_tp_sl_all_positions():
 
             # === SELL実行 ===
             if sell_reason:
-                sell_amount_usd = amount * current_price
+                sell_amount_usd = amount * current_price * _sell_fraction
                 result = pw.execute_trade(symbol=clean_symbol, action="SELL", amount_usd=sell_amount_usd, price=current_price, reason=sell_reason)
                 if result.get("status") == "success":
                     sell_executed = True
