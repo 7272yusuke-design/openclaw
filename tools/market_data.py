@@ -219,6 +219,17 @@ class MarketData:
         clean_symbol = MarketData._normalize_symbol(query)
         cache_file = f"data/market_cache_{clean_symbol}.json"
 
+        # キャッシュTTL: 90秒以内の新鮮なキャッシュがあればAPI呼び出しをスキップ
+        _CACHE_TTL = 90
+        try:
+            cached = NeoUtils.read_json(cache_file)
+            if cached and float(cached.get("priceUsd", 0)) > 0:
+                _cache_age = time.time() - cached.get("timestamp", 0)
+                if _cache_age < _CACHE_TTL:
+                    return cached
+        except Exception:
+            pass
+
         # VP銘柄はGeckoTerminalを優先（DexScreenerの誤マッチを防ぐ）
         if clean_symbol in MarketData._GECKO_PAIRS:
             gt_result = MarketData._fetch_price_from_geckoterminal(clean_symbol)

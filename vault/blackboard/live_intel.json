@@ -23,29 +23,29 @@
         "sharpe": 6.19,
         "confidence": "MEDIUM",
         "alert_level": "Critical",
-        "last_detected": "2026-04-06T01:05:06"
+        "last_detected": "2026-04-06T06:34:02"
       },
       "ETH/USDT": {
         "sharpe": 5.11,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-06T03:19:46"
+        "last_detected": "2026-04-06T06:36:06"
       },
       "ETH": {
         "sharpe": 5.11,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-05T23:36:48"
+        "last_detected": "2026-04-06T03:52:27"
       },
       "BTC": {
         "sharpe": 21.87,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-06T00:42:29"
+        "last_detected": "2026-04-06T04:52:27"
       }
     },
     "opportunity_count": 4,
-    "last_updated": "2026-04-06T03:19:46.365733+00:00"
+    "last_updated": "2026-04-06T06:36:06.388603+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -77,9 +77,9 @@
         "pnl_pct": -3.17
       }
     ],
-    "last_evaluated": "2026-04-06T03:21:33.106423"
+    "last_evaluated": "2026-04-06T06:37:17.709486"
   },
   "last_periodic_symbol": "AIXBT",
-  "last_unified_council_ts": 1775439749.38188,
+  "last_unified_council_ts": 1775454738.2315435,
   "last_unified_council_symbol": "VIRTUAL"
 }
