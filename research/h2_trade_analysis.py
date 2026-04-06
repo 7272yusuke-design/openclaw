@@ -17,7 +17,7 @@ from tools.paper_wallet import PaperWallet
 
 # === 設定 ===
 CLEAN_START = "2026-03-21T00:00"  # v6.3稼働開始日
-VALID_SYMBOLS = ['VIRTUAL', 'AIXBT']
+VALID_SYMBOLS = ['VIRTUAL', 'ETH', 'BTC']  # Council対象銘柄に合わせる
 MIN_PAIRS_FOR_ANALYSIS = 20
 
 
