@@ -988,16 +988,9 @@ class TrinityCouncil(NeoBaseCrew):
                 except Exception:
                     pass
 
-                # テクニカル指標
-                _strat_rsi = float(df.iloc[-1].get("rsi_14", 0)) if "df" in dir() and df is not None and len(df) > 0 else 0
+                # テクニカル指標（ATR取得後にdf使用して計算）
+                _strat_rsi = 0
                 _strat_macd = "unknown"
-                try:
-                    if "df" in dir() and df is not None and len(df) > 0:
-                        _macd_val = float(df.iloc[-1].get("macd", 0))
-                        _macd_sig = float(df.iloc[-1].get("macd_signal", 0))
-                        _strat_macd = "bullish" if _macd_val > _macd_sig else "bearish"
-                except Exception:
-                    pass
 
                 # Voyagerパターンマッチ
                 _voyager_matches = []
@@ -1031,6 +1024,24 @@ class TrinityCouncil(NeoBaseCrew):
                         _strat_atr_pct = (_strat_atr / current_price * 100) if current_price > 0 else 0
                 except Exception:
                     pass
+                # テクニカル指標（ATR取得後のdfを使用）
+                try:
+                    if df is not None and len(df) > 0:
+                        if 'rsi_14' in df.columns:
+                            _strat_rsi = float(df.iloc[-1]['rsi_14'])
+                        else:
+                            _close = df['close'].astype(float)
+                            _delta = _close.diff()
+                            _gain = _delta.where(_delta > 0, 0).rolling(14).mean()
+                            _loss = (-_delta.where(_delta < 0, 0)).rolling(14).mean()
+                            _rs = _gain.iloc[-1] / _loss.iloc[-1] if _loss.iloc[-1] > 0 else 100
+                            _strat_rsi = round(100 - (100 / (1 + _rs)), 1)
+                        if 'macd' in df.columns and 'macd_signal' in df.columns:
+                            _macd_val = float(df.iloc[-1]['macd'])
+                            _macd_sig = float(df.iloc[-1]['macd_signal'])
+                            _strat_macd = 'bullish' if _macd_val > _macd_sig else 'bearish'
+                except Exception:
+                    pass
 
                 # ポートフォリオリスク制約計算
                 _strat_total_assets = current_usdc
@@ -1062,7 +1073,7 @@ BUY判断が下された。このポジションの戦略書を作成せよ。
 - リスク/リワード比: 最低1.5以上（TP%÷SL%≧1.5）
 【exit_stagesルール】
 - bull_scenario.exit_stages: 段階的利確。trigger_pctはentry価格からの変動%、sell_pctは残ポジションの何%を売るか
-  - 例: [{"trigger_pct": 2.0, "sell_pct": 50, "note": "半利確"}, {"trigger_pct": 4.0, "sell_pct": 100, "note": "全利確"}]
+  - 例: [{{"trigger_pct": 2.0, "sell_pct": 50, "note": "半利確"}}, {{"trigger_pct": 4.0, "sell_pct": 100, "note": "全利確"}}]
   - 最低2段階、最大4段階。最終stageはsell_pct=100必須
 - bear_scenario.exit_stages: 損切り。通常1段階（trigger_pctは負数、sell_pct=100）
 - invalidation条件とstop_priceは具体的な数値・条件で明記必須（曖昧なら却下）
