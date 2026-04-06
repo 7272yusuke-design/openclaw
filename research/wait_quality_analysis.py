@@ -15,7 +15,7 @@ TP_PCT = 0.07   # +7%
 SL_PCT = -0.03  # -3%
 TIME_LIMIT_H = 96  # 時間制約
 EVAL_WINDOWS = [4, 12, 24, 48]  # 評価時間窓(hours)
-TARGET_SYMBOLS = ['VIRTUAL', 'AIXBT']  # Tier1のみ
+TARGET_SYMBOLS = ['VIRTUAL', 'ETH', 'BTC']  # Council対象銘柄に合わせる  # Tier1のみ
 
 def iso_to_epoch_ms(iso_str):
     """ISO文字列→ミリ秒エポック"""
@@ -243,7 +243,7 @@ def run_nightly_summary():
     import sqlite3
     from core.memory_db import NeoMemoryDB
 
-    TARGET_SYMBOLS = ['VIRTUAL', 'AIXBT']
+    TARGET_SYMBOLS = ['VIRTUAL', 'ETH', 'BTC']  # Council対象銘柄に合わせる
 
     db = NeoMemoryDB()
     col = db.collection
