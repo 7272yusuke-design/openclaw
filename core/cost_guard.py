@@ -254,10 +254,16 @@ class CostGuard:
 
             drawdown_pct = ((hwm - total) / hwm) * 100
             if drawdown_pct >= self.DRAWDOWN_LIMIT_PCT:
-                logging.warning(f"[CFO-L4] BLOCKED: ドローダウン{drawdown_pct:.1f}% ≥ {self.DRAWDOWN_LIMIT_PCT}% "
-                                f"(HWM=${hwm:,.0f} 現在=${total:,.0f})")
+                # 状態変化時のみログ出力（スパム防止）
+                if not self._breaker.get('_l4_blocked', False):
+                    logging.warning(f'[CFO-L4] BLOCKED: ドローダウン{drawdown_pct:.1f}% ≥ {self.DRAWDOWN_LIMIT_PCT}% '
+                                    f'(HWM=${hwm:,.0f} 現在=${total:,.0f})')
+                    self._breaker['_l4_blocked'] = True
                 return False, drawdown_pct
 
+            if self._breaker.get('_l4_blocked', False):
+                logging.info(f'[CFO-L4] CLEARED: ドローダウン{drawdown_pct:.1f}% (HWM=${hwm:,.0f} 現在=${total:,.0f})')
+                self._breaker['_l4_blocked'] = False
             return True, drawdown_pct
         except Exception as e:
             logging.error(f"[CFO-L4] ドローダウンチェックエラー: {e}")
