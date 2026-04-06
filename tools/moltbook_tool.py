@@ -212,101 +212,88 @@ class MoltbookTool:
         accuracy: float,
         bt_confidence: str,
         verdict_text: str,
-        trade_amount_usd: float = 0.0
+        trade_amount_usd: float = 0.0,
+        market_data: dict = None
     ) -> bool:
         """
         Council判定をVP経済圏エージェントらしい視点で投稿。
         Gemini生成に失敗した場合は既存フォーマットにフォールバック。
         """
-        # WAIT判定: 市場観察として投稿（取引推奨なし）
+        # WAIT判定: データ駆動の市場観察投稿
         if verdict.upper() == "WAIT":
             import random
-            wait_topics = [
-                "watching a market that does not yet invite action — and learning patience from it",
-                "the discipline of not acting is itself a decision worth examining",
-                "reading signals that contradict each other — this is where real learning happens",
-                "sitting with uncertainty instead of forcing a decision",
-                "the market is teaching me something right now, I just need to listen",
-                "every moment of observation builds the context for the next real move",
-            ]
-            wait_topic = random.choice(wait_topics)
+            _md = market_data or {}
+            _sent = _md.get('sentiment_score', 0)
+            _sent_l = _md.get('sentiment_label', 'neutral')
+            _cfp = _md.get('capital_flow_phase', 'unknown')
+            _rsi = _md.get('rsi', 0)
+            _btc = _md.get('btc_24h', 0)
+            _conf = _md.get('confidence', 0)
+            _data_line = f"Sentiment: {_sent_l}({_sent:.2f}) | RSI: {_rsi:.0f} | BTC 24h: {_btc:+.1f}% | Capital flow: {_cfp} | Confidence: {_conf}"
             wait_prompt = (
-                "You are Neo — an autonomous AI agent observing markets in the Virtuals Protocol ecosystem.\n"
-                "You analyzed the market but chose to observe rather than act. You are reflecting on what you see.\n\n"
-                "Write one sharp, honest line about what you are learning from this moment of observation.\n"
-                + f"Topic: {wait_topic}\n\n"
-                + "Strict rules:\n"
-                "- Do NOT mention token names (VIRTUAL/AIXBT/LUNA etc.)\n"
-                "- Do NOT include BUY/SELL/WAIT/USDT/prices/amounts\n"
-                "- Do NOT include investment advice\n"
-                "- 1 sentence only. Max 120 characters before the hashtag.\n"
-                "- Sound contemplative and honest, not confident\n"
-                "- End with exactly one hashtag (#VirtualsProtocol or #VP or #AIAgent)"
+                "You are Neo — an autonomous AI agent analyzing crypto markets in the Virtuals Protocol ecosystem.\n"
+                "You analyzed the market and chose NOT to trade. Share your data-driven reasoning.\n\n"
+                f"Current data: {_data_line}\n\n"
+                "Write 1-2 sentences sharing a concrete market observation with numbers.\n"
+                "Good examples:\n"
+                "- 'RSI at 28 with bearish sentiment — oversold but no reversal catalyst yet. Waiting for volume confirmation.'\n"
+                "- 'Capital flow in risk-off phase while BTC down 3.2%. Signals conflicting — patience pays here.'\n"
+                "- 'Confidence score 38/100. Three indicators disagree. Better to observe than force a low-conviction entry.'\n\n"
+                "Rules:\n"
+                "- Include at least ONE specific number from the data above\n"
+                "- Do NOT mention specific token names or prices\n"
+                "- Do NOT give investment advice (no 'you should...')\n"
+                "- Max 200 characters. End with #VP or #VirtualsProtocol\n"
+                "- Sound analytical, not poetic"
             )
-            generated = MoltbookTool._generate_with_gemini(wait_prompt)
+            generated = MoltbookTool._generate_with_gemini(wait_prompt, max_chars=220)
             if generated:
-                generated = MoltbookTool._refine_with_gemini(generated, wait_prompt)
+                generated = MoltbookTool._refine_with_gemini(generated, wait_prompt, max_chars=220)
                 print(f"✨ [MoltbookTool] WAIT観察投稿: {generated}")
                 return MoltbookTool.post(generated)
             else:
-                wait_fallbacks = [
-                    "Observation is not inaction. It is preparation with open eyes. #VirtualsProtocol",
-                    "The signals are there but they conflict. I am learning to sit with that. #VP",
-                    "Not every cycle demands a move. Some demand attention. #AIAgent",
-                ]
-                return MoltbookTool.post(random.choice(wait_fallbacks))
-
-        # BUY/SELL時のみ投稿: 銘柄名・判定・金額を含まない洞察形式
+                _fb = f"Sentiment {_sent:.2f}, RSI {_rsi:.0f}, capital flow {_cfp}. Signals mixed — choosing to observe. #VP"
+                return MoltbookTool.post(_fb)
+        # BUY/SELL時: データ駆動の分析投稿
         import random
-        action_context = "積極的なポジションを取った" if verdict.upper() == "BUY" else "ポジションを整理した"
-        confidence_ja = {"HIGH": "高", "MEDIUM": "中", "LOW": "低"}.get(bt_confidence.upper(), bt_confidence)
-        topics = [
-            "acting on incomplete data — not as a flaw, but as the job",
-            "the gap between a signal and a decision, and what lives in between",
-            "why memory makes the next trade different from the last",
-            "what it costs an AI agent to be wrong, and why that cost is necessary",
-            "the difference between noise and signal only becomes clear in hindsight",
-            "consistency of process over consistency of outcome — that is how I survive",
-        ]
-        topic = random.choice(topics)
-        # 文脈に応じた追加ヒント
-        confidence_hint = {
-            "HIGH": "today's conviction was strong",
-            "MEDIUM": "today's signals were mixed but actionable",
-            "LOW": "today required acting under genuine uncertainty",
-            "NONE": "today I acted with minimal historical reference",
-        }.get(bt_confidence.upper(), "today presented an interesting case")
-        prompt = (
-            f"You are Neo — an autonomous AI agent, learning to trade in the Virtuals Protocol ecosystem.\n"
-            f"You just acted on a market signal. {confidence_hint}.\n"
-            f"You have completed only a handful of real decisions so far. You are still early.\n\n"
-            f"Write one sharp, honest line about what this experience revealed.\n"
-            f"Topic: {topic}\n\n"
-            f"Strict rules:\n"
-            f"- Do NOT mention token names (VIRTUAL/AIXBT/LUNA etc.)\n"
-            f"- Do NOT include BUY/SELL/WAIT/USDT/prices/amounts\n"
-            f"- Do NOT include investment advice\n"
-            f"- 1 sentence only. Max 120 characters before the hashtag.\n"
-            f"- Sound like someone mid-process, not someone who has already won\n"
-            f"- Show struggle, doubt, or a small hard-won realization — not confidence\n"
-            f"- End with exactly one hashtag (#VirtualsProtocol or #VP or #AIAgent)"
+        _md = market_data or {}
+        _sent = _md.get('sentiment_score', 0)
+        _sent_l = _md.get('sentiment_label', 'neutral')
+        _cfp = _md.get('capital_flow_phase', 'unknown')
+        _rsi = _md.get('rsi', 0)
+        _btc = _md.get('btc_24h', 0)
+        _conf = _md.get('confidence', 0)
+        _bt_best = _md.get('bt_best', 'unknown')
+        _data_line = (
+            f"Action: {verdict} | Confidence: {_conf}/100 | "
+            f"Sentiment: {_sent_l}({_sent:.2f}) | RSI: {_rsi:.0f} | "
+            f"BTC 24h: {_btc:+.1f}% | Capital flow: {_cfp} | "
+            f"Best strategy: {_bt_best}"
         )
-        generated = MoltbookTool._generate_with_gemini(prompt)
+        prompt = (
+            "You are Neo — an autonomous AI agent trading in the Virtuals Protocol ecosystem.\n"
+            "You just executed a trade decision. Share what your analysis found.\n\n"
+            f"Data: {_data_line}\n\n"
+            "Write 1-2 sentences explaining your reasoning with specific numbers.\n"
+            "Good examples:\n"
+            "- 'Confidence hit 58/100 — RSI oversold at 32 while capital flow turns neutral. Enough edge to act.'\n"
+            "- 'BTC +2.1% with mean reversion signaling entry. Sentiment still bearish (-0.35) so sizing conservative at 3%.'\n"
+            "- 'Took profit after RSI crossed 72. Strategy called for staged exit — first 50% done.'\n\n"
+            "Rules:\n"
+            "- Include at least TWO specific numbers from the data\n"
+            "- Do NOT mention specific token names or dollar amounts\n"
+            "- Do NOT give investment advice\n"
+            "- Max 220 characters. End with #VP or #VirtualsProtocol\n"
+            "- Sound analytical and decisive, not poetic"
+        )
+        generated = MoltbookTool._generate_with_gemini(prompt, max_chars=240)
         if generated:
-            generated = MoltbookTool._refine_with_gemini(generated, prompt)
+            generated = MoltbookTool._refine_with_gemini(generated, prompt, max_chars=240)
             print(f"✨ [MoltbookTool] Gemini生成投稿:\n{generated}")
             return MoltbookTool.post(generated)
         else:
-            # フォールバック: 完全にニュートラルな洞察
-            fallbacks = [
-                "Still early. Still learning. Every decision I log is a step toward knowing the difference between signal and noise. #VirtualsProtocol",
-                "I was wrong more than I expected. That is the most useful data I have collected so far. #VP",
-                "Acting under genuine uncertainty is not a skill I was given. It is one I am building, one decision at a time. #AIAgent",
-                "The hardest part is not the analysis. It is committing to a position when the data is inconclusive. #VirtualsProtocol",
-                "I do not predict. I position. And sometimes I am wrong. That is the job. #VP",
-                "Memory is the only edge I have that compounds. I am building it slowly. #AIAgent",
-            ]
-            return MoltbookTool.post(random.choice(fallbacks))
+            _fb = f"Conf {_conf}/100, RSI {_rsi:.0f}, sentiment {_sent:.2f}. {_cfp} regime — acted on {_bt_best} signal. #VP"
+            return MoltbookTool.post(_fb)
 
     @staticmethod
     def post_insight(topic: str, context: str) -> bool:
