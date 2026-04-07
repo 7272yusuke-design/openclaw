@@ -1,5 +1,5 @@
 {
-  "usd_balance": 60728.12817778535,
+  "usd_balance": 67493.09655775326,
   "holdings": {
     "ETH": {
       "amount": 5.625841394708216,
@@ -188,38 +188,6 @@
           }
         }
       }
-    },
-    "VIRTUAL": {
-      "amount": 10819.672953146272,
-      "avg_price": 0.6496139051925908,
-      "entry_time": "2026-04-06T00:11:41.378575+00:00",
-      "strategy_tag": "atr_breakout",
-      "exit_profile": "mid",
-      "entry_context": {
-        "rsi_14": 0.0,
-        "sentiment_score": -0.15,
-        "sentiment_label": "neutral",
-        "bt_confidence": "HIGH",
-        "confidence": 51,
-        "key_factor": "Sharpe\u9ad8",
-        "scoring_breakdown": {
-          "base": 50,
-          "bt": "HIGH",
-          "sent": -0.15,
-          "acc": 0.0,
-          "tz": "Asia+3",
-          "npin": "npin1:0",
-          "streak": "streak0",
-          "pt_z": "z+0.8:0",
-          "cfr": "cfr+10:0(Neutral)",
-          "macro": "macro+0(RISK_ON_RIDE)",
-          "total": 51
-        },
-        "capital_flow_phase": "RISK_ON_RIDE",
-        "timestamp": "2026-04-06T05:54:08.657194+00:00",
-        "btc_24h": 3.31,
-        "btc_trend": "\u9577\u671f\u4e0b\u843d\u30fb\u77ed\u671f\u53cd\u767a\u26a0\ufe0f"
-      }
     }
   },
   "history": [
@@ -341,8 +309,66 @@
       "amount_usd": 2635.4,
       "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: HIGH)",
       "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-06T09:49:03.903995+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.6545947251835,
+      "amount_token": 4019.7047100591653,
+      "amount_usd": 2644.5,
+      "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-06T10:16:47.098521+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.661687900183587,
+      "amount_token": 14839.377663205436,
+      "amount_usd": 9819.03664599763,
+      "reason": "RSI Exit at RSI=90.6 with +1.5% profit (RSI>72, profile: mid)"
+    },
+    {
+      "timestamp": "2026-04-06T10:48:06.344726+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.662994119771755,
+      "amount_token": 3972.951677017598,
+      "amount_usd": 2647.28,
+      "reason": "Trinity Council BUY verdict (accuracy: 0.0%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-06T13:48:40.101967+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.653799872441129,
+      "amount_token": 4021.076113374012,
+      "amount_usd": 2642.19,
+      "reason": "Trinity Council BUY verdict (accuracy: 50.0%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-06T16:49:10.816445+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.6498339190673,
+      "amount_token": 4053.073597297447,
+      "amount_usd": 2647.06,
+      "reason": "Trinity Council BUY verdict (accuracy: 50.0%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-07T01:10:18.624223+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.627934091267145,
+      "amount_token": 12047.101387689057,
+      "amount_usd": 7526.961733970281,
+      "reason": "Strategy Bear Stage 0: -4.7% <= -3.6% (sell 100%, \u640d\u5207\u308a\u3002\u6700\u5927\u640d\u5931\u8a31\u5bb9\u7bc4\u56f2\u5185)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-06T05:54:08.929737+00:00"
+  "last_updated": "2026-04-07T01:10:18.624260+00:00"
 }

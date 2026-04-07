@@ -321,7 +321,7 @@ def check_tp_sl_all_positions():
                 # completed_stagesを保存
                 if _completed and clean_symbol in pw.state.get('holdings', {}):
                     pw.state['holdings'][clean_symbol]['completed_stages'] = _completed
-                    pw._save()
+                    pw._save_wallet()
 
             # === 第1層: 固定SL（戦略別） ===
             if not sell_reason and pw.should_stop_loss(clean_symbol, current_price, stop_pct=sl_pct):
@@ -335,7 +335,7 @@ def check_tp_sl_all_positions():
                 if pnl['pnl_pct'] > prev_hw:
                     hdata["high_water_pnl"] = pnl['pnl_pct']
                     pw.state["holdings"][clean_symbol]["high_water_pnl"] = pnl['pnl_pct']
-                    pw._save()
+                    pw._save_wallet()
                     logger.info(f"[TP/SL] 📈 高値更新: {clean_symbol} +{pnl['pnl_pct']:.1f}% (HWM)")
                     prev_hw = pnl['pnl_pct']
                 drawdown_from_hw = prev_hw - pnl['pnl_pct']
