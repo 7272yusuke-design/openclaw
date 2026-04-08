@@ -56,42 +56,42 @@
     "total_evaluated_trades": 20,
     "recent_performance": [
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.639569768694947,
-        "exit_price": 0.614884351829017,
-        "amount_usd": 4360.02,
-        "pnl_pct": -3.86
+        "symbol": "ETH",
+        "entry_price": 2057.43,
+        "exit_price": 2101.03,
+        "amount_usd": 4369.26,
+        "pnl_pct": 2.12
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.640661920675677,
-        "exit_price": 0.614884351829017,
-        "amount_usd": 2615.13,
-        "pnl_pct": -4.02
+        "symbol": "ETH",
+        "entry_price": 2056.45,
+        "exit_price": 2101.03,
+        "amount_usd": 4453.06,
+        "pnl_pct": 2.17
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.617908447640016,
-        "exit_price": 0.638170577679517,
-        "amount_usd": 4318.44,
-        "pnl_pct": 3.28
+        "symbol": "ETH",
+        "entry_price": 2038.72,
+        "exit_price": 2101.03,
+        "amount_usd": 2725.31,
+        "pnl_pct": 3.06
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.62582170811091,
-        "exit_price": 0.638170577679517,
-        "amount_usd": 1730.15,
-        "pnl_pct": 1.97
+        "symbol": "ETH",
+        "entry_price": 2091.28,
+        "exit_price": 2144.38,
+        "amount_usd": 1297.77,
+        "pnl_pct": 2.54
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.655253720089219,
-        "exit_price": 0.671946044654983,
-        "amount_usd": 2603.18,
-        "pnl_pct": 2.55
+        "symbol": "ETH",
+        "entry_price": 2091.28,
+        "exit_price": 2144.38,
+        "amount_usd": 1297.77,
+        "pnl_pct": 2.54
       }
     ],
-    "last_evaluated": "2026-04-08T01:19:04.870710"
+    "last_evaluated": "2026-04-08T01:25:12.440988"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1775610541.2591748,

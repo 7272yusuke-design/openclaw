@@ -1012,8 +1012,14 @@ def start_hybrid_radar():
                     _hb_total = _hb_usdc
                     for _hbs, _hbd in _hb_holdings.items():
                         try:
-                            _hbp = MarketData._fetch_price_from_geckoterminal(_hbs) if _hbs in ("VIRTUAL","AIXBT") else MarketData.fetch_token_data(_hbs)
-                            _hbpr = float(_hbp.get("priceUsd", 0)) if _hbp and _hbp.get("status") == "success" else 0
+                            if _hbs in ('BTC','ETH'):
+                                from orchestration.data_collector import get_latest_price_from_db
+                                _hbpr = get_latest_price_from_db(_hbs) or 0
+                            else:
+                                _hbp = MarketData._fetch_price_from_geckoterminal(_hbs)
+                                if not _hbp:
+                                    _hbp = MarketData.fetch_token_data(_hbs)
+                                _hbpr = float(_hbp.get('priceUsd', 0)) if _hbp and _hbp.get('status') == 'success' else 0
                             if _hbpr > 0:
                                 _hb_val = _hbd["amount"] * _hbpr
                                 _hb_total += _hb_val
