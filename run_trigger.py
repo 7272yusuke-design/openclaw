@@ -26,6 +26,51 @@ from core.cost_guard import CostGuard
 # --- TP/SLサイクルチェック（Council非依存・毎30秒） ---
 _s3_dedup_cache = {}  # S3 exit引き締めログ重複排除
 
+# === シンボル別売却冷却（二重発火防止）v6.5ar ===
+_sell_cooldown = {}  # {symbol: timestamp}
+SELL_COOLDOWN_SEC = 300  # 5分
+
+def check_sell_aftermath():
+    """売却後1h/6h/24hの価格を追跡し、売却判断の良否を記録 v6.5ar"""
+    import json, os
+    _path = 'vault/sell_tracker.json'
+    if not os.path.exists(_path):
+        return
+    try:
+        with open(_path) as f:
+            _tracker = json.load(f)
+        _changed = False
+        for t in _tracker:
+            _sell_time = datetime.fromisoformat(t['sell_time'].replace('Z','+00:00'))
+            _elapsed_h = (datetime.now(timezone.utc) - _sell_time).total_seconds() / 3600
+            _sym = t['symbol']
+            _cur = 0.0
+            try:
+                if _sym in ('BTC','ETH'):
+                    from orchestration.data_collector import get_latest_price_from_db
+                    _cur = get_latest_price_from_db(_sym) or 0
+                else:
+                    _cur = float((MarketData._fetch_price_from_geckoterminal(_sym) or MarketData.fetch_token_data(_sym) or {}).get('priceUsd', 0))
+            except Exception:
+                continue
+            if _cur <= 0:
+                continue
+            _sell_p = t['sell_price']
+            _move_pct = (_cur - _sell_p) / _sell_p * 100
+            for _hours, _key in [(1,'checked_1h'),(6,'checked_6h'),(24,'checked_24h')]:
+                if _elapsed_h >= _hours and not t.get(_key, False):
+                    t[_key] = True
+                    t[f'price_{_hours}h'] = round(_cur, 6)
+                    t[f'move_{_hours}h'] = round(_move_pct, 2)
+                    _verdict = '✅正解' if (_move_pct < 0 and t['label'] != 'SL') or (_move_pct < -2) else '❌早すぎ' if _move_pct > 3 else '➡️中立'
+                    logger.info(f"[売却追跡] {_sym} {t['label']} {_hours}h後: {_move_pct:+.1f}% → {_verdict} (売値 現在)")
+                    _changed = True
+        if _changed:
+            with open(_path, 'w') as f:
+                json.dump(_tracker, f)
+    except Exception as e:
+        logger.error(f'[売却追跡] エラー: {e}')
+
 def check_tp_sl_all_positions():
     """保有中ポジションの利確/損切を毎サイクルチェック（Council召集不要）
     売却4層: SL固定(-3%) → TP固定(+7%) → テクニカル出口(RSI>65+含み益) → 時間制約(96h)
@@ -149,6 +194,11 @@ def check_tp_sl_all_positions():
     for clean_symbol, hdata in list(holdings.items()):
         amount = hdata.get("amount", 0)
         if amount <= 0:
+            continue
+        # === 二重発火防止: シンボル別冷却 v6.5ar ===
+        import time as _time_sc
+        _sc_until = _sell_cooldown.get(clean_symbol, 0)
+        if _time_sc.time() < _sc_until:
             continue
         try:
             # Tier0（BTC/ETH）: ローカルDB優先（Binance蓄積・API節約）
@@ -396,6 +446,9 @@ def check_tp_sl_all_positions():
                     except Exception as _cg_err:
                         logger.error(f"[CFO] SL記録エラー: {_cg_err}")
                     logger.info(f"[TP/SL] ✅ {sell_label}完了: {clean_symbol} ${sell_amount_usd:.2f} ({pnl['pnl_pct']:+.1f}%)")
+                    # === 二重発火防止: 冷却セット v6.5ar ===
+                    import time as _time_sc2
+                    _sell_cooldown[clean_symbol] = _time_sc2.time() + SELL_COOLDOWN_SEC
 
                     # E1.1: 構造化内省（Deep Introspection）
                     introspection = ""
@@ -1027,6 +1080,14 @@ def start_hybrid_radar():
                 except Exception as e:
                     logger.error(f'[Nightly] バッチ失敗: {e}')
 
+
+            # ============================================================
+            # 0-pre. 売却後価格追跡（v6.5ar）
+            # ============================================================
+            try:
+                check_sell_aftermath()
+            except Exception as _sa_e:
+                logger.error(f'[売却追跡] メインループエラー: {_sa_e}')
 
             # ============================================================
             # 0. TP/SLサイクルチェック（毎30秒・Council非依存）
