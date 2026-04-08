@@ -29,7 +29,7 @@
         "sharpe": 5.13,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-08T01:17:45"
+        "last_detected": "2026-04-08T01:23:53"
       },
       "ETH": {
         "sharpe": 5.13,
@@ -45,7 +45,7 @@
       }
     },
     "opportunity_count": 4,
-    "last_updated": "2026-04-08T01:17:45.988979+00:00"
+    "last_updated": "2026-04-08T01:23:53.214536+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],

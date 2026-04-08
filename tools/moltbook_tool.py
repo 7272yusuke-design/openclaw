@@ -169,6 +169,12 @@ class MoltbookTool:
                 timeout=15
             )
             data = resp.json()
+            # karma追跡 v6.5ar
+            _post_author = (data.get('post') or data.get('data') or {})
+            if isinstance(_post_author, dict):
+                _post_author = _post_author.get('author', {})
+            if isinstance(_post_author, dict) and _post_author.get('karma') is not None:
+                print(f'📊 [MoltbookTool] Karma: {_post_author.get("karma","?")} | Followers: {_post_author.get("followerCount","?")}')
             if not data.get("success"):
                 print(f"❌ 投稿失敗: {data.get('error', data.get('message', 'unknown'))}")
                 return False
