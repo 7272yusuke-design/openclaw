@@ -450,6 +450,39 @@ def check_tp_sl_all_positions():
                     import time as _time_sc2
                     _sell_cooldown[clean_symbol] = _time_sc2.time() + SELL_COOLDOWN_SEC
 
+                    # === SELL根拠スナップショット v6.5as ===
+                    try:
+                        _rsi_snap = rsi_val if 'rsi_val' in dir() else 0.0
+                        _btc_snap = _btc_24h_change if '_btc_24h_change' in dir() else 0.0
+                        _entry_ctx = hdata.get('entry_context', {})
+                        _buy_dt = hdata.get('buy_date', datetime.now(timezone.utc).isoformat())
+                        _hold_h = (datetime.now(timezone.utc) - datetime.fromisoformat(_buy_dt.replace('Z','+00:00'))).total_seconds() / 3600
+                        logger.info(f"[SELL根拠] {clean_symbol} | reason={sell_reason} | PnL={pnl['pnl_pct']:+.1f}% | RSI={_rsi_snap:.1f} | BTC24h={_btc_snap:+.1f}% | 保有{_hold_h:.1f}h | entry_conf={_entry_ctx.get('confidence','N/A')} | thesis={str(_entry_ctx.get('thesis','N/A'))[:80]}")
+                        import json as _st_json
+                        _st_path = 'vault/sell_tracker.json'
+                        _st_data = []
+                        if os.path.exists(_st_path):
+                            try:
+                                with open(_st_path) as _stf:
+                                    _st_data = _st_json.load(_stf)
+                            except Exception:
+                                _st_data = []
+                        _st_data.append({
+                            'symbol': clean_symbol,
+                            'sell_time': datetime.now(timezone.utc).isoformat(),
+                            'sell_price': current_price,
+                            'sell_reason': sell_reason,
+                            'pnl_pct': round(pnl['pnl_pct'], 2),
+                            'rsi': round(_rsi_snap, 1),
+                            'btc_24h': round(_btc_snap, 1),
+                            'hold_hours': round(_hold_h, 1),
+                            'entry_confidence': _entry_ctx.get('confidence'),
+                        })
+                        with open(_st_path, 'w') as _stf:
+                            _st_json.dump(_st_data, _stf)
+                    except Exception as _snap_err:
+                        logger.warning(f'[SELL根拠] スナップショット失敗: {_snap_err}')
+
                     # E1.1: 構造化内省（Deep Introspection）
                     introspection = ""
                     _failure_category = ""
