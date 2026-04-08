@@ -188,7 +188,9 @@ class MoltbookTool:
                 challenge = verification.get("challenge_text", "")
                 if code and challenge:
                     print(f"🔐 Verification challenge detected, solving...")
+                    print(f"🧮 Challenge: {challenge}")
                     answer = cls._solve_verification(challenge)
+                    print(f"🧮 Answer: {answer}")
                     if answer:
                         v_resp = requests.post(
                             f"{cls.MOLTBOOK_API_BASE}/verify",
@@ -201,7 +203,7 @@ class MoltbookTool:
                             print(f"✅ Verification passed! 投稿公開完了。")
                             return True
                         else:
-                            print(f"⚠️ Verification failed: {v_data.get('error', '')}")
+                            print(f"⚠️ Verification failed: {v_data}")
                             return False
                 print(f"⚠️ Verification data incomplete")
                 return False

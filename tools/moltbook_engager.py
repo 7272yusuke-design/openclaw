@@ -121,14 +121,16 @@ class MoltbookEngager:
             code = verification.get("verification_code", "")
             challenge = verification.get("challenge_text", "")
             if code and challenge:
+                print(f"🧮 Challenge: {challenge}")
                 answer = cls._solve_verification(challenge)
+                print(f"🧮 Answer: {answer}")
                 if answer:
                     v_resp = cls._api_post("/verify", {"verification_code": code, "answer": answer})
                     if v_resp.get("success"):
                         print(f"✅ Verification passed")
                         return True
                     else:
-                        print(f"⚠️ Verification failed: {v_resp.get('error', '')}")
+                        print(f"⚠️ Verification failed: {v_resp}")
                         return False
             print(f"⚠️ Verification data incomplete")
             return False

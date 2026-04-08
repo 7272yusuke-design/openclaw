@@ -621,12 +621,17 @@ def check_tp_sl_all_positions():
                         logger.error(f"[TP/SL] paper_trade.log記録失敗: {_le}")
                     # Discord報告
                     try:
+                        _disc_reason = f"{sell_label} | entry:{DiscordReporter._fmt_price(pnl['avg_price'], clean_symbol)} pnl:${pnl['pnl_usd']:+.2f}"
+                        _disc_reason += "\nRSI: " + str(_sell_ctx_ec.get('rsi_14','?')) + "→" + str(_sell_ctx_rsi) + " | BTC24h: " + f"{_btc_24h_chg_f2:+.1f}%"
+                        _disc_reason += "\n保有: " + str(_hold_h) + "h | conf: " + str(_sell_ctx_ec.get('confidence','?'))
+                        if _sell_ctx_thesis != 'N/A':
+                            _disc_reason += "\n戦略: " + str(_sell_ctx_thesis)
                         DiscordReporter.send_trade_alert(
                             symbol=f"{clean_symbol} ({sell_label} {pnl['pnl_pct']:+.1f}%)",
                             action="SELL",
                             amount_usd=sell_amount_usd,
                             price=current_price,
-                            status=f"{sell_label} | entry:{DiscordReporter._fmt_price(pnl['avg_price'], clean_symbol)} pnl:${pnl['pnl_usd']:+.2f}",
+                            status=_disc_reason,
                             balance_after=_bal,
                             exit_profile=_exit_cat
                         )
@@ -884,8 +889,11 @@ def _run_nightly_batch():
         logger.error(f"[Nightly] サマリー送信失敗: {e}")
 
     # 7b. Moltbook活動レポート（独立embed送信）
-    logger.info("[Nightly] Step 7b: Moltbook活動レポート送信")
+    logger.info("[Nightly] Step 7b: Moltbook反響取得+活動レポート送信")
     try:
+        from tools.moltbook_tracker import run_tracking
+        _mt_summary = run_tracking()
+        logger.info(f"[Nightly] MoltbookTracker: {_mt_summary[:100]}")
         DiscordReporter.send_moltbook_report()
     except Exception as e:
         logger.error("[Nightly] Moltbookレポート送信失敗: " + str(e))
