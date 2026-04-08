@@ -655,10 +655,11 @@ def check_tp_sl_all_positions():
                     # Discord報告
                     try:
                         _disc_reason = f"{sell_label} | entry:{DiscordReporter._fmt_price(pnl['avg_price'], clean_symbol)} pnl:${pnl['pnl_usd']:+.2f}"
-                        _disc_reason += "\nRSI: " + str(_sell_ctx_ec.get('rsi_14','?')) + "→" + str(_sell_ctx_rsi) + " | BTC24h: " + f"{_btc_24h_chg_f2:+.1f}%"
-                        _disc_reason += "\n保有: " + str(_hold_h) + "h | conf: " + str(_sell_ctx_ec.get('confidence','?'))
-                        if _sell_ctx_thesis != 'N/A':
-                            _disc_reason += "\n戦略: " + str(_sell_ctx_thesis)
+                        _disc_reason += f"\nRSI: {_rsi_snap:.1f} | BTC24h: {_btc_24h_chg_f2:+.1f}%"
+                        _disc_reason += f"\n保有: {_hold_h:.1f}h | conf: {_entry_ctx.get('confidence','?')}"
+                        _thesis_str = str(_entry_ctx.get("thesis",""))[:80]
+                        if _thesis_str:
+                            _disc_reason += f"\n戦略: {_thesis_str}"
                         DiscordReporter.send_trade_alert(
                             symbol=f"{clean_symbol} ({sell_label} {pnl['pnl_pct']:+.1f}%)",
                             action="SELL",

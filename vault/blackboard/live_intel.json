@@ -12,7 +12,7 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: AIXBT/USDT",
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: ETH/USDT",
     "success_probability": 0.85,
     "strategy_id": "",
     "diplomatic_presets": {
@@ -29,7 +29,7 @@
         "sharpe": 5.13,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-08T01:47:46"
+        "last_detected": "2026-04-08T07:41:35"
       },
       "ETH": {
         "sharpe": 5.13,
@@ -45,7 +45,7 @@
       }
     },
     "opportunity_count": 4,
-    "last_updated": "2026-04-08T07:05:19.463045+00:00"
+    "last_updated": "2026-04-08T07:41:35.884108+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -91,7 +91,7 @@
         "pnl_pct": 2.54
       }
     ],
-    "last_evaluated": "2026-04-08T07:22:24.509760"
+    "last_evaluated": "2026-04-08T07:43:56.450781"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1775632832.584791,
