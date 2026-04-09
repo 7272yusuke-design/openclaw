@@ -62,8 +62,8 @@ def check_sell_aftermath():
                     t[_key] = True
                     t[f'price_{_hours}h'] = round(_cur, 6)
                     t[f'move_{_hours}h'] = round(_move_pct, 2)
-                    _verdict = '✅正解' if (_move_pct < 0 and t['label'] != 'SL') or (_move_pct < -2) else '❌早すぎ' if _move_pct > 3 else '➡️中立'
-                    logger.info(f"[売却追跡] {_sym} {t['label']} {_hours}h後: {_move_pct:+.1f}% → {_verdict} (売値 現在)")
+                    _verdict = '✅正解' if (_move_pct < 0 and t.get('sell_reason', '') != 'SL' and 'Stop Loss' not in t.get('sell_reason', '')) or (_move_pct < -2) else '❌早すぎ' if _move_pct > 3 else '➡️中立'
+                    logger.info(f"[売却追跡] {_sym} {t.get('sell_reason','?')[:20]} {_hours}h後: {_move_pct:+.1f}% → {_verdict} (売値 現在)")
                     _changed = True
         if _changed:
             with open(_path, 'w') as f:
