@@ -429,38 +429,10 @@ class TrinityCouncil(NeoBaseCrew):
                 reflexion_insight = ""
                 _reflexion_adj = 0
 
-        # 1-P. N.1 ペアトレードシグナル（参考情報注入）
+        # 1-P. N.1 removed (v6.5as)
         pair_trade_context = ""
-        _pt_z = 0  # Phase 4bスコアリング用（デフォルト: 中立）
-        if clean_symbol in ("VIRTUAL", "AIXBT"):
-            try:
-                from research.n1_pair_trade import calc_pair_signal
-                print(f"\n[Phase 1-P] ペアトレードシグナル計算中...")
-                _pt = calc_pair_signal()
-                _pt_signal = _pt.get("signal", "NO_DATA")
-                _pt_z = _pt.get("z_score", 0)
-                _pt_corr = _pt.get("recent_corr", 0)
-                _pt_rec = _pt.get("recommendation", "")
-                print(f"  📐 N.1: signal={_pt_signal}, Z={_pt_z}, corr={_pt_corr:.3f}")
-
-                if _pt_signal not in ("NEUTRAL", "NO_DATA", "EXIT"):
-                    pair_trade_context = (
-                        f"\n📐 [N.1 ペアトレード分析] VIRTUAL/AIXBT"
-                        f"\n  シグナル: {_pt_signal} (Zスコア={_pt_z})"
-                        f"\n  直近相関: {_pt_corr:.3f}"
-                        f"\n  推奨: {_pt_rec}"
-                    )
-                    # シグナルが現銘柄と矛盾する場合は警告
-                    if clean_symbol == "VIRTUAL" and "SHORT_VIRTUAL" in _pt_signal:
-                        pair_trade_context += "\n  ⚠️ ペアトレードはVIRTUAL売りを示唆。BUY判断は慎重に。"
-                    elif clean_symbol == "AIXBT" and "SHORT_AIXBT" in _pt_signal:
-                        pair_trade_context += "\n  ⚠️ ペアトレードはAIXBT売りを示唆。BUY判断は慎重に。"
-                    elif clean_symbol == "VIRTUAL" and "LONG_VIRTUAL" in _pt_signal:
-                        pair_trade_context += "\n  ✅ ペアトレードもVIRTUAL買いを支持。"
-                    elif clean_symbol == "AIXBT" and "LONG_AIXBT" in _pt_signal:
-                        pair_trade_context += "\n  ✅ ペアトレードもAIXBT買いを支持。"
-            except Exception as _pt_err:
-                print(f"  ⚠️ [Phase 1-P] ペアトレード計算失敗: {str(_pt_err)[:60]}")
+        _pt_z = 0
+        _pt_z_label = "z0"
 
         # 1e. PlanningCrew 戦略リスク評価
         _planning_result = {}
@@ -553,7 +525,6 @@ class TrinityCouncil(NeoBaseCrew):
             f"バックテスト結果: {backtest_report}\n"
             f"{onchain_context}\n"
             f"{acp_intel}"
-            f"{pair_trade_context}"
         )
 
         agent_bull = Agent(
@@ -821,26 +792,7 @@ class TrinityCouncil(NeoBaseCrew):
             _streak_label = f"streak-{_penalty}"
         else:
             _streak_label = "streak0"
-        # N.1 ペアトレード Z-scoreスコア（v6.5t）
-        _pt_z_label = 'z0'
-        if clean_symbol in ('VIRTUAL', 'AIXBT') and _pt_z != 0:
-            # VIRTUALの場合: Z<0=割安=BUY支持, Z>0=割高=BUY抑制
-            # AIXBTの場合: 符号反転（VIRTUAL割安=AIXBT割高）
-            _effective_z = _pt_z if clean_symbol == 'VIRTUAL' else -_pt_z
-            if _effective_z < -1.5:
-                _calc_conf += 8
-                _pt_z_label = f'z{_pt_z:+.1f}:+8'
-            elif _effective_z < -1.0:
-                _calc_conf += 4
-                _pt_z_label = f'z{_pt_z:+.1f}:+4'
-            elif _effective_z > 1.5:
-                _calc_conf -= 8
-                _pt_z_label = f'z{_pt_z:+.1f}:-8'
-            elif _effective_z > 1.0:
-                _calc_conf -= 4
-                _pt_z_label = f'z{_pt_z:+.1f}:-4'
-            else:
-                _pt_z_label = f'z{_pt_z:+.1f}:0'
+        # N.1 scoring removed (v6.5as)
         # Capital Flow Radar マクロスコア（v6.5z Task2.3）
         _cfr_label = 'cfr0'
         try:
@@ -957,7 +909,7 @@ class TrinityCouncil(NeoBaseCrew):
             print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
-        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_pt_z_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label}, {_strat_label})")
+        print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label}, {_strat_label})")
         _structured_confidence = _calc_conf
 
         # ============================================================
@@ -1116,9 +1068,6 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
 【戦略リスク評価】
 {_planning_context[:200] if _planning_context else "なし"}
 
-【ペアトレード】
-{pair_trade_context[:200] if pair_trade_context else "なし"}
-
 以下のJSON形式のみで回答（余計なテキスト厳禁）:
 {{"thesis": "核心テーゼ（50字以内、具体的数値を含む）",
 "thesis_timeframe": "short or mid or long",
@@ -1247,7 +1196,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                     "timezone": _tz_label,
                     "nanpin": _npin_label,
                     "streak": _streak_label,
-                    "pair_z": _pt_z_label,
+                    
                     "cfr": _cfr_label,
                     "total": _calc_conf,
                 },
@@ -1409,7 +1358,6 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                                                 "tz": _tz_label,
                                                 "npin": _npin_label,
                                                 "streak": _streak_label,
-                                                "pt_z": _pt_z_label,
                                                 "cfr": _cfr_label,
                                                 "macro": _planning_label,
                                                 "total": _calc_conf,
@@ -1566,7 +1514,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
             "unrealized_pnl_pct": _pnl_data.get("pnl_pct", 0),
             "unrealized_pnl_usd": _pnl_data.get("pnl_usd", 0),
             "backtest_summary": _bt_summary,
-            "pair_trade": pair_trade_context if pair_trade_context else "",
+            
             "symbol": clean_symbol,
             "tier": "Tier0 (BTC/ETH)" if clean_symbol in ("BTC", "ETH") else "Tier1 (VP銘柄)",
             "exit_profile": "",
@@ -1580,7 +1528,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 "tz": _tz_label,
                 "nanpin": _npin_label,
                 "streak": _streak_label,
-                "pair_z": _pt_z_label,
+                
                 "cfr": _cfr_label,
                 "total": _structured_confidence,
             },

@@ -1,40 +1,16 @@
 {
   "adjustments": [
     {
-      "rule_id": "R_tz_asia_low",
+      "rule_id": "R_sym_eth_high",
       "condition": {
-        "type": "timezone",
-        "match": "Asia"
+        "type": "symbol",
+        "match": "ETH"
       },
-      "adjustment": -5,
-      "evidence": "5件中2勝(40%)",
+      "adjustment": 10,
+      "evidence": "4件中4勝(100%)",
       "min_sample_size": 3,
-      "actual_sample_size": 5,
-      "expires_at": "2026-05-03T17:01:58.621767+00:00"
-    },
-    {
-      "rule_id": "R_tz_eu_high",
-      "condition": {
-        "type": "timezone",
-        "match": "EU"
-      },
-      "adjustment": 7,
-      "evidence": "12件中9勝(75%)",
-      "min_sample_size": 3,
-      "actual_sample_size": 12,
-      "expires_at": "2026-05-03T17:01:58.621767+00:00"
-    },
-    {
-      "rule_id": "R_tz_us_low",
-      "condition": {
-        "type": "timezone",
-        "match": "US"
-      },
-      "adjustment": -8,
-      "evidence": "6件中2勝(33%)",
-      "min_sample_size": 3,
-      "actual_sample_size": 6,
-      "expires_at": "2026-05-03T17:01:58.621767+00:00"
+      "actual_sample_size": 4,
+      "expires_at": "2026-05-08T17:03:27.106910+00:00"
     },
     {
       "rule_id": "R_wl_ratio_bad",
@@ -44,13 +20,13 @@
         "max": -0.3
       },
       "adjustment": -5,
-      "evidence": "W/L比=0.47 (Win+3.33% / Loss-7.09%)",
+      "evidence": "W/L比=0.80 (Win+3.10% / Loss-3.89%)",
       "min_sample_size": 3,
-      "actual_sample_size": 23,
-      "expires_at": "2026-05-03T17:01:58.621767+00:00"
+      "actual_sample_size": 11,
+      "expires_at": "2026-05-08T17:03:27.106910+00:00"
     }
   ],
-  "generated_at": "2026-04-03T17:01:58.621767+00:00",
-  "total_adjustments": 4,
-  "source_pairs": 23
+  "generated_at": "2026-04-08T17:03:27.106910+00:00",
+  "total_adjustments": 2,
+  "source_pairs": 11
 }
