@@ -1184,7 +1184,12 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
         # ============================================================
         if analysis_only:
             from core.config import EXIT_PROFILES, STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
-            _exit_name = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
+            # v6.5as: AIのthesis_timeframeを優先、戦略名マッピングはフォールバック
+            _ai_timeframe = _strat_parsed.get("thesis_timeframe") if isinstance(locals().get("_strat_parsed"), dict) else None
+            if _ai_timeframe in ("short", "mid", "long"):
+                _exit_name = _ai_timeframe
+            else:
+                _exit_name = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
             _exit_data = EXIT_PROFILES.get(_exit_name, {})
             _fb_s = finbert_score if "finbert_score" in dir() else 0.0
             _fb_l = finbert_label if "finbert_label" in dir() else "neutral"
@@ -1343,7 +1348,12 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                                     logger.info(f"Trade executed: BUY {clean_symbol} ${trade_amount_usd} @ ${current_price}")
                                     # 戦略タグをholdingsに保存（出口プロファイル用）
                                     from core.config import STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
-                                    _exit_cat = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
+                                    # v6.5as: AIのthesis_timeframeを優先
+                                    _ai_tf = discussion_data.get("strategy", {}).get("thesis_timeframe") if isinstance(discussion_data.get("strategy"), dict) else None
+                                    if _ai_tf in ("short", "mid", "long"):
+                                        _exit_cat = _ai_tf
+                                    else:
+                                        _exit_cat = STRATEGY_TO_EXIT_PROFILE.get(bt_best_strategy, EXIT_PROFILE_DEFAULT)
                                     _pw_state = self.portfolio.get_full_state()
                                     if clean_symbol in _pw_state.get("holdings", {}):
                                         _pw_state["holdings"][clean_symbol]["strategy_tag"] = bt_best_strategy
