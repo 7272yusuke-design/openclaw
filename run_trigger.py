@@ -237,6 +237,15 @@ def check_tp_sl_all_positions():
             _trail_drop = _exit_p["trailing_drop"]
             _hard_tp = _exit_p["hard_tp_pct"]
             _time_limit = _exit_p["time_limit_hours"]
+            # v6.5as: AI戦略書のexit_paramsでconfig値を上書き
+            _ai_ep = hdata.get("entry_context", {}).get("exit_profile", {}) if isinstance(hdata.get("entry_context"), dict) else {}
+            if _ai_ep.get("rsi_exit") is not None:
+                _exit_p = dict(_exit_p)  # copy to avoid mutating config
+                _exit_p["rsi_exit"] = _ai_ep["rsi_exit"]
+            if _ai_ep.get("trailing_start"):
+                _trail_start = _ai_ep["trailing_start"]
+            if _ai_ep.get("trailing_drop"):
+                _trail_drop = _ai_ep["trailing_drop"]
 
             # === S2: 戦略書シナリオモニタリング（Phase 0）===
             _strategy = hdata.get("entry_context", {}).get("strategy") if isinstance(hdata.get("entry_context"), dict) else None
@@ -403,12 +412,22 @@ def check_tp_sl_all_positions():
             # === 第3層: テクニカル出口（RSI > 閾値 + 含み益 > 1.5%）v6.5ai: プロファイル別RSI ===
             elif pnl['pnl_pct'] > 1.5:
                 _rsi_exit_threshold = _exit_p.get("rsi_exit")
-                if _rsi_exit_threshold is not None:  # long profile: rsi_exit=None → スキップ
-                    rsi_val = _calc_rsi(clean_symbol)
-                    if rsi_val is not None and rsi_val > _rsi_exit_threshold:
-                        sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit (RSI>{_rsi_exit_threshold}, profile: {_exit_cat})"
-                        sell_label = "RSI Exit"
-                        logger.warning(f"[TP/SL] 📊 テクニカル出口: {clean_symbol} RSI={rsi_val:.1f}>{_rsi_exit_threshold} +{pnl['pnl_pct']:.1f}% (profile: {_exit_cat})")
+                if _rsi_exit_threshold is not None:
+                    # v6.5as: AI戦略のbull_stage1未到達ならRSI Exitしない
+                    _min_profit_for_rsi = 3.0  # デフォルト最低利益条件
+                    try:
+                        _ec_strat = hdata.get("entry_context", {}) if isinstance(hdata.get("entry_context"), dict) else {}
+                        _bull_stages = _ec_strat.get("strategy", {}).get("bull_scenario", {}).get("exit_stages", []) if isinstance(_ec_strat.get("strategy"), dict) else []
+                        if _bull_stages and isinstance(_bull_stages[0], dict):
+                            _min_profit_for_rsi = max(3.0, _bull_stages[0].get("trigger_pct", 3.0))
+                    except Exception:
+                        pass
+                    if pnl['pnl_pct'] >= _min_profit_for_rsi:
+                        rsi_val = _calc_rsi(clean_symbol)
+                        if rsi_val is not None and rsi_val > _rsi_exit_threshold:
+                            sell_reason = f"RSI Exit at RSI={rsi_val:.1f} with +{pnl['pnl_pct']:.1f}% profit (RSI>{_rsi_exit_threshold}, min_profit={_min_profit_for_rsi:.1f}%, profile: {_exit_cat})"
+                            sell_label = "RSI Exit"
+                            logger.warning(f"[TP/SL] 📊 テクニカル出口: {clean_symbol} RSI={rsi_val:.1f}>{_rsi_exit_threshold} +{pnl['pnl_pct']:.1f}% (min={_min_profit_for_rsi:.1f}%, profile: {_exit_cat})")
 
             # === 第4層: 時間制約（戦略別） ===
             if not sell_reason:

@@ -75,37 +75,37 @@
   },
   "macro_data": {
     "spy": {
-      "value": 659.22,
-      "change_1d": 0.04,
-      "change_7d": 4.31,
-      "change_30d": -2.98,
+      "value": NaN,
+      "change_1d": NaN,
+      "change_7d": NaN,
+      "change_30d": NaN,
       "ticker": "SPY"
     },
     "dxy": {
-      "value": 98.572,
-      "change_1d": -1.07,
-      "change_7d": -1.39,
-      "change_30d": -0.42,
+      "value": 99.096,
+      "change_1d": -0.55,
+      "change_7d": -0.86,
+      "change_30d": 0.11,
       "ticker": "DX-Y.NYB"
     },
     "gold": {
-      "value": 4825.3999,
-      "change_1d": 3.61,
-      "change_7d": 3.83,
-      "change_30d": -6.23,
+      "value": 4740.2998,
+      "change_1d": -0.19,
+      "change_7d": -0.9,
+      "change_30d": -6.9,
       "ticker": "GC=F"
     },
     "us10y": {
-      "value": 4.234,
-      "change_1d": -2.51,
-      "change_7d": -1.79,
-      "change_30d": 2.44,
+      "value": 4.343,
+      "change_1d": 0.18,
+      "change_7d": 0.02,
+      "change_30d": 4.75,
       "ticker": "^TNX"
     },
     "btc_dominance": {
-      "value": 56.86,
-      "total_market_cap_usd": 2535324933385.7607
+      "value": 56.99,
+      "total_market_cap_usd": 2491998204761.866
     },
-    "collected_at": "2026-04-08T12:58:23.985475+00:00"
+    "collected_at": "2026-04-09T06:52:34.939183+00:00"
   }
 }

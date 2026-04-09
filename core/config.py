@@ -46,7 +46,7 @@ EXIT_PROFILES = {
         "trailing_start": 5.0,   # トレーリング開始
         "trailing_drop": 2.5,    # HWMからの下落で利確
         "hard_tp_pct": 14.0,     # 絶対上限TP
-        "rsi_exit": 65,          # RSI出口閾値
+        "rsi_exit": 75,          # v6.5as: 65→75（薄利利確防止）          # RSI出口閾値
         "time_limit_hours": 192, # 8日（短期戦略2-8日）
     },
     "mid": {
@@ -54,7 +54,7 @@ EXIT_PROFILES = {
         "trailing_start": 10.0,
         "trailing_drop": 4.0,
         "hard_tp_pct": 25.0,
-        "rsi_exit": 72,
+        "rsi_exit": 78,          # v6.5as: 72→78（薄利利確防止）
         "time_limit_hours": 408, # 17日（中期戦略8-17日）
     },
     "long": {

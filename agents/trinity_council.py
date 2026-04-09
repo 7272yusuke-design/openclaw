@@ -1032,6 +1032,11 @@ BUY判断が下された。このポジションの戦略書を作成せよ。
   - 例: [{{"trigger_pct": 2.0, "sell_pct": 50, "note": "半利確"}}, {{"trigger_pct": 4.0, "sell_pct": 100, "note": "全利確"}}]
   - 最低2段階、最大4段階。最終stageはsell_pct=100必須
 - bear_scenario.exit_stages: 損切り。通常1段階（trigger_pctは負数、sell_pct=100）
+【exit_paramsルール（v6.5as: AI動的出口パラメータ）】
+- rsi_exit: RSI出口閾値。ボラが高い相場なら80-85、低ボラなら70-75。nullでRSI出口無効
+- trailing_start: トレーリング開始%。target_pctの60-80%が目安。nullでデフォルト使用
+- trailing_drop: HWMからの下落%で利確。ボラに応じて2-5%。nullでデフォルト使用
+- 相場ボラティリティ（ATR%）と戦略timeframeを考慮して設定すること
 - invalidation条件とstop_priceは具体的な数値・条件で明記必須（曖昧なら却下）
 
 【銘柄・価格】
@@ -1090,6 +1095,11 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
   "exit_stages": [
     {{"trigger_pct": 数値, "sell_pct": 100, "note": "損切り理由"}}
   ]
+}},
+"exit_params": {{
+  "rsi_exit": 数値or null,
+  "trailing_start": 数値or null,
+  "trailing_drop": 数値or null
 }},
 "invalidation": {{
   "conditions": ["戦略前提崩壊条件1", "条件2"],
@@ -1182,6 +1192,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 _fng_val = market_context.split("Fear & Greed Index:")[1].split("/")[0].strip() if market_context and "Fear & Greed" in market_context else "N/A"
             except Exception:
                 _fng_val = "N/A"
+            _ai_exit = _strat_parsed.get("exit_params", {}) if isinstance(locals().get("_strat_parsed"), dict) else {}
             return {
                 "verdict": first_word,
                 "confidence": _calc_conf,
@@ -1218,8 +1229,9 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 "exit_profile": {
                     "category": _exit_name,
                     "sl_pct": _exit_data.get("sl_pct", 5.0),
-                    "trailing_start": _exit_data.get("trailing_start", 5.0),
-                    "trailing_drop": _exit_data.get("trailing_drop", 2.5),
+                    "trailing_start": _ai_exit.get("trailing_start") or _exit_data.get("trailing_start", 5.0),
+                    "trailing_drop": _ai_exit.get("trailing_drop") or _exit_data.get("trailing_drop", 2.5),
+                    "rsi_exit": _ai_exit.get("rsi_exit") if _ai_exit.get("rsi_exit") is not None else _exit_data.get("rsi_exit"),
                     "hard_tp_pct": _exit_data.get("hard_tp_pct", 14.0),
                     "time_limit_hours": _exit_data.get("time_limit_hours", 96),
                 },
