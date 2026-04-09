@@ -1032,6 +1032,14 @@ BUY判断が下された。このポジションの戦略書を作成せよ。
   - 例: [{{"trigger_pct": 2.0, "sell_pct": 50, "note": "半利確"}}, {{"trigger_pct": 4.0, "sell_pct": 100, "note": "全利確"}}]
   - 最低2段階、最大4段階。最終stageはsell_pct=100必須
 - bear_scenario.exit_stages: 損切り。通常1段階（trigger_pctは負数、sell_pct=100）
+【position_size_pctルール（v6.5as: AI推奨ポジションサイズ）】
+- 総資産に対する推奨BUY比率（%）を1〜15の数値で指定
+- 判断基準: 確信度、ボラティリティ、相場環境、リスクリワード比
+- 高確信+低ボラ+良RR: 8〜15%
+- 中確信+通常ボラ: 4〜7%
+- 低確信+高ボラ: 1〜3%
+- ハードキャップ15%は超えられない（安全装置）
+
 【exit_paramsルール（v6.5as: AI動的出口パラメータ）】
 - rsi_exit: RSI出口閾値。ボラが高い相場なら80-85、低ボラなら70-75。nullでRSI出口無効
 - trailing_start: トレーリング開始%。target_pctの60-80%が目安。nullでデフォルト使用
@@ -1076,6 +1084,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
 以下のJSON形式のみで回答（余計なテキスト厳禁）:
 {{"thesis": "核心テーゼ（50字以内、具体的数値を含む）",
 "thesis_timeframe": "short or mid or long",
+"position_size_pct": 数値,
 "bull_scenario": {{
   "narrative": "楽観シナリオ展開（80字以内）",
   "evidence": ["根拠1（データソース:値）", "根拠2（データソース:値）", "根拠3以上"],
@@ -1322,19 +1331,27 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                                 print(f"\n[Phase 5] 🛑 BUY禁止: {clean_symbol}ナンピン{_open_buy_count}回（上限{MAX_OPEN_BUYS_PER_SYMBOL}回）")
                             else:
                                 # ③ BUY額: ポジションサイズ（v6.5ag データ駆動型）
-                                from core.config import FLAT_POSITION_SIZE, FLAT_SIZE_PCT
-                                if FLAT_POSITION_SIZE:
-                                    _size_pct = FLAT_SIZE_PCT  # 一律サイズ（相関分析: 高conf=47%WR vs 低conf=83%WR）
+                                # v6.5as: AIポジションサイズ優先、ハードキャップ15%
+                                _ai_size = None
+                                try:
+                                    _ai_size = discussion_data.get("strategy", {}).get("position_size_pct") if isinstance(discussion_data.get("strategy"), dict) else None
+                                    if _ai_size is not None:
+                                        _ai_size = float(_ai_size)
+                                except Exception:
+                                    _ai_size = None
+                                if _ai_size is not None and 1.0 <= _ai_size <= 15.0:
+                                    _size_pct = min(_ai_size / 100.0, 0.15)  # AI推奨（キャップ15%）
+                                    print(f"  📐 AI推奨サイズ: {_ai_size:.1f}% → {_size_pct:.0%}")
                                 elif _structured_confidence >= 85:
-                                    _size_pct = 0.10   # 非常に高い確信度 → 総資産10%
+                                    _size_pct = 0.10
                                 elif _structured_confidence >= 70:
-                                    _size_pct = 0.07   # 高い確信度 → 総資産7%
+                                    _size_pct = 0.07
                                 elif _structured_confidence >= 55:
-                                    _size_pct = 0.05   # 中程度 → 総資産5%
+                                    _size_pct = 0.05
                                 elif _structured_confidence >= 40:
-                                    _size_pct = 0.03   # やや低い → 総資産3%
+                                    _size_pct = 0.03
                                 else:
-                                    _size_pct = 0.02   # v6.5an: 低確信度(30-39) → 総資産2%（学習用最小エントリー）
+                                    _size_pct = 0.02
                                 trade_amount_usd = round(min(total_assets * _size_pct, current_usdc * 0.10), 2)
                                 if trade_amount_usd >= 10.0:
                                     print(f"\n[Phase 5] 🟢 BUY実行: ${trade_amount_usd:.2f} USDC → {clean_symbol} (conf={_structured_confidence} → {_size_pct:.0%} / USDC比率:{usdc_ratio:.1%} / {clean_symbol}比率:{holding_ratio:.1%})")

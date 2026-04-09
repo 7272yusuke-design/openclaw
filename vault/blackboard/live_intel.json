@@ -29,7 +29,7 @@
         "sharpe": 5.51,
         "confidence": "HIGH",
         "alert_level": "Critical",
-        "last_detected": "2026-04-09T07:03:33"
+        "last_detected": "2026-04-09T07:07:24"
       },
       "ETH": {
         "sharpe": 5.51,
@@ -51,7 +51,7 @@
       }
     },
     "opportunity_count": 5,
-    "last_updated": "2026-04-09T07:03:33.452921+00:00"
+    "last_updated": "2026-04-09T07:07:24.022937+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -97,7 +97,7 @@
         "pnl_pct": -1.56
       }
     ],
-    "last_evaluated": "2026-04-09T07:04:47.447270"
+    "last_evaluated": "2026-04-09T07:08:51.795930"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1775717037.2588654,
