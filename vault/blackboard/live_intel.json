@@ -23,25 +23,25 @@
         "sharpe": 6.19,
         "confidence": "MEDIUM",
         "alert_level": "Critical",
-        "last_detected": "2026-04-09T11:27:10"
+        "last_detected": "2026-04-10T01:03:25"
       },
       "ETH/USDT": {
-        "sharpe": 5.51,
+        "sharpe": 5.24,
         "confidence": "HIGH",
         "alert_level": "Critical",
-        "last_detected": "2026-04-09T07:09:51"
+        "last_detected": "2026-04-09T12:18:34"
       },
       "ETH": {
-        "sharpe": 5.5,
+        "sharpe": 5.24,
         "confidence": "HIGH",
         "alert_level": "Warning",
-        "last_detected": "2026-04-09T09:45:09"
+        "last_detected": "2026-04-09T12:52:51"
       },
       "BTC": {
         "sharpe": 21.87,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-09T10:45:24"
+        "last_detected": "2026-04-09T23:51:32"
       },
       "ROBO/USDT": {
         "sharpe": 5.05,
@@ -51,15 +51,15 @@
       }
     },
     "opportunity_count": 5,
-    "last_updated": "2026-04-09T11:27:10.509670+00:00"
+    "last_updated": "2026-04-10T01:03:25.884889+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 43.75,
-    "total_evaluated_trades": 32,
+    "accuracy_score": 47.06,
+    "total_evaluated_trades": 34,
     "recent_performance": [
       {
         "symbol": "ETH",
@@ -97,9 +97,9 @@
         "pnl_pct": -1.56
       }
     ],
-    "last_evaluated": "2026-04-09T11:49:37.811892"
+    "last_evaluated": "2026-04-09T23:52:35.454849"
   },
   "last_periodic_symbol": "AIXBT",
-  "last_unified_council_ts": 1775735102.912924,
+  "last_unified_council_ts": 1775782336.1055858,
   "last_unified_council_symbol": "VIRTUAL"
 }

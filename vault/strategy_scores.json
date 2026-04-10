@@ -2,10 +2,10 @@
   "scores": {
     "atr_breakout": {
       "wins": 5,
-      "losses": 4,
-      "total": 9,
-      "win_rate": 55.6,
-      "avg_pnl": 0.19,
+      "losses": 6,
+      "total": 11,
+      "win_rate": 45.5,
+      "avg_pnl": -0.14,
       "tier": "mid"
     },
     "triple_ma_cross": {
@@ -17,6 +17,6 @@
       "tier": "mid"
     }
   },
-  "generated_at": "2026-04-08T17:03:26.230882+00:00",
-  "total_pairs": 11
+  "generated_at": "2026-04-09T17:01:50.741486+00:00",
+  "total_pairs": 13
 }

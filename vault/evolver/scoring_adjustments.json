@@ -1,32 +1,31 @@
 {
   "adjustments": [
     {
+      "rule_id": "R_sym_virtual_low",
+      "condition": {
+        "type": "symbol",
+        "match": "VIRTUAL"
+      },
+      "adjustment": -6,
+      "evidence": "8件中3勝(38%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 8,
+      "expires_at": "2026-05-09T17:01:51.718386+00:00"
+    },
+    {
       "rule_id": "R_sym_eth_high",
       "condition": {
         "type": "symbol",
         "match": "ETH"
       },
       "adjustment": 10,
-      "evidence": "4件中4勝(100%)",
+      "evidence": "5件中4勝(80%)",
       "min_sample_size": 3,
-      "actual_sample_size": 4,
-      "expires_at": "2026-05-08T17:03:27.106910+00:00"
-    },
-    {
-      "rule_id": "R_wl_ratio_bad",
-      "condition": {
-        "type": "sentiment_range",
-        "min": -1.0,
-        "max": -0.3
-      },
-      "adjustment": -5,
-      "evidence": "W/L比=0.80 (Win+3.10% / Loss-3.89%)",
-      "min_sample_size": 3,
-      "actual_sample_size": 11,
-      "expires_at": "2026-05-08T17:03:27.106910+00:00"
+      "actual_sample_size": 5,
+      "expires_at": "2026-05-09T17:01:51.718386+00:00"
     }
   ],
-  "generated_at": "2026-04-08T17:03:27.106910+00:00",
+  "generated_at": "2026-04-09T17:01:51.718386+00:00",
   "total_adjustments": 2,
-  "source_pairs": 11
+  "source_pairs": 13
 }

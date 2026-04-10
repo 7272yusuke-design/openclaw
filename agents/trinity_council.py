@@ -1334,7 +1334,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                                 # v6.5as: AIポジションサイズ優先、ハードキャップ15%
                                 _ai_size = None
                                 try:
-                                    _ai_size = discussion_data.get("strategy", {}).get("position_size_pct") if isinstance(discussion_data.get("strategy"), dict) else None
+                                    _ai_size = _position_strategy.get("position_size_pct") if isinstance(_position_strategy, dict) else None
                                     if _ai_size is not None:
                                         _ai_size = float(_ai_size)
                                 except Exception:
@@ -1366,7 +1366,7 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                                     # 戦略タグをholdingsに保存（出口プロファイル用）
                                     from core.config import STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
                                     # v6.5as: AIのthesis_timeframeを優先
-                                    _ai_tf = discussion_data.get("strategy", {}).get("thesis_timeframe") if isinstance(discussion_data.get("strategy"), dict) else None
+                                    _ai_tf = _position_strategy.get("thesis_timeframe") if isinstance(_position_strategy, dict) else None
                                     if _ai_tf in ("short", "mid", "long"):
                                         _exit_cat = _ai_tf
                                     else:

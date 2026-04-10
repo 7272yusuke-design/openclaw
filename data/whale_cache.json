@@ -1,27 +1,12 @@
 {
   "whale_VIRTUAL": {
     "symbol": "VIRTUAL",
-    "whale_count": 2,
-    "whale_volume_usd": 50332,
-    "large_txs": [
-      {
-        "from": "0x3f0296BF...",
-        "to": "0x623bF998...",
-        "amount_usd": 25497,
-        "amount_tokens": 38951,
-        "tx_hash": "0xdf3bd37e1004c4..."
-      },
-      {
-        "from": "0x623bF998...",
-        "to": "0x3f0296BF...",
-        "amount_usd": 24835,
-        "amount_tokens": 37940,
-        "tx_hash": "0x7ad2cd461f66c0..."
-      }
-    ],
-    "signal": "WHALE_ACTIVE",
+    "whale_count": 0,
+    "whale_volume_usd": 0,
+    "large_txs": [],
+    "signal": "NEUTRAL",
     "scanned_blocks": 300,
-    "fetched_at": "2026-04-09T11:45:38.714892+00:00"
+    "fetched_at": "2026-04-10T00:52:39.607955+00:00"
   },
-  "_ts": 1775735138.7149916
+  "_ts": 1775782359.6080315
 }

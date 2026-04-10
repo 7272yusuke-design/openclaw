@@ -1,76 +1,76 @@
 {
-  "timestamp": "2026-04-08T22:38:21.469560+00:00",
-  "score": 56.89,
+  "timestamp": "2026-04-09T22:57:29.264170+00:00",
+  "score": 34.46,
   "regime": "Risk-On",
   "details": {
     "vix": {
-      "raw_score": 1.0,
+      "raw_score": 0.737,
       "weight": 0.25,
-      "contribution": 25.0
+      "contribution": 18.42
     },
     "dxy": {
-      "raw_score": 0.644,
+      "raw_score": 0.339,
       "weight": 0.2,
-      "contribution": 12.89
+      "contribution": 6.78
     },
     "sp500": {
-      "raw_score": 1.0,
+      "raw_score": 0.308,
       "weight": 0.15,
-      "contribution": 15.0
+      "contribution": 4.63
     },
     "treasury_10y": {
-      "raw_score": 0.399,
+      "raw_score": -0.016,
       "weight": 0.15,
-      "contribution": 5.99
+      "contribution": -0.23
     },
     "gold": {
-      "raw_score": -0.827,
+      "raw_score": -0.371,
       "weight": 0.1,
-      "contribution": -8.27
+      "contribution": -3.71
     },
     "fear_greed": {
-      "raw_score": 0.66,
+      "raw_score": 0.72,
       "weight": 0.1,
-      "contribution": 6.6
+      "contribution": 7.2
     },
     "btc_dominance": {
-      "raw_score": -0.064,
+      "raw_score": 0.276,
       "weight": 0.05,
-      "contribution": -0.32
+      "contribution": 1.38
     }
   },
   "raw": {
     "yfinance": {
       "sp500": {
-        "value": 6782.8101,
-        "change_pct": 2.5081
+        "value": 6824.6602,
+        "change_pct": 0.617
       },
       "vix": {
-        "value": 21.04,
-        "change_pct": -18.3863
+        "value": 19.49,
+        "change_pct": -7.3669
       },
       "treasury_10y": {
-        "value": 4.291,
-        "change_pct": -1.1973
+        "value": 4.293,
+        "change_pct": 0.0466
       },
       "dxy": {
-        "value": 98.998,
-        "change_pct": -0.6443
+        "value": 98.794,
+        "change_pct": -0.3389
       },
       "gold": {
-        "value": 4734.1001,
-        "change_pct": 1.6534
+        "value": 4784.7002,
+        "change_pct": 0.7411
       }
     },
     "fear_greed": {
-      "value": 17,
+      "value": 14,
       "classification": "Extreme Fear",
-      "change": 6
+      "change": -3
     },
     "crypto_global": {
-      "btc_dominance": 56.96,
-      "total_mcap_usd": 2504702180342.8945,
-      "mcap_change_24h": -0.32
+      "btc_dominance": 57.12,
+      "total_mcap_usd": 2533324339567.754,
+      "mcap_change_24h": 1.38
     }
   },
   "macro_data": {

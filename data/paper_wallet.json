@@ -1,5 +1,5 @@
 {
-  "usd_balance": 48445.74564766028,
+  "usd_balance": 50865.1285824698,
   "holdings": {
     "BTC": {
       "amount": 0.11774121816119104,
@@ -96,8 +96,8 @@
       }
     },
     "VIRTUAL": {
-      "amount": 19745.290756572384,
-      "avg_price": 0.6594995313333393,
+      "amount": 16360.147870327162,
+      "avg_price": 0.6625982286909015,
       "entry_time": "2026-04-08T23:42:13.466039+00:00",
       "strategy_tag": "atr_breakout",
       "exit_profile": "mid",
@@ -204,7 +204,10 @@
             "reflexion_instruction": "\u601d\u8003\u30d0\u30a4\u30a2\u30b9: \u7279\u5b9a\u306e\u30b7\u30b0\u30ca\u30eb\u3078\u306e\u904e\u4fe1, \u5e02\u5834\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u306e\u8efd\u8996, \u697d\u89b3\u7684\u89e3\u91c8\u3078\u306e\u56fa\u57f7\n\u4eca\u56de\u8a72\u5f53: true,\u5f31\u6c17\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u4e0b\u306e\u697d\u89b3\u7684\u5224\u65ad\u50be\u5411\nconfidence\u8abf\u6574: -7 (\u5f31\u6c17\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u6642\u306e\u697d\u89b3\u601d\u8003\u304c\u518d\u767a\u61f8\u5ff5)\n\u6b21\u56de\u6ce8\u610f: \u660e\u78ba\u306a\u5f31\u6c17\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u6642\u306f\u697d\u89b3\u30b7\u30ca\u30ea\u30aa\u3092\u6368\u3066WAIT\u3092\u512a\u5148\u305b\u3088\u6226\u7565\u5236\u7d04\u9055\u53cd: \u660e\u78ba\u306a\u5f31\u6c17\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u6642WAIT\u512a\u5148\u306e\u6307\u793a\n\u6839\u62e0\u4fe1\u983c\u6027: 5/5 (\u4eca\u56de\u306eNeo\u306e\u6700\u7d42"
           }
         }
-      }
+      },
+      "completed_stages": [
+        "bull_0"
+      ]
     },
     "ETH": {
       "amount": 7.457414318643715,
@@ -837,8 +840,26 @@
       "amount_usd": 4297.99,
       "reason": "Trinity Council BUY verdict (accuracy: 43.75%, confidence: HIGH)",
       "strategy_tag": "gplearn_evolved"
+    },
+    {
+      "timestamp": "2026-04-09T22:20:00.222478+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.68699878826664,
+      "amount_token": 9872.645378286192,
+      "amount_usd": 6748.582934809513,
+      "reason": "Strategy Bull Stage 0: +4.2% >= +4.2% (sell 50%, \u534a\u5229\u78ba\uff1aATR(14)\u00d72)"
+    },
+    {
+      "timestamp": "2026-04-10T00:53:40.339746+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.663977240129713,
+      "amount_token": 6487.5024920409705,
+      "amount_usd": 4329.2,
+      "reason": "Trinity Council BUY verdict (accuracy: 47.06%, confidence: HIGH)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-09T06:45:18.087782+00:00"
+  "last_updated": "2026-04-10T01:26:43.094048+00:00"
 }
