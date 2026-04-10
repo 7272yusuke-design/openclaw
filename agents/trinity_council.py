@@ -1094,7 +1094,8 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
   "exit_stages": [
     {{"trigger_pct": 数値, "sell_pct": 50, "note": "理由"}},
     {{"trigger_pct": 数値, "sell_pct": 100, "note": "理由"}}
-  ]
+  ],
+  "take_profit_plan": "利確戦略の要約（30字以内）"
 }},
 "bear_scenario": {{
   "narrative": "悲観シナリオ展開（80字以内）",
@@ -1103,7 +1104,8 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
   "risk_pct": 数値,
   "exit_stages": [
     {{"trigger_pct": 数値, "sell_pct": 100, "note": "損切り理由"}}
-  ]
+  ],
+  "hedge_plan": "ヘッジ戦略の要約（30字以内）"
 }},
 "exit_params": {{
   "rsi_exit": 数値or null,
