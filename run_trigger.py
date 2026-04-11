@@ -1004,6 +1004,13 @@ def start_hybrid_radar():
     NO_TRADE_ALERT_HOURS = 24
     no_trade_alerted = False
 
+    # v6.5au: 起動直後にダッシュボード送信
+    try:
+        evaluate_performance(send_dashboard=True)
+        logger.info('[Evaluator] 起動時ダッシュボード送信完了')
+    except Exception as _e:
+        logger.error(f'[Evaluator] 起動時送信失敗: {_e}')
+
     try:
         while True:
             cycle_count += 1

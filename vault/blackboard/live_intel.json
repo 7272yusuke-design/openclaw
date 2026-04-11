@@ -82,7 +82,7 @@
     "tier0_trades": 18,
     "tier1_accuracy": 57.14,
     "tier1_trades": 28,
-    "open_positions_count": 6,
+    "open_positions_count": 7,
     "recent_performance": [
       {
         "symbol": "VIRTUAL",
@@ -127,39 +127,39 @@
     ],
     "open_positions": [
       {
-        "symbol": "BTC",
-        "entry_price": 66645.97,
-        "current_price": 73365.0,
-        "amount_usd": 2737.81,
-        "pnl_pct": 10.08
-      },
-      {
-        "symbol": "BTC",
-        "entry_price": 69317.44,
-        "current_price": 73365.0,
-        "amount_usd": 2636.09,
-        "pnl_pct": 5.84
+        "symbol": "VIRTUAL",
+        "entry_price": 0.686912301218735,
+        "current_price": 0.687839321125052,
+        "amount_usd": 2636.06,
+        "pnl_pct": 0.13
       },
       {
         "symbol": "ETH",
         "entry_price": 2297.68,
-        "current_price": 2295.54,
+        "current_price": 2284.72,
         "amount_usd": 5281.88,
-        "pnl_pct": -0.09
+        "pnl_pct": -0.56
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.703061998188213,
-        "current_price": 0.694394244749443,
-        "amount_usd": 2643.19,
-        "pnl_pct": -1.23
+        "symbol": "BTC",
+        "entry_price": 67156.79,
+        "current_price": 73054.0,
+        "amount_usd": 2634.14,
+        "pnl_pct": 8.78
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.694394244749443,
-        "current_price": 0.694394244749443,
-        "amount_usd": 2639.77,
-        "pnl_pct": 0.0
+        "symbol": "BTC",
+        "entry_price": 66645.97,
+        "current_price": 73054.0,
+        "amount_usd": 2737.81,
+        "pnl_pct": 9.62
+      },
+      {
+        "symbol": "BTC",
+        "entry_price": 69317.44,
+        "current_price": 73054.0,
+        "amount_usd": 2636.09,
+        "pnl_pct": 5.39
       }
     ],
     "advanced_metrics": {
@@ -169,7 +169,7 @@
       "annual_return": 5.969,
       "omega_ratio": 1.717
     },
-    "last_evaluated": "2026-04-11T22:59:39.880307"
+    "last_evaluated": "2026-04-11T23:17:03.052748"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1775948294.3667016,
