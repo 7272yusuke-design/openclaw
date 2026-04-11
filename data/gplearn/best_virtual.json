@@ -1,10 +1,10 @@
 {
-  "train_accuracy": 51.07,
-  "test_accuracy": 39.04,
-  "buy_recall": 100.0,
-  "buy_predictions": 186,
-  "threshold": -0.7706,
-  "program": "min(min(X2, min(X2, sub(min(X2, sub(X2, X6)), X2))), min(max(X2, max(X2, sub(X3, -0.067))), sub(sub(X2, sub(X2, X6)), X6)))",
+  "train_accuracy": 46.74,
+  "test_accuracy": 43.37,
+  "buy_recall": 93.24,
+  "buy_predictions": 175,
+  "threshold": -1.4836,
+  "program": "min(abs(max(add(X11, max(X8, X3)), mul(min(sub(add(X8, X10), sub(-0.805, X5)), mul(X11, X1)), X9))), sub(sub(-0.805, X5), X7))",
   "method": "SymbolicRegressor+percentile",
   "horizon": 4,
   "target_pct": 0.01,
@@ -49,5 +49,5 @@
     "n_jobs": 1
   },
   "symbol": "VIRTUAL",
-  "updated": "2026-03-28T04:51:30.998717+00:00"
+  "updated": "2026-04-11T17:01:52.946751+00:00"
 }

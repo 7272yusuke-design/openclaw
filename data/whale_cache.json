@@ -2,47 +2,47 @@
   "whale_VIRTUAL": {
     "symbol": "VIRTUAL",
     "whale_count": 5,
-    "whale_volume_usd": 110179,
+    "whale_volume_usd": 106916,
     "large_txs": [
-      {
-        "from": "0x3f0296BF...",
-        "to": "0x623bF998...",
-        "amount_usd": 24410,
-        "amount_tokens": 35956,
-        "tx_hash": "0xaf585f1fbad168..."
-      },
-      {
-        "from": "0x3304E22D...",
-        "to": "0x51C72848...",
-        "amount_usd": 12581,
-        "amount_tokens": 18531,
-        "tx_hash": "0xd4a8bf1acb24cc..."
-      },
-      {
-        "from": "0x623bF998...",
-        "to": "0x3f0296BF...",
-        "amount_usd": 25182,
-        "amount_tokens": 37093,
-        "tx_hash": "0x3f43169266d56b..."
-      },
       {
         "from": "0xb6AC5363...",
         "to": "0x3f0296BF...",
-        "amount_usd": 24003,
-        "amount_tokens": 35356,
-        "tx_hash": "0x4cb836139edc2f..."
+        "amount_usd": 19475,
+        "amount_tokens": 28069,
+        "tx_hash": "0x9e64d1c2abef90..."
       },
       {
         "from": "0x3f0296BF...",
         "to": "0xb6AC5363...",
-        "amount_usd": 24003,
-        "amount_tokens": 35356,
-        "tx_hash": "0x1712fe70bc32c0..."
+        "amount_usd": 19475,
+        "amount_tokens": 28069,
+        "tx_hash": "0xf926848ccf7893..."
+      },
+      {
+        "from": "0x623bF998...",
+        "to": "0x3f0296BF...",
+        "amount_usd": 16638,
+        "amount_tokens": 23981,
+        "tx_hash": "0x092c22d925799e..."
+      },
+      {
+        "from": "0x3f0296BF...",
+        "to": "0x623bF998...",
+        "amount_usd": 16638,
+        "amount_tokens": 23981,
+        "tx_hash": "0x2a68cd146c3c3d..."
+      },
+      {
+        "from": "0xBaeD383E...",
+        "to": "0x06FD4bA7...",
+        "amount_usd": 34690,
+        "amount_tokens": 49999,
+        "tx_hash": "0x366a2f50375824..."
       }
     ],
     "signal": "WHALE_ACTIVE",
     "scanned_blocks": 300,
-    "fetched_at": "2026-04-11T09:26:21.319852+00:00"
+    "fetched_at": "2026-04-11T22:58:39.192203+00:00"
   },
-  "_ts": 1775899581.3199334
+  "_ts": 1775948319.1922777
 }
