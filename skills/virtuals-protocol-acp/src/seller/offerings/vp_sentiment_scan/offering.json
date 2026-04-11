@@ -1,7 +1,7 @@
 {
   "name": "vp_sentiment_scan",
-  "description": "Lightweight VP token sentiment analysis. Returns FinBERT scores from 6 crypto news sources (CoinDesk, CoinTelegraph, The Block, Decrypt, Blockworks, DLNews), Fear & Greed index, BTC 3-tier trend (24h/30d/180d), and VP-specific keyword detection. Fast and cheap — designed for agents needing sentiment input without full market analysis.",
-  "jobFee": 0.2,
+  "description": "Lightweight VP token sentiment analysis. Returns FinBERT scores from 6 crypto news sources (CoinDesk, CoinTelegraph, The Block, Decrypt, Blockworks, DLNews), Fear & Greed index, BTC 3-tier trend (24h/30d/180d), and VP-specific keyword detection. Fast and cheap \u2014 designed for agents needing sentiment input without full market analysis.",
+  "jobFee": 0.01,
   "jobFeeType": "fixed",
   "requiredFunds": false,
   "requirement": {
@@ -9,7 +9,10 @@
     "properties": {
       "symbol": {
         "type": "string",
-        "enum": ["VIRTUAL", "AIXBT"],
+        "enum": [
+          "VIRTUAL",
+          "AIXBT"
+        ],
         "description": "VP token to scan sentiment for"
       },
       "include_headlines": {
@@ -18,6 +21,8 @@
         "description": "Include top news headlines in response"
       }
     },
-    "required": ["symbol"]
+    "required": [
+      "symbol"
+    ]
   }
 }

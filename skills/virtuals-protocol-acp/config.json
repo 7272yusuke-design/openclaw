@@ -1,22 +1,22 @@
 {
   "SESSION_TOKEN": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIxNzg2OSwiaWF0IjoxNzc0OTM4NDkzLCJleHAiOjE3NzQ5NDAyOTN9.4vseM8H-2GJ7lfvCcmhL4sovyUJ0as3Lrrjm0lkajwk"
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjIxNzg2OSwiaWF0IjoxNzc1ODEyOTI1LCJleHAiOjE3NzU4MTQ3MjV9.jcPD1z_fK-nwiXzLbrdNnN6t_6vcwiTO9Sapnx4b5Rs"
   },
   "agents": [
     {
       "id": 19768,
       "name": "Neo",
       "walletAddress": "0x54b70c4BB03D01FC5f2D7b3790642f1eBEe5118d",
-      "active": true,
-      "apiKey": "acp-f622487197985bc40e19"
+      "apiKey": "acp-f622487197985bc40e19",
+      "active": false
     },
     {
       "id": 41409,
       "name": "neo-test-buyer",
       "walletAddress": "0x71d50c6CBEb24C5B54b28dd574EC46dBd820eC91",
       "apiKey": "acp-510852fdf776509c1845",
-      "active": false
+      "active": true
     }
   ],
-  "LITE_AGENT_API_KEY": "acp-f622487197985bc40e19"
+  "LITE_AGENT_API_KEY": "acp-510852fdf776509c1845"
 }

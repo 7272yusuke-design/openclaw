@@ -12,7 +12,7 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: AIXBT/USDT",
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: VIRTUAL",
     "success_probability": 0.85,
     "strategy_id": "",
     "diplomatic_presets": {
@@ -20,10 +20,10 @@
     },
     "active_opportunities": {
       "AIXBT/USDT": {
-        "sharpe": 6.19,
+        "sharpe": 9.36,
         "confidence": "MEDIUM",
         "alert_level": "Critical",
-        "last_detected": "2026-04-10T03:32:06"
+        "last_detected": "2026-04-11T02:19:46"
       },
       "ETH/USDT": {
         "sharpe": 5.24,
@@ -41,25 +41,37 @@
         "sharpe": 21.87,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-10T03:01:16"
+        "last_detected": "2026-04-10T12:05:27"
       },
       "ROBO/USDT": {
         "sharpe": 5.05,
         "confidence": "MEDIUM",
         "alert_level": "Critical",
         "last_detected": "2026-04-08T19:51:45"
+      },
+      "VIRTUAL/USDT": {
+        "sharpe": 9.38,
+        "confidence": "MEDIUM",
+        "alert_level": "Warning",
+        "last_detected": "2026-04-11T02:22:20"
+      },
+      "VIRTUAL": {
+        "sharpe": 9.38,
+        "confidence": "MEDIUM",
+        "alert_level": "Normal",
+        "last_detected": "2026-04-11T02:54:50"
       }
     },
-    "opportunity_count": 5,
-    "last_updated": "2026-04-10T03:32:06.163067+00:00"
+    "opportunity_count": 7,
+    "last_updated": "2026-04-11T02:54:50.274306+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
   "system_status": "ONLINE",
   "version": "5.2",
   "performance_summary": {
-    "accuracy_score": 47.06,
-    "total_evaluated_trades": 34,
+    "accuracy_score": 50.0,
+    "total_evaluated_trades": 36,
     "recent_performance": [
       {
         "symbol": "VIRTUAL",
@@ -97,9 +109,9 @@
         "pnl_pct": 5.08
       }
     ],
-    "last_evaluated": "2026-04-10T04:02:51.500391"
+    "last_evaluated": "2026-04-11T03:55:53.278400"
   },
   "last_periodic_symbol": "AIXBT",
-  "last_unified_council_ts": 1775793685.2419572,
-  "last_unified_council_symbol": "VIRTUAL"
+  "last_unified_council_ts": 1775879680.7335756,
+  "last_unified_council_symbol": "ETH"
 }
