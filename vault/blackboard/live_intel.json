@@ -12,7 +12,7 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: VIRTUAL",
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: BTC",
     "success_probability": 0.85,
     "strategy_id": "",
     "diplomatic_presets": {
@@ -23,7 +23,7 @@
         "sharpe": 9.36,
         "confidence": "MEDIUM",
         "alert_level": "Critical",
-        "last_detected": "2026-04-11T02:19:46"
+        "last_detected": "2026-04-11T06:49:50"
       },
       "ETH/USDT": {
         "sharpe": 5.24,
@@ -41,7 +41,7 @@
         "sharpe": 21.87,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-10T12:05:27"
+        "last_detected": "2026-04-11T11:26:38"
       },
       "ROBO/USDT": {
         "sharpe": 5.05,
@@ -53,17 +53,17 @@
         "sharpe": 9.38,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-11T02:22:20"
+        "last_detected": "2026-04-11T06:52:25"
       },
       "VIRTUAL": {
         "sharpe": 9.38,
         "confidence": "MEDIUM",
         "alert_level": "Normal",
-        "last_detected": "2026-04-11T02:54:50"
+        "last_detected": "2026-04-11T06:09:56"
       }
     },
     "opportunity_count": 7,
-    "last_updated": "2026-04-11T02:54:50.274306+00:00"
+    "last_updated": "2026-04-11T11:26:38.544189+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -72,46 +72,100 @@
   "performance_summary": {
     "accuracy_score": 50.0,
     "total_evaluated_trades": 36,
+    "tier0_accuracy": 53.85,
+    "tier0_trades": 13,
+    "tier1_accuracy": 47.83,
+    "tier1_trades": 23,
+    "open_positions_count": 13,
     "recent_performance": [
-      {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.689357733582745,
-        "exit_price": 0.65712630847258,
-        "amount_usd": 6097.45,
-        "pnl_pct": -4.68
-      },
-      {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.675381236800939,
-        "exit_price": 0.65712630847258,
-        "amount_usd": 4335.81,
-        "pnl_pct": -2.7
-      },
       {
         "symbol": "VIRTUAL",
         "entry_price": 0.672956132774887,
         "exit_price": 0.65712630847258,
         "amount_usd": 4330.13,
-        "pnl_pct": -2.35
+        "pnl_pct": -2.35,
+        "sell_time": "2026-04-08T23:05:17.361636+00:00"
       },
       {
         "symbol": "VIRTUAL",
         "entry_price": 0.658007868371977,
         "exit_price": 0.68699878826664,
         "amount_usd": 4287.59,
-        "pnl_pct": 4.41
+        "pnl_pct": 4.41,
+        "sell_time": "2026-04-09T22:20:00.222478+00:00"
       },
       {
         "symbol": "VIRTUAL",
         "entry_price": 0.653781782328042,
         "exit_price": 0.68699878826664,
         "amount_usd": 2194.5,
-        "pnl_pct": 5.08
+        "pnl_pct": 5.08,
+        "sell_time": "2026-04-09T22:20:00.222478+00:00"
+      },
+      {
+        "symbol": "ETH",
+        "entry_price": 2184.32,
+        "exit_price": 2242.16,
+        "amount_usd": 5995.89,
+        "pnl_pct": 2.65,
+        "sell_time": "2026-04-10T14:18:59.182267+00:00"
+      },
+      {
+        "symbol": "ETH",
+        "entry_price": 2179.34,
+        "exit_price": 2242.16,
+        "amount_usd": 2143.9,
+        "pnl_pct": 2.88,
+        "sell_time": "2026-04-10T14:18:59.182267+00:00"
       }
     ],
-    "last_evaluated": "2026-04-11T03:55:53.278400"
+    "open_positions": [
+      {
+        "symbol": "ETH",
+        "entry_price": 2249.08,
+        "current_price": 2245.7,
+        "amount_usd": 4374.2,
+        "pnl_pct": -0.15
+      },
+      {
+        "symbol": "ETH",
+        "entry_price": 2238.44,
+        "current_price": 2245.7,
+        "amount_usd": 4437.01,
+        "pnl_pct": 0.32
+      },
+      {
+        "symbol": "BTC",
+        "entry_price": 67156.79,
+        "current_price": 72955.0,
+        "amount_usd": 2634.14,
+        "pnl_pct": 8.63
+      },
+      {
+        "symbol": "BTC",
+        "entry_price": 66645.97,
+        "current_price": 72955.0,
+        "amount_usd": 2737.81,
+        "pnl_pct": 9.47
+      },
+      {
+        "symbol": "BTC",
+        "entry_price": 69317.44,
+        "current_price": 72955.0,
+        "amount_usd": 2636.09,
+        "pnl_pct": 5.25
+      }
+    ],
+    "advanced_metrics": {
+      "sortino_ratio": -1.165,
+      "max_drawdown": -0.26,
+      "calmar_ratio": -1.616,
+      "annual_return": -0.42,
+      "omega_ratio": 0.885
+    },
+    "last_evaluated": "2026-04-11T12:09:22.397450"
   },
   "last_periodic_symbol": "AIXBT",
-  "last_unified_council_ts": 1775879680.7335756,
-  "last_unified_council_symbol": "ETH"
+  "last_unified_council_ts": 1775906786.3796434,
+  "last_unified_council_symbol": "BTC"
 }

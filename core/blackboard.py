@@ -58,7 +58,14 @@ class PerformanceSummary(BaseModel):
     """P1修正: 勝率・パフォーマンス情報を保持する専用モデル"""
     accuracy_score: float = 0.0
     total_evaluated_trades: int = 0
+    tier0_accuracy: float = 0.0
+    tier0_trades: int = 0
+    tier1_accuracy: float = 0.0
+    tier1_trades: int = 0
+    open_positions_count: int = 0
     recent_performance: List[Dict[str, Any]] = Field(default_factory=list)
+    open_positions: List[Dict[str, Any]] = Field(default_factory=list)
+    advanced_metrics: Dict[str, Any] = Field(default_factory=dict)
     last_evaluated: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class BlackboardSchemaV5_2(BaseModel):

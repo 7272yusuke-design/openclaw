@@ -423,8 +423,8 @@ class DiscordReporter:
                     _sl = _bear_s.get("stop_price", 0)
                     _entry = float(_hdata.get("avg_price", 0))
                     _cur = pos.get("current_price", 0)
-                    _bull_prog = ((_cur - _entry) / (_tp - _entry) * 100) if _tp > _entry > 0 else 0
-                    _bear_prog = ((_entry - _cur) / (_entry - _sl) * 100) if _entry > _sl > 0 and _entry > 0 else 0
+                    _bull_prog = max(0, min(100, ((_cur - _entry) / (_tp - _entry) * 100))) if _tp > _entry > 0 else 0
+                    _bear_prog = max(0, min(100, ((_entry - _cur) / (_entry - _sl) * 100))) if _entry > _sl > 0 and _entry > 0 else 0
                     _days = _bull_s.get("target_days", "?")
                     lines_pf.append(
                         f"   📌 {_strat.get('thesis', '?')[:50]}"

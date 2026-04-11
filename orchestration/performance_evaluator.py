@@ -150,7 +150,8 @@ def _calc_closed_trades(buys, sells):
                     "entry_price": buy["price"],
                     "exit_price": sell["price"],
                     "amount_usd": matched_usd,
-                    "pnl_pct": round(pnl_pct, 2)
+                    "pnl_pct": round(pnl_pct, 2),
+                    "sell_time": sell.get("timestamp", "")
                 })
                 sell_token_left -= matched_token
                 buy["amount_token"] -= matched_token
@@ -160,6 +161,8 @@ def _calc_closed_trades(buys, sells):
         if remaining_buys:
             open_buys[symbol] = remaining_buys
 
+    # 時系列順にソート（直近5件表示用）
+    closed.sort(key=lambda x: x.get("sell_time", ""))
     return closed, open_buys
 
 

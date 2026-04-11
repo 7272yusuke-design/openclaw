@@ -469,12 +469,15 @@ def check_tp_sl_all_positions():
                     import time as _time_sc2
                     _sell_cooldown[clean_symbol] = _time_sc2.time() + SELL_COOLDOWN_SEC
 
-                    # === SELL根拠スナップショット v6.5as ===
+                    # === SELL根拠スナップショット v6.5au ===
                     try:
-                        _rsi_snap = rsi_val if 'rsi_val' in dir() else 0.0
-                        _btc_snap = _btc_24h_change if '_btc_24h_change' in dir() else 0.0
+                        try:
+                            _rsi_snap = _calc_rsi(clean_symbol) or 0.0
+                        except Exception:
+                            _rsi_snap = 0.0
+                        _btc_snap = _btc_24h_chg_f2
                         _entry_ctx = hdata.get('entry_context', {})
-                        _buy_dt = hdata.get('buy_date', datetime.now(timezone.utc).isoformat())
+                        _buy_dt = hdata.get('entry_time', datetime.now(timezone.utc).isoformat())
                         _hold_h = (datetime.now(timezone.utc) - datetime.fromisoformat(_buy_dt.replace('Z','+00:00'))).total_seconds() / 3600
                         logger.info(f"[SELL根拠] {clean_symbol} | reason={sell_reason} | PnL={pnl['pnl_pct']:+.1f}% | RSI={_rsi_snap:.1f} | BTC24h={_btc_snap:+.1f}% | 保有{_hold_h:.1f}h | entry_conf={_entry_ctx.get('confidence','N/A')} | thesis={str(_entry_ctx.get('thesis','N/A'))[:80]}")
                         import json as _st_json
