@@ -115,6 +115,31 @@ def evolve_rules_from_h2():
                 "updated_at": now,
             })
 
+    # ルール6: 銘柄別勝率ルール（コイン単位の学習蓄積）
+    for sym in df['symbol'].unique():
+        sd = df[df['symbol'] == sym]
+        if len(sd) >= 5:
+            sym_wr = (sd['result'] == 'win').mean() * 100
+            sym_avg = sd['pnl_pct_after_fee'].mean()
+            if sym_wr >= 65:
+                rules.append({
+                    "rule_id": f"R007_{sym.lower()}_high_wr",
+                    "rule": f"{sym}は高勝率({sym_wr:.0f}%)。BUY confidence +5の根拠がある",
+                    "evidence": f"{sym}: {len(sd)}件中{(sd['result']=='win').sum()}勝 平均損益{sym_avg:+.2f}%",
+                    "action": "Phase 4bスコアリングで銘柄別調整",
+                    "severity": "info",
+                    "updated_at": now,
+                })
+            elif sym_wr <= 40:
+                rules.append({
+                    "rule_id": f"R008_{sym.lower()}_low_wr",
+                    "rule": f"{sym}は低勝率({sym_wr:.0f}%)。BUY confidence -5の根拠がある",
+                    "evidence": f"{sym}: {len(sd)}件中{(sd['result']=='win').sum()}勝 平均損益{sym_avg:+.2f}%",
+                    "action": "Phase 4bスコアリングで銘柄別調整",
+                    "severity": "warning",
+                    "updated_at": now,
+                })
+
     return rules
 
 

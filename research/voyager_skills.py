@@ -64,7 +64,7 @@ def extract_skills_from_h2():
             })
 
     # スキル3: 銘柄別パターン
-    for sym in ['VIRTUAL', 'AIXBT']:
+    for sym in ['VIRTUAL', 'ETH', 'BTC']:
         sd = df[df['symbol'] == sym]
         if len(sd) >= 3:
             wr = (sd['result'] == 'win').mean() * 100
@@ -103,10 +103,24 @@ def save_skills_to_memory(skills):
 
 
 def get_relevant_skills(symbol=None, timezone_label=None):
-    """Council判断時に関連スキルを参照"""
+    """Council判断時に関連スキルを参照（銘柄フィルタ付き）"""
     mem = NeoMemoryDB()
-    results = mem.recall_by_tags(SKILL_TAG, n_results=5)
-    return results
+    results = mem.recall_by_tags(SKILL_TAG, n_results=10)
+    if not symbol or not results:
+        return results
+    # 銘柄別スキルは該当銘柄のみ、汎用スキル（出口パターン等）は全て返す
+    sym_upper = symbol.split('/')[0].strip().upper()
+    filtered = []
+    for r in results:
+        doc_text = r if isinstance(r, str) else r.get('document', r.get('text', ''))
+        # 銘柄固有スキル（_trade_pattern）は該当銘柄のみ通す
+        if '_trade_pattern' in str(doc_text):
+            if sym_upper.lower() in str(doc_text).lower():
+                filtered.append(r)
+        else:
+            # 汎用スキル（出口パターン、時間帯等）は全て通す
+            filtered.append(r)
+    return filtered if filtered else results
 
 
 def run_voyager_update():

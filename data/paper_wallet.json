@@ -1,5 +1,5 @@
 {
-  "usd_balance": 67895.19299349292,
+  "usd_balance": 64375.64299349292,
   "holdings": {
     "BTC": {
       "amount": 0.11774121816119104,
@@ -130,34 +130,121 @@
       ]
     },
     "VIRTUAL": {
-      "amount": 3749.3159392405073,
-      "avg_price": 0.7049392590093104,
+      "amount": 8811.968184911764,
+      "avg_price": 0.6993431967391638,
       "entry_time": "2026-04-13T23:59:22.494501+00:00",
       "strategy_tag": "mean_reversion",
       "exit_profile": "short",
       "entry_context": {
         "rsi_14": 0.0,
-        "sentiment_score": -0.3,
-        "sentiment_label": "bearish",
+        "sentiment_score": -0.15,
+        "sentiment_label": "neutral",
         "bt_confidence": "HIGH",
-        "confidence": 47,
+        "confidence": 53,
         "key_factor": "Sharpe\u9ad8",
         "scoring_breakdown": {
           "base": 50,
           "bt": "HIGH",
-          "sent": -0.3,
+          "sent": -0.15,
           "acc": 50.75,
-          "tz": "US-3",
-          "npin": "npin0:0",
+          "tz": "Asia+3",
+          "npin": "npin1:0",
           "streak": "streak0",
           "cfr": "cfr-27:-5(Neutral)",
           "macro": "macro+0(RISK_ON_RIDE)",
-          "total": 47
+          "total": 53
         },
         "capital_flow_phase": "RISK_ON_RIDE",
-        "timestamp": "2026-04-13T23:59:22.500740+00:00",
-        "btc_24h": 5.28,
-        "btc_trend": "\u9577\u671f\u4e0b\u843d\u30fb\u77ed\u671f\u53cd\u767a\u26a0\ufe0f"
+        "timestamp": "2026-04-14T00:31:46.433545+00:00",
+        "btc_24h": 4.53,
+        "btc_trend": "\u9577\u671f\u4e0b\u843d\u30fb\u77ed\u671f\u53cd\u767a\u26a0\ufe0f",
+        "strategy": {
+          "thesis": "BTC\u53cd\u767a\u3068VIRTUAL\u30aa\u30f3\u30c1\u30a7\u30fc\u30f3\u6d41\u52d5\u6027\u5897\u52a0\u3067$0.74\u307e\u3067\u4e0a\u6607",
+          "thesis_timeframe": "short",
+          "position_size_pct": 4,
+          "bull_scenario": {
+            "narrative": "BTC\u5805\u8abf\u3068VIRTUAL\u3078\u306e\u30aa\u30f3\u30c1\u30a7\u30fc\u30f3\u6d41\u5165\u5897\u52a0\u3067\u3001\u76f4\u8fd1\u9ad8\u5024$0.74\u7a81\u7834\u30017\u65e5\u4ee5\u5185\u306b+7%\u4e0a\u6607\u76ee\u6307\u3059\u3002",
+            "evidence": [
+              "BTC:24h+4.6%\u2192\u77ed\u671f\u4e0a\u6607\u30c8\u30ec\u30f3\u30c9",
+              "DEX\u6d41\u52d5\u6027:$6,224,898\u2192\u5927\u53e3\u53d6\u5f15\u53ef\u80fd",
+              "\u30d0\u30c3\u30af\u30c6\u30b9\u30c8:mean_reversion(Sharpe=12.6)\u2192RSI\u53cd\u767a\u671f\u5f85"
+            ],
+            "target_price": 0.74,
+            "target_pct": 7,
+            "target_days": 7,
+            "exit_stages": [
+              {
+                "trigger_pct": 3.8,
+                "sell_pct": 50,
+                "note": "\u30ea\u30b9\u30af\u30d8\u30c3\u30b8\u306e\u305f\u3081\u534a\u5229\u78ba"
+              },
+              {
+                "trigger_pct": 7,
+                "sell_pct": 100,
+                "note": "\u76ee\u6a19\u4fa1\u683c\u5230\u9054\u3067\u5168\u5229\u78ba"
+              }
+            ],
+            "take_profit_plan": "ATR\u306b\u57fa\u3065\u304d\u6bb5\u968e\u5229\u78ba"
+          },
+          "bear_scenario": {
+            "narrative": "BTC\u304c$70,000\u5272\u308c\u3001\u30af\u30b8\u30e9\u9001\u91d1\u304c\u58f2\u308a\u5727\u529b\u3068\u306a\u308a\u3001$0.66\u307e\u3067-4.6%\u4e0b\u843d\u3059\u308b\u3002",
+            "evidence": [
+              "BTC:30d+1.9%\u2192\u4e0a\u6607\u920d\u5316",
+              "K.3\u30af\u30b8\u30e9\u76e3\u8996:\u5927\u53e3\u9001\u91d17\u4ef6\u2192\u58f2\u308a\u5727\u529b\u8b66\u6212",
+              "Reflexion:\u5f31\u6c17\u5bc4\u308a\u30bb\u30f3\u30c1\u8efd\u8996\u2192\u5224\u65ad\u30d0\u30a4\u30a2\u30b9"
+            ],
+            "stop_price": 0.66,
+            "risk_pct": -4.6,
+            "exit_stages": [
+              {
+                "trigger_pct": -4.6,
+                "sell_pct": 100,
+                "note": "\u640d\u5931\u9650\u5b9a\u306e\u305f\u3081\u640d\u5207\u308a"
+              }
+            ],
+            "hedge_plan": "BTC\u4e0b\u843d\u3067\u640d\u5207\u308a\u3001USDT\u3078"
+          },
+          "exit_params": {
+            "rsi_exit": 75,
+            "trailing_start": 3.8,
+            "trailing_drop": 3
+          },
+          "invalidation": {
+            "conditions": [
+              "BTC\u304c$72,000\u3092\u4e0b\u56de\u308b",
+              "VIRTUAL\u306eDEX\u6d41\u52d5\u6027\u304c$5,000,000\u3092\u4e0b\u56de\u308b"
+            ],
+            "action": "\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u76f4\u3061\u306b\u30af\u30ed\u30fc\u30ba"
+          },
+          "evidence_snapshot": {
+            "bt_confidence": "HIGH",
+            "bt_best_strategy": "mean_reversion",
+            "sentiment": {
+              "score": -0.15,
+              "label": "neutral"
+            },
+            "macro": {
+              "capital_flow_phase": "RISK_ON_RIDE",
+              "collected_at": "2026-04-13T07:08:39.150341+00:00"
+            },
+            "btc": {
+              "price": 74234.34,
+              "change_24h": 4.58,
+              "change_30d": 1.95
+            },
+            "technicals": {
+              "rsi_14": 56.8,
+              "macd_signal": "unknown"
+            },
+            "voyager_matches": [
+              "Voyager Skill: virtual_trade_pattern \u2014 VIRTUAL: \u52dd\u738743% \u5e73\u5747\u640d\u76ca-0.96%",
+              "Voyager Skill: virtual_trade_pattern \u2014 VIRTUAL: \u52dd\u738744% \u5e73\u5747\u640d\u76ca-0.28%",
+              "Voyager Skill: virtual_trade_pattern \u2014 VIRTUAL: \u52dd\u738744% \u5e73\u5747\u640d\u76ca-0.28%"
+            ],
+            "evolver_adjustments": [],
+            "reflexion_instruction": "\u601d\u8003\u30d0\u30a4\u30a2\u30b9: \u7279\u5b9a\u306e\u9298\u67c4\uff08VIRTUAL\uff09\u3078\u306e\u56fa\u57f7, \u5e02\u5834\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\uff08\u5f31\u6c17\uff09\u306e\u8efd\u8996, \u7279\u5b9a\u306e\u30b7\u30b0\u30ca\u30eb\u3078\u306e\u904e\u4fe1\n\u4eca\u56de\u8a72\u5f53: true:\u5f31\u6c17\u5bc4\u308a\u30bb\u30f3\u30c1\u3068\u56fa\u57f7\u518d\u767a\u61f8\u5ff5\nconfidence\u8abf\u6574: -10 (VIRTUAL\u56fa\u57f7\u3068\u5f31\u6c17\u5bc4\u308a\u30bb\u30f3\u30c1\u8efd\u8996\u306e\u518d\u767a\u61f8\u5ff5\u304c\u5f37\u3044)\n\u6b21\u56de\u6ce8\u610f: VIRTUAL\u5224\u65ad\u6642\u3001\u76f4\u8fd1Reflexion\u3068\u53f8\u4ee4\u5b98\u6559\u8a13\u3092\u53b3\u5b88\u3057WAIT\u3092\u512a\u5148\u305b\u3088\u6226\u7565\u5236\u7d04\u9055\u53cd: \u306a\u3057\n\u6839\u62e0\u4fe1\u983c\u6027: 5/5 "
+          }
+        }
       }
     }
   },
@@ -1075,8 +1162,18 @@
       "amount_usd": 2643.04,
       "reason": "Trinity Council BUY verdict (accuracy: 50.75%, confidence: HIGH)",
       "strategy_tag": "mean_reversion"
+    },
+    {
+      "timestamp": "2026-04-14T00:31:46.428664+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.691722851988163,
+      "amount_token": 5062.652245671257,
+      "amount_usd": 3519.55,
+      "reason": "Trinity Council BUY verdict (accuracy: 50.75%, confidence: HIGH)",
+      "strategy_tag": "mean_reversion"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-13T23:59:22.757115+00:00"
+  "last_updated": "2026-04-14T00:31:46.688150+00:00"
 }

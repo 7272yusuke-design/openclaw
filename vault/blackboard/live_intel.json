@@ -12,7 +12,7 @@
   },
   "strategic_intel": {
     "expected_pnet": 0.0,
-    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: VIRTUAL",
+    "risk_mitigation_plan": "Multi-Alpha Scan Active. Latest: VIRTUAL/USDT",
     "success_probability": 0.85,
     "strategy_id": "",
     "diplomatic_presets": {
@@ -53,7 +53,7 @@
         "sharpe": 12.61,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-13T22:16:46"
+        "last_detected": "2026-04-14T00:30:37"
       },
       "VIRTUAL": {
         "sharpe": 12.61,
@@ -81,7 +81,7 @@
       }
     },
     "opportunity_count": 10,
-    "last_updated": "2026-04-13T23:58:14.206423+00:00"
+    "last_updated": "2026-04-14T00:30:37.975968+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -94,7 +94,7 @@
     "tier0_trades": 32,
     "tier1_accuracy": 57.14,
     "tier1_trades": 35,
-    "open_positions_count": 7,
+    "open_positions_count": 8,
     "recent_performance": [
       {
         "symbol": "ETH",
@@ -141,37 +141,37 @@
       {
         "symbol": "BTC",
         "entry_price": 66645.97,
-        "current_price": 74317.0,
+        "current_price": 74283.0,
         "amount_usd": 2737.81,
-        "pnl_pct": 11.51
+        "pnl_pct": 11.46
       },
       {
         "symbol": "BTC",
         "entry_price": 69317.44,
-        "current_price": 74317.0,
+        "current_price": 74283.0,
         "amount_usd": 2636.09,
-        "pnl_pct": 7.21
+        "pnl_pct": 7.16
       },
       {
         "symbol": "ETH",
         "entry_price": 2211.12,
-        "current_price": 2366.31,
+        "current_price": 2367.02,
         "amount_usd": 2610.18,
-        "pnl_pct": 7.02
+        "pnl_pct": 7.05
       },
       {
         "symbol": "ETH",
         "entry_price": 2236.32,
-        "current_price": 2366.31,
+        "current_price": 2367.02,
         "amount_usd": 3482.66,
-        "pnl_pct": 5.81
+        "pnl_pct": 5.84
       },
       {
         "symbol": "ETH",
         "entry_price": 2254.11,
-        "current_price": 2366.31,
+        "current_price": 2367.02,
         "amount_usd": 2619.02,
-        "pnl_pct": 4.98
+        "pnl_pct": 5.01
       }
     ],
     "advanced_metrics": {
@@ -181,7 +181,7 @@
       "annual_return": 3.82,
       "omega_ratio": 1.617
     },
-    "last_evaluated": "2026-04-14T00:29:03.312495"
+    "last_evaluated": "2026-04-14T00:31:52.629984"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1776124673.9995718,

@@ -20,18 +20,59 @@ DEFAULT_EXPIRY_DAYS = 30
 MIN_SAMPLE_SIZE = 3
 
 
+def _get_fifo_closed_trades():
+    """EvaluatorのFIFOロット方式で決済済み取引を取得（最も正確）"""
+    import pandas as pd
+    from orchestration.performance_evaluator import _parse_wallet_history, _calc_closed_trades
+    from tools.paper_wallet import PaperWallet
+    buys, sells = _parse_wallet_history()
+    closed, _ = _calc_closed_trades(buys, sells)
+    if not closed:
+        return pd.DataFrame()
+    # historyからbuy_hourを復元するためtimestamp情報を付加
+    pw = PaperWallet()
+    hist = pw.state.get("history", [])
+    buy_ts_map = {}  # symbol -> [timestamps] (FIFO順)
+    sell_ts_map = {}
+    sell_reason_map = {}
+    for h in hist:
+        sym = h.get("symbol", "").split("/")[0].strip().upper()
+        if h["action"] == "BUY":
+            buy_ts_map.setdefault(sym, []).append(h.get("timestamp", ""))
+        elif h["action"] == "SELL":
+            sell_ts_map.setdefault(sym, []).append(h.get("timestamp", ""))
+            sell_reason_map.setdefault(sym, []).append(h.get("reason", ""))
+    # closedにbuy_ts/sell_reason付加
+    sym_buy_idx = {}
+    sym_sell_idx = {}
+    for c in closed:
+        sym = c["symbol"]
+        bi = sym_buy_idx.get(sym, 0)
+        si = sym_sell_idx.get(sym, 0)
+        c["buy_ts"] = buy_ts_map.get(sym, [""])[min(bi, len(buy_ts_map.get(sym, []))-1)] if buy_ts_map.get(sym) else ""
+        c["sell_reason"] = sell_reason_map.get(sym, [""])[min(si, len(sell_reason_map.get(sym, []))-1)] if sell_reason_map.get(sym) else ""
+        c["result"] = "win" if c["pnl_pct"] > 0 else "loss"
+        sym_buy_idx[sym] = bi + 1
+        # sell_timeが変わったらsellインデックスも進める
+        if si < len(sell_ts_map.get(sym, [])) - 1:
+            if c.get("sell_time", "") != sell_ts_map.get(sym, [""])[si]:
+                sym_sell_idx[sym] = si + 1
+    df = pd.DataFrame(closed)
+    if "buy_ts" in df.columns and len(df) > 0:
+        df["buy_hour"] = pd.to_datetime(df["buy_ts"], errors="coerce").dt.hour.fillna(0).astype(int)
+    else:
+        df["buy_hour"] = 0
+    return df
+
+
 def generate_scoring_adjustments():
-    """EvolveRルール + H.2統計からscoring_adjustments.jsonを自動生成"""
-    from research.h2_trade_analysis import get_clean_pairs
+    """EvolveRルール + FIFOロット統計からscoring_adjustments.jsonを自動生成"""
     import pandas as pd
 
-    pairs, _, _ = get_clean_pairs()
-    if len(pairs) < 10:
+    df = _get_fifo_closed_trades()
+    if len(df) < 10:
         print("⚠️ [E3] データ不足（10ペア未満）: scoring_adjustments生成スキップ")
         return []
-
-    df = pd.DataFrame(pairs)
-    df['buy_hour'] = pd.to_datetime(df['buy_ts']).dt.hour
     now = datetime.now(timezone.utc)
     expires = (now + timedelta(days=DEFAULT_EXPIRY_DAYS)).isoformat()
     adjustments = []
@@ -73,7 +114,7 @@ def generate_scoring_adjustments():
         sd = df[df['symbol'] == sym]
         if len(sd) >= MIN_SAMPLE_SIZE:
             wr = (sd['result'] == 'win').mean() * 100
-            if wr >= 70:
+            if wr >= 65:
                 adj = min(10, int((wr - 60) / 2))
                 adjustments.append({
                     "rule_id": f"R_sym_{sym.lower()}_high",
@@ -84,7 +125,7 @@ def generate_scoring_adjustments():
                     "actual_sample_size": len(sd),
                     "expires_at": expires,
                 })
-            elif wr <= 40:
+            elif wr <= 45:
                 adj = max(-10, -int((50 - wr) / 2))
                 adjustments.append({
                     "rule_id": f"R_sym_{sym.lower()}_low",
@@ -116,8 +157,8 @@ def generate_scoring_adjustments():
     win_df = df[df['result'] == 'win']
     loss_df = df[df['result'] == 'loss']
     if len(win_df) >= 3 and len(loss_df) >= 3:
-        avg_win = win_df['pnl_pct_after_fee'].mean()
-        avg_loss = loss_df['pnl_pct_after_fee'].mean()
+        avg_win = win_df['pnl_pct'].mean()
+        avg_loss = loss_df['pnl_pct'].mean()
         wl_ratio = abs(avg_win) / abs(avg_loss) if avg_loss != 0 else 999
         if wl_ratio < 0.8:
             adjustments.append({
