@@ -94,7 +94,7 @@
     "tier0_trades": 32,
     "tier1_accuracy": 57.14,
     "tier1_trades": 35,
-    "open_positions_count": 8,
+    "open_positions_count": 9,
     "recent_performance": [
       {
         "symbol": "ETH",
@@ -140,38 +140,38 @@
     "open_positions": [
       {
         "symbol": "BTC",
-        "entry_price": 66645.97,
-        "current_price": 74283.0,
-        "amount_usd": 2737.81,
-        "pnl_pct": 11.46
-      },
-      {
-        "symbol": "BTC",
         "entry_price": 69317.44,
-        "current_price": 74283.0,
+        "current_price": 74071.0,
         "amount_usd": 2636.09,
-        "pnl_pct": 7.16
+        "pnl_pct": 6.86
       },
       {
         "symbol": "ETH",
         "entry_price": 2211.12,
-        "current_price": 2367.02,
+        "current_price": 2357.11,
         "amount_usd": 2610.18,
-        "pnl_pct": 7.05
+        "pnl_pct": 6.6
       },
       {
         "symbol": "ETH",
         "entry_price": 2236.32,
-        "current_price": 2367.02,
+        "current_price": 2357.11,
         "amount_usd": 3482.66,
-        "pnl_pct": 5.84
+        "pnl_pct": 5.4
       },
       {
         "symbol": "ETH",
         "entry_price": 2254.11,
-        "current_price": 2367.02,
+        "current_price": 2357.11,
         "amount_usd": 2619.02,
-        "pnl_pct": 5.01
+        "pnl_pct": 4.57
+      },
+      {
+        "symbol": "ETH",
+        "entry_price": 2360.6,
+        "current_price": 2357.11,
+        "amount_usd": 3515.13,
+        "pnl_pct": -0.15
       }
     ],
     "advanced_metrics": {
@@ -181,7 +181,7 @@
       "annual_return": 3.82,
       "omega_ratio": 1.617
     },
-    "last_evaluated": "2026-04-14T00:31:52.629984"
+    "last_evaluated": "2026-04-14T01:05:06.289768"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1776124673.9995718,
