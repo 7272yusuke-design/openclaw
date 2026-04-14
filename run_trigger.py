@@ -1118,7 +1118,7 @@ def start_hybrid_radar():
                         _hb_cg = CostGuard()
                         _hb_dd_ok, _hb_dd_pct = _hb_cg.check_drawdown()
                         _hb_hwm = _hb_cg._breaker.get("hwm", 0)
-                        _hb_dd_status = "✅ OK" if _hb_dd_ok else f"🚫 BLOCKED ({_hb_dd_pct:.1f}%)"
+                        _hb_dd_status = f"{_hb_dd_pct:.1f}% ✅" if _hb_dd_ok else f"{_hb_dd_pct:.1f}% 🚫 BLOCKED"
                         _hb_lines.append("🛡️ CFO: DD={} | HWM: ${:,.0f}".format(_hb_dd_status, _hb_hwm))
                     except Exception:
                         pass

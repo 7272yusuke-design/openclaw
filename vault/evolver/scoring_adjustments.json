@@ -6,14 +6,26 @@
         "type": "timezone",
         "match": "EU"
       },
-      "adjustment": 7,
-      "evidence": "4件中3勝(75%)",
+      "adjustment": 10,
+      "evidence": "6件中5勝(83%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 6,
+      "expires_at": "2026-05-13T17:02:13.428081+00:00"
+    },
+    {
+      "rule_id": "R_tz_us_low",
+      "condition": {
+        "type": "timezone",
+        "match": "US"
+      },
+      "adjustment": -10,
+      "evidence": "4件中1勝(25%)",
       "min_sample_size": 3,
       "actual_sample_size": 4,
-      "expires_at": "2026-05-11T17:01:28.273775+00:00"
+      "expires_at": "2026-05-13T17:02:13.428081+00:00"
     }
   ],
-  "generated_at": "2026-04-11T17:01:28.273775+00:00",
-  "total_adjustments": 1,
-  "source_pairs": 15
+  "generated_at": "2026-04-13T17:02:13.428081+00:00",
+  "total_adjustments": 2,
+  "source_pairs": 22
 }

@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-04-11T06:49:41.324772+00:00",
-  "score": 14.42,
+  "timestamp": "2026-04-13T08:15:04.835818+00:00",
+  "score": -26.8,
   "regime": "Neutral",
   "details": {
     "vix": {
-      "raw_score": 0.133,
+      "raw_score": -1.0,
       "weight": 0.25,
-      "contribution": 3.34
+      "contribution": -25.0
     },
     "dxy": {
-      "raw_score": 0.172,
+      "raw_score": -0.272,
       "weight": 0.2,
-      "contribution": 3.44
+      "contribution": -5.43
     },
     "sp500": {
       "raw_score": -0.057,
@@ -24,19 +24,19 @@
       "contribution": -2.8
     },
     "gold": {
-      "raw_score": 0.316,
+      "raw_score": 0.042,
       "weight": 0.1,
-      "contribution": 3.16
+      "contribution": 0.42
     },
     "fear_greed": {
-      "raw_score": 0.7,
+      "raw_score": 0.76,
       "weight": 0.1,
-      "contribution": 7.0
+      "contribution": 7.6
     },
     "btc_dominance": {
-      "raw_score": 0.226,
+      "raw_score": -0.148,
       "weight": 0.05,
-      "contribution": 1.13
+      "contribution": -0.74
     }
   },
   "raw": {
@@ -46,31 +46,31 @@
         "change_pct": -0.1139
       },
       "vix": {
-        "value": 19.23,
-        "change_pct": -1.334
+        "value": 21.27,
+        "change_pct": 10.6084
       },
       "treasury_10y": {
         "value": 4.317,
         "change_pct": 0.559
       },
       "dxy": {
-        "value": 98.65,
-        "change_pct": -0.172
+        "value": 98.918,
+        "change_pct": 0.2717
       },
       "gold": {
-        "value": 4761.8999,
-        "change_pct": -0.6323
+        "value": 4757.8999,
+        "change_pct": -0.084
       }
     },
     "fear_greed": {
-      "value": 15,
+      "value": 12,
       "classification": "Extreme Fear",
-      "change": -1
+      "change": -4
     },
     "crypto_global": {
-      "btc_dominance": 57.26,
-      "total_mcap_usd": 2543075065181.1313,
-      "mcap_change_24h": 1.13
+      "btc_dominance": 56.86,
+      "total_mcap_usd": 2493939426270.2036,
+      "mcap_change_24h": -0.74
     }
   },
   "macro_data": {
@@ -82,17 +82,17 @@
       "ticker": "SPY"
     },
     "dxy": {
-      "value": 98.65,
-      "change_1d": -0.17,
-      "change_7d": -1.38,
-      "change_30d": -0.18,
+      "value": 99.016,
+      "change_1d": 0.37,
+      "change_7d": -0.96,
+      "change_30d": -0.22,
       "ticker": "DX-Y.NYB"
     },
     "gold": {
-      "value": 4761.8999,
-      "change_1d": -0.63,
-      "change_7d": 2.37,
-      "change_30d": -8.95,
+      "value": 4745.6001,
+      "change_1d": -0.34,
+      "change_7d": 1.91,
+      "change_30d": -8.16,
       "ticker": "GC=F"
     },
     "us10y": {
@@ -103,9 +103,9 @@
       "ticker": "^TNX"
     },
     "btc_dominance": {
-      "value": 57.26,
-      "total_market_cap_usd": 2544198716001.331
+      "value": 56.87,
+      "total_market_cap_usd": 2498070393462.989
     },
-    "collected_at": "2026-04-11T07:03:25.282746+00:00"
+    "collected_at": "2026-04-13T07:08:39.150341+00:00"
   }
 }

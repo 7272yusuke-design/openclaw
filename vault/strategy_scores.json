@@ -1,11 +1,11 @@
 {
   "scores": {
     "atr_breakout": {
-      "wins": 6,
+      "wins": 9,
       "losses": 7,
-      "total": 13,
-      "win_rate": 46.2,
-      "avg_pnl": 0.17,
+      "total": 16,
+      "win_rate": 56.2,
+      "avg_pnl": 1.11,
       "tier": "mid"
     },
     "triple_ma_cross": {
@@ -15,8 +15,16 @@
       "win_rate": 100.0,
       "avg_pnl": 2.2,
       "tier": "mid"
+    },
+    "gplearn_evolved": {
+      "wins": 1,
+      "losses": 3,
+      "total": 4,
+      "win_rate": 25.0,
+      "avg_pnl": -0.94,
+      "tier": "low"
     }
   },
-  "generated_at": "2026-04-11T17:01:27.004050+00:00",
-  "total_pairs": 15
+  "generated_at": "2026-04-13T17:02:11.371494+00:00",
+  "total_pairs": 22
 }
