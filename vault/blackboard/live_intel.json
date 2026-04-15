@@ -53,7 +53,7 @@
         "sharpe": 12.61,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-15T01:17:59"
+        "last_detected": "2026-04-15T01:29:47"
       },
       "VIRTUAL": {
         "sharpe": 12.61,
@@ -81,7 +81,7 @@
       }
     },
     "opportunity_count": 10,
-    "last_updated": "2026-04-15T01:17:59.689019+00:00"
+    "last_updated": "2026-04-15T01:29:47.192549+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -141,37 +141,37 @@
       {
         "symbol": "VIRTUAL",
         "entry_price": 0.67371950299218,
-        "current_price": 0.674984718386723,
+        "current_price": 0.67551766390523,
         "amount_usd": 3493.32,
-        "pnl_pct": 0.19
+        "pnl_pct": 0.27
       },
       {
         "symbol": "BTC",
         "entry_price": 67156.79,
-        "current_price": 74632.0,
+        "current_price": 74689.0,
         "amount_usd": 2634.14,
-        "pnl_pct": 11.13
+        "pnl_pct": 11.22
       },
       {
         "symbol": "BTC",
         "entry_price": 66645.97,
-        "current_price": 74632.0,
+        "current_price": 74689.0,
         "amount_usd": 2737.81,
-        "pnl_pct": 11.98
+        "pnl_pct": 12.07
       },
       {
         "symbol": "BTC",
         "entry_price": 69317.44,
-        "current_price": 74632.0,
+        "current_price": 74689.0,
         "amount_usd": 2636.09,
-        "pnl_pct": 7.67
+        "pnl_pct": 7.75
       },
       {
         "symbol": "ETH",
         "entry_price": 2325.07,
-        "current_price": 2335.51,
+        "current_price": 2335.89,
         "amount_usd": 4363.54,
-        "pnl_pct": 0.45
+        "pnl_pct": 0.47
       }
     ],
     "advanced_metrics": {
@@ -181,7 +181,7 @@
       "annual_return": 2.998,
       "omega_ratio": 1.522
     },
-    "last_evaluated": "2026-04-15T01:28:01.511987"
+    "last_evaluated": "2026-04-15T01:31:07.647829"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1776212415.4664485,

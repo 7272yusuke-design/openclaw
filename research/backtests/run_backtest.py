@@ -498,6 +498,17 @@ class CoreBacktest:
             "dca_accumulation":  CoreBacktest.run_dca_accumulation,
         }
 
+        # v6.5ax: ブラックリスト戦略を除外
+        try:
+            from core.config import STRATEGY_BLACKLIST
+            if STRATEGY_BLACKLIST:
+                _before = len(strategy_map)
+                strategy_map = {k: v for k, v in strategy_map.items() if k not in STRATEGY_BLACKLIST}
+                if len(strategy_map) < _before:
+                    logger.info(f'[{symbol}] blacklist applied: removed {_before - len(strategy_map)} strategies ({STRATEGY_BLACKLIST})')
+        except ImportError:
+            pass
+
         results = {}
 
         # ThreadPoolExecutor: pickle不要・GIL解放で数値計算は並列動作
