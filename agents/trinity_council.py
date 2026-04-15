@@ -713,15 +713,15 @@ class TrinityCouncil(NeoBaseCrew):
             _calc_conf -= 5
         elif bt_confidence == "NONE":
             _calc_conf -= 10
-        # センチメント
-        if sentiment_score > 0.6:
-            _calc_conf += 10
-        elif sentiment_score > 0.3:
-            _calc_conf += 5
-        elif sentiment_score < -0.3:
-            _calc_conf -= 10
-        elif sentiment_score < 0:
-            _calc_conf -= 5
+        # センチメント — v6.5ax無効化（慢性ネガティブで一方的にconf低下、情報価値なし）
+        # if sentiment_score > 0.6:
+        #     _calc_conf += 10
+        # elif sentiment_score > 0.3:
+        #     _calc_conf += 5
+        # elif sentiment_score < -0.3:
+        #     _calc_conf -= 10
+        # elif sentiment_score < 0:
+        #     _calc_conf -= 5
         # 過去精度
         if accuracy > 70:
             _calc_conf += 10
@@ -901,12 +901,12 @@ class TrinityCouncil(NeoBaseCrew):
         _evolver_label = f"evol{_evolver_total:+d}({','.join(_evolver_labels)})" if _evolver_labels else "evol0"
         if _evolver_total != 0:
             print(f"[Phase 4b] E3 EvolveR調整: {_evolver_total:+d} ({_evolver_labels})")
-        # === E2.3: Reflexion confidence_adjustment注入 ===
-        _reflexion_label = "refl0"
-        if _reflexion_adj != 0:
-            _calc_conf += _reflexion_adj
-            _reflexion_label = f"refl{_reflexion_adj:+d}"
-            print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
+        # === E2.3: Reflexion — v6.5ax無効化（慢性マイナスでBUY過剰抑制）===
+        _reflexion_label = "refl0(off)"
+        # if _reflexion_adj != 0:
+        #     _calc_conf += _reflexion_adj
+        #     _reflexion_label = f"refl{_reflexion_adj:+d}"
+        #     print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
         print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label}, {_strat_label})")
