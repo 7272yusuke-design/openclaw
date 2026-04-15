@@ -87,7 +87,7 @@ STRATEGY_TO_EXIT_PROFILE = {
 # ============================================================
 # 学習モード設定（Task F.1）
 # ============================================================
-LEARNING_MODE = True           # 100回取引達成まで有効
+LEARNING_MODE = False          # 100回取引達成 → 2026/04/15 OFF
 LEARNING_TARGET_TRADES = 100   # 目標取引数
 LEARNING_SHARPE_THRESHOLD = 0.5  # 学習モード中の緩和Sharpeしきい値（通常5.0）
 

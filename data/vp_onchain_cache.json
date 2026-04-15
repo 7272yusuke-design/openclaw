@@ -1,1 +1,1 @@
-{"dex_ETH": {"symbol": "ETH", "price_usd": 2928.66, "volume_24h": 81448.57, "liquidity_usd": 175719910.59, "price_change_24h": 0.0, "dex_name": "raydium", "chain": "solana", "fetched_at": "2026-04-14T04:46:12.016239+00:00"}, "_ts": 1776141972.0163372}
+{"dex_VIRTUAL": {"symbol": "VIRTUAL", "price_usd": 0.673, "volume_24h": 127534.02, "liquidity_usd": 6051898.87, "price_change_24h": -3.29, "dex_name": "aerodrome", "chain": "base", "fetched_at": "2026-04-15T01:17:59.941537+00:00"}, "_ts": 1776215879.9416287}
