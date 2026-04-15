@@ -53,7 +53,7 @@
         "sharpe": 11.91,
         "confidence": "MEDIUM",
         "alert_level": "Warning",
-        "last_detected": "2026-04-15T01:38:21"
+        "last_detected": "2026-04-15T01:47:40"
       },
       "VIRTUAL": {
         "sharpe": 12.61,
@@ -81,7 +81,7 @@
       }
     },
     "opportunity_count": 10,
-    "last_updated": "2026-04-15T01:38:21.529373+00:00"
+    "last_updated": "2026-04-15T01:47:40.893240+00:00"
   },
   "diplomacy_intel": {},
   "execution_history": [],
@@ -140,38 +140,38 @@
     "open_positions": [
       {
         "symbol": "VIRTUAL",
-        "entry_price": 0.670509,
-        "current_price": 0.675127084837042,
-        "amount_usd": 2618.06,
-        "pnl_pct": 0.69
+        "entry_price": 0.67371950299218,
+        "current_price": 0.676598,
+        "amount_usd": 3493.32,
+        "pnl_pct": 0.43
       },
       {
-        "symbol": "VIRTUAL",
-        "entry_price": 0.67371950299218,
-        "current_price": 0.675127084837042,
-        "amount_usd": 3493.32,
-        "pnl_pct": 0.21
+        "symbol": "ETH",
+        "entry_price": 2325.07,
+        "current_price": 2337.72,
+        "amount_usd": 4363.54,
+        "pnl_pct": 0.54
       },
       {
         "symbol": "BTC",
         "entry_price": 67156.79,
-        "current_price": 74581.0,
+        "current_price": 74633.0,
         "amount_usd": 2634.14,
-        "pnl_pct": 11.06
+        "pnl_pct": 11.13
       },
       {
         "symbol": "BTC",
         "entry_price": 66645.97,
-        "current_price": 74581.0,
+        "current_price": 74633.0,
         "amount_usd": 2737.81,
-        "pnl_pct": 11.91
+        "pnl_pct": 11.98
       },
       {
         "symbol": "BTC",
         "entry_price": 69317.44,
-        "current_price": 74581.0,
+        "current_price": 74633.0,
         "amount_usd": 2636.09,
-        "pnl_pct": 7.59
+        "pnl_pct": 7.67
       }
     ],
     "advanced_metrics": {
@@ -181,7 +181,7 @@
       "annual_return": 2.998,
       "omega_ratio": 1.522
     },
-    "last_evaluated": "2026-04-15T01:39:50.501347"
+    "last_evaluated": "2026-04-15T01:45:57.168699"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1776212415.4664485,
