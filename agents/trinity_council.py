@@ -97,15 +97,20 @@ class TrinityCouncil(NeoBaseCrew):
                 print(f"  📈 含み損益: ${pnl['pnl_usd']:+.2f} ({pnl['pnl_pct']:+.2f}%)")
                 # v6.3: TP/SL実行はrun_trigger.pyのcheck_tp_sl_all_positions()に委譲
                 # Council内では状態表示のみ（二重実行防止）
-                from core.config import LEARNING_MODE
-                full_tp_pct = 7.0 if LEARNING_MODE else 20.0
-                sl_pct = 3.0 if LEARNING_MODE else 10.0
+                # v6.5ay: ハードコードTP/SL削除 → EXIT_PROFILES参照に統一
+                from core.config import EXIT_PROFILES, STRATEGY_TO_EXIT_PROFILE, EXIT_PROFILE_DEFAULT
+                _h = self.portfolio.wallet.state.get("holdings", {}).get(clean_symbol, {})
+                _tag = _h.get("strategy_tag", "") if isinstance(_h, dict) else ""
+                _ep_name = STRATEGY_TO_EXIT_PROFILE.get(_tag, EXIT_PROFILE_DEFAULT)
+                _ep = EXIT_PROFILES.get(_ep_name, {})
+                full_tp_pct = _ep.get("hard_tp_pct", 14.0)
+                sl_pct = _ep.get("sl_pct", 3.0)
                 if pnl['pnl_pct'] >= full_tp_pct:
-                    print(f"  ⚠️ TP圏内（+{pnl['pnl_pct']:.1f}%） → 次サイクルでSELL予定")
+                    print(f"  ⚠️ TP圏内（+{pnl['pnl_pct']:.1f}% / {_ep_name}: TP+{full_tp_pct}%） → 次サイクルでSELL予定")
                 elif pnl['pnl_pct'] <= -sl_pct:
-                    print(f"  ⚠️ SL圏内（{pnl['pnl_pct']:.1f}%） → 次サイクルでSELL予定")
+                    print(f"  ⚠️ SL圏内（{pnl['pnl_pct']:.1f}% / {_ep_name}: SL-{sl_pct}%） → 次サイクルでSELL予定")
                 else:
-                    _dummy = None  # TP/SLは30秒サイクルで自動チェック
+                    pass  # TP/SLは30秒サイクルで自動チェック
 
         # 1c. スカウト偵察
         print(f"\n[Phase 1] スカウト部隊、{target_symbol} の戦域へ急行せよ。")
@@ -490,12 +495,9 @@ class TrinityCouncil(NeoBaseCrew):
         
         wiki_tool = DeepWikiTool()
 
-        from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES
+        # v6.5ay: LEARNING_MODE削除、通常モード用の注意文言のみ残す
         caution_note = ""
-        if LEARNING_MODE:
-            remaining = max(0, LEARNING_TARGET_TRADES - total_past_trades)
-            caution_note = f"📚 学習モード中（目標{LEARNING_TARGET_TRADES}回中{total_past_trades}回完了、残り{remaining}回）。データ蓄積を最優先とし、積極的にBUY/SELL判断を下せ。WAITは最終手段とせよ。"
-        elif total_past_trades < 5:
+        if total_past_trades < 5:
             caution_note = "📊 取引データ蓄積中（{total_past_trades}件）。経験を増やすためシナリオを策定しBUYせよ。SL/サイズで調整。".format(total_past_trades=total_past_trades)
         elif accuracy < 50:
             caution_note = f"📊 現在の勝率{accuracy}%。SL引き締め・小さめサイズで戦略精度を改善せよ。WAITでは学べない。"
@@ -534,18 +536,9 @@ class TrinityCouncil(NeoBaseCrew):
             tools=[wiki_tool],
             llm=self.flash_model
         )
-        # 学習モード中はBearの信頼度批判を緩和する
-        if LEARNING_MODE:
-            bear_backstory = (
-                f'学習フェーズのリスク管理者。データ蓄積が最優先のため、'
-                f'バックテスト信頼度({bt_confidence})は参考程度に留め、'
-                f'Sharpe値と価格トレンドを主な根拠とせよ。'
-                f'センチメントリスク: {sentiment_risk_factors}。{portfolio_context}'
-            )
-            bear_goal = f'{target_symbol} の重大リスクのみ指摘せよ。信頼度の低さだけを理由にWAITを主張してはならない'
-        else:
-            bear_backstory = f'データ不足やドローダウンを厳しく評価する。バックテスト信頼度: {bt_confidence}。センチメントリスク: {sentiment_risk_factors}。{portfolio_context}'
-            bear_goal = f'{target_symbol} のリスクをバックテスト結果から厳密に指摘せよ'
+        # v6.5ay: LEARNING_MODE削除、通常モード用bear設定のみ残す
+        bear_backstory = f'データ不足やドローダウンを厳しく評価する。バックテスト信頼度: {bt_confidence}。センチメントリスク: {sentiment_risk_factors}。{portfolio_context}'
+        bear_goal = f'{target_symbol} のリスクをバックテスト結果から厳密に指摘せよ'
 
         agent_bear = Agent(
             role='リスク管理者',
@@ -560,23 +553,8 @@ class TrinityCouncil(NeoBaseCrew):
                 f'最終決定権者。予測精度: {accuracy}%（{total_past_trades}件）。{caution_note}{_wait_quality_note}\n'
                 f'市場センチメント: {sentiment_label}(score={sentiment_score:.2f}), リスク要因: {sentiment_risk_factors}\n'
                 f'過去の教訓: {formatted_precedents}\n\n{"【Reflexion自己評価】\n" + reflexion_insight + "\n\n" if reflexion_insight else ""}{"【戦略リスク評価】risk=" + _planning_context + "\n\n" if _planning_context else ""}'
+                # v6.5ay: LEARNING_MODE削除、通常モード（SOUL原則）のみ残す
                 + (
-                    # === 学習モード: BUY積極促進 ===
-                    f'【学習モード — BUY促進ルール】\n'
-                    f'現在は学習フェーズ（{total_past_trades}回完了）。取引データの蓄積が最優先目標である。\n'
-                    f'重要: accuracy=0%はデータがないだけであり、リスクが高いという意味ではない。\n'
-                    f'重要: バックテスト信頼度LOWはデータ不足を意味するだけであり、WAITの理由にしてはならない。\n\n'
-                    f'WAITを選択してよいのは以下の場合のみ（それ以外はBUYせよ）:\n'
-                    f'1. BTC短期トレンドが急落中（-5%以上の下落）\n'
-                    f'2. 直近の損切内省に「同じパターン」への言及がある\n'
-                    f'3. クジラが明確にAccumulating中である\n\n'
-                    f'上記に該当しなければ、迷わずBUYと判断せよ。学習のためにはポジションを持つことが不可欠だ。\n'
-                    f'必ず回答の1行目に以下のJSON形式で判断を出力せよ（厳守・1回のみ出力・繰り返すな）:\n'
-                    f'{{"verdict": "BUYまたはWAIT", "confidence": 実際の確信度0-100, "key_factor": "実際の判断根拠1語"}}\n'
-                    f'2行目以降に根拠を日本語で述べよ。例文の値をコピーせず、実際のデータに基づいた値を入れること。\n'
-                    f'【confidenceスケール（厳守）】20-35=非常に弱い（指標の大半が反対方向）, 40-55=弱い/混在（指標が割れている）, 60-70=中程度（過半数の指標が一致）, 75-85=強い（大半の指標が強く一致）, 90+=非常に強い（全指標が一致、稀）。65をデフォルトにするな。実際のデータを見て上記スケールから正直に選べ。key_factorは最も重視した要因1語（例: RSI反転, BTC下落, クジラ買集, Sharpe高, 出来高急増 等）。'
-                    if LEARNING_MODE else
-                    # === 通常モード: 従来のSOUL原則 ===
                     f'【判断の拒否権（SOUL原則）】\n'
                     f'BullがBUYを推奨していても、以下のいずれかに該当する場合は迷わずWAITを主張せよ。これは義務であり、最終決定権者としての責任だ。\n'
                     f'1. センチメントスコアが-0.2以下かつニュース件数が10件以上（ノイズ過多）\n'
@@ -598,10 +576,8 @@ class TrinityCouncil(NeoBaseCrew):
         )
 
         t1 = Task(description=f"{target_symbol} の強気レポート作成。数値データを含めること。", agent=agent_bull, expected_output="強気分析レポート")
-        if LEARNING_MODE:
-            t2_desc = f"{target_symbol} の重大リスクのみ簡潔に列挙せよ。信頼度の低さ・データ不足は理由にしてはならない。Sharpe値が高ければ積極的にBUYを支持せよ。"
-        else:
-            t2_desc = f"{target_symbol} の弱気レポート作成。リスク要因を列挙すること。"
+        # v6.5ay: LEARNING_MODE削除、通常モード用Bearタスクのみ残す
+        t2_desc = f"{target_symbol} の弱気レポート作成。リスク要因を列挙すること。"
         t2 = Task(description=t2_desc, agent=agent_bear, expected_output="リスク評価書")
         # finbert_scoreが未定義の場合のフォールバック
         _fb_score = finbert_score if "finbert_score" in locals() else 0.0
@@ -1536,9 +1512,25 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
         # バックテストサマリー（コードブロック除去）
         _bt_summary = f"**信頼度**: {bt_confidence}\n**精度**: {accuracy}% ({total_past_trades}件)\n{backtest_report[:800]}"
 
+        # v6.5ay: EXIT_PROFILESダイジェスト生成（協議会レポート用）
+        _eps_summary = ""
+        try:
+            from core.config import EXIT_PROFILES
+            _eps_lines = []
+            for _epn, _epd in EXIT_PROFILES.items():
+                _eps_lines.append(
+                    f"**{_epn}**: SL -{_epd['sl_pct']}% / HardTP +{_epd['hard_tp_pct']}% / "
+                    f"Trail +{_epd['trailing_start']}%開始-{_epd['trailing_drop']}%利確 / "
+                    f"上限 {_epd['time_limit_hours']}h"
+                )
+            _eps_summary = "⚡ 通常モード稼働中\n" + "\n".join(_eps_lines)
+        except Exception:
+            _eps_summary = ""
+
         discussion_data = {
             "bull": str(t1.output)[:1024] if t1.output else "N/A",
             "bear": str(t2.output)[:1024] if t2.output else "N/A",
+            "exit_profiles_summary": _eps_summary,
             "verdict": f"**{trade_action}**" + (f" (確信度: {_structured_confidence}%, 要因: {_structured_key_factor})" if _structured_confidence > 0 else "") + f"\n\n{verdict_text[:800]}",
             "trade": trade_text,
             "current_price": current_price,
@@ -1585,8 +1577,8 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 _ep = EXIT_PROFILES.get(_ep_name, {})
                 discussion_data["exit_profile"] = (
                     f"📋 **{_ep_name}** (strategy: {_st})\n"
-                    f"SL: {_ep.get('sl_pct', 'N/A')}% | Trail: +{_ep.get('trailing_start_pct', 'N/A')}%開始/-{abs(_ep.get('trailing_drop_pct', 0))}%利確\n"
-                    f"Hard TP: +{_ep.get('hard_tp_pct', 'N/A')}% | 時間上限: {_ep.get('max_hold_hours', 'N/A')}h"
+                    f"SL: {_ep.get('sl_pct', 'N/A')}% | Trail: +{_ep.get('trailing_start', 'N/A')}%開始/-{abs(_ep.get('trailing_drop', 0))}%利確\n"
+                    f"Hard TP: +{_ep.get('hard_tp_pct', 'N/A')}% | 時間上限: {_ep.get('time_limit_hours', 'N/A')}h"
                 )
             except Exception:
                 pass

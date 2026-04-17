@@ -144,6 +144,14 @@ class DiscordReporter:
                 "inline": True
             })
 
+        # v6.5ay: 戦略別出口プロファイル一覧（通常モード確認用）
+        if d.get("exit_profiles_summary"):
+            fields.append({
+                "name": "📐 戦略別 出口プロファイル",
+                "value": cls._truncate(d["exit_profiles_summary"], 600),
+                "inline": False
+            })
+
         # 出口プロファイル（存在する場合のみ追加）
         if d.get("exit_profile"):
             fields.append({
@@ -354,11 +362,11 @@ class DiscordReporter:
         """精度追跡ダッシュボード v3 — 学習進捗・TP/SL閾値・ポートフォリオ"""
         from datetime import datetime, timezone, timedelta
         JST = timezone(timedelta(hours=9))
-        # 学習モード情報取得
+        # 学習モード情報取得（v6.5ay: 学習OFF後のフォールバック修正）
         try:
             from core.config import LEARNING_MODE, LEARNING_TARGET_TRADES
         except ImportError:
-            LEARNING_MODE = True
+            LEARNING_MODE = False
             LEARNING_TARGET_TRADES = 100
         # 勝率バー生成（10マス）
         filled = int(accuracy / 10) if accuracy > 0 else 0
@@ -448,13 +456,17 @@ class DiscordReporter:
         progress = f"{history_count}/{LEARNING_TARGET_TRADES}"
         progress_pct = min(history_count / LEARNING_TARGET_TRADES * 100, 100)
         progress_bar = "▓" * int(progress_pct / 10) + "░" * (10 - int(progress_pct / 10))
-        # 出口プロファイル情報（v6.5aa: 戦略別出口）
+        # 出口プロファイル情報（v6.5ay: 複数行展開で見やすく）
         try:
             from core.config import EXIT_PROFILES
             _ep_lines = []
             for _ep_name, _ep in EXIT_PROFILES.items():
-                _ep_lines.append(f"{_ep_name}: SL{_ep['sl_pct']}%/TP{_ep['hard_tp_pct']}%/Trail+{_ep['trailing_start_pct']}%")
-            tp_sl_str = " | ".join(_ep_lines)
+                _ep_lines.append(
+                    f"**{_ep_name}**: SL -{_ep['sl_pct']}% / HardTP +{_ep['hard_tp_pct']}% / "
+                    f"Trail +{_ep['trailing_start']}%開始-{_ep['trailing_drop']}%利確 / "
+                    f"上限 {_ep['time_limit_hours']}h"
+                )
+            tp_sl_str = "\n".join(_ep_lines)
         except Exception:
             tp_sl_str = "戦略別出口プロファイル（config.py参照）"
         # Tier別勝率取得
@@ -481,7 +493,11 @@ class DiscordReporter:
             {"name": "🪙 Tier1 (VP銘柄)", "value": _tier1_str, "inline": True},
             {"name": "📊 平均P&L", "value": pnl_str, "inline": True},
             {"name": "🕐 更新時刻", "value": datetime.now(JST).strftime("%Y-%m-%d %H:%M JST"), "inline": True},
-            {"name": f"{mode_str}", "value": f"`{progress_bar}` {progress} ({progress_pct:.0f}%)\n📐 出口: {tp_sl_str}", "inline": False},
+            (
+                {"name": f"{mode_str}", "value": f"`{progress_bar}` {progress} ({progress_pct:.0f}%)\n📐 出口: {tp_sl_str}", "inline": False}
+                if LEARNING_MODE else
+                {"name": "📐 戦略別 出口プロファイル", "value": tp_sl_str, "inline": False}
+            ),
             {"name": "💼 ポートフォリオ", "value": portfolio_str, "inline": False},
             {"name": "📋 直近決済5件", "value": recent_str or "なし", "inline": False},
         ]

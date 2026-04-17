@@ -10,10 +10,22 @@
       "evidence": "14件中2勝(14%)",
       "min_sample_size": 3,
       "actual_sample_size": 14,
-      "expires_at": "2026-05-14T17:02:12.614394+00:00"
+      "expires_at": "2026-05-16T17:02:29.713106+00:00"
+    },
+    {
+      "rule_id": "R_sym_eth_low",
+      "condition": {
+        "type": "symbol",
+        "match": "ETH"
+      },
+      "adjustment": -3,
+      "evidence": "39件中17勝(44%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 39,
+      "expires_at": "2026-05-16T17:02:29.713106+00:00"
     }
   ],
-  "generated_at": "2026-04-14T17:02:12.614394+00:00",
-  "total_adjustments": 1,
-  "source_pairs": 71
+  "generated_at": "2026-04-16T17:02:29.713106+00:00",
+  "total_adjustments": 2,
+  "source_pairs": 81
 }
