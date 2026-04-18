@@ -562,6 +562,59 @@ def check_tp_sl_all_positions():
                                 f"- 無効化条件: {', '.join(str(c)[:40] for c in _s4_inv[:2])}\n"
                                 f"- 結果: 現在価格${current_price:.6f} vs target=${_s4_target} / stop=${_s4_stop}\n"
                             )
+                        # E1.2: npin（ナンピン）構造情報の抽出 — 直近ラウンドトリップのBUY群を集計
+                        # pwは check_tp_sl_all_positions() のローカル変数（L82）— 同関数内で常に有効
+                        _npin_section = ""
+                        try:
+                            _pw_hist = pw.state.get("history", [])
+                            # 同銘柄の直近50件に限定（古い履歴は不要、新しいラウンドトリップほど関連性高）
+                            _sym_hist = [h for h in _pw_hist if h.get("symbol") == clean_symbol][-50:]
+                            # 今回のSELL(=最後のエントリー)より前のレコードからラウンドトリップ起点を探す
+                            _rt_buys = []
+                            _running_amt = 0.0
+                            # 時系列順に走査し、保有量ゼロからの最新BUY群を集める
+                            for _h in _sym_hist:
+                                _act = _h.get("action")
+                                _amt = float(_h.get("amount_token", 0) or 0)
+                                _price = float(_h.get("price", 0) or 0)
+                                _usd = float(_h.get("amount_usd", 0) or 0)
+                                _ts = _h.get("timestamp", "")
+                                if _act == "BUY":
+                                    _rt_buys.append({"price": _price, "amount_token": _amt, "amount_usd": _usd, "ts": _ts})
+                                    _running_amt += _amt
+                                elif _act == "SELL":
+                                    _running_amt -= _amt
+                                    if _running_amt < 1e-8:
+                                        # 途中で完全決済 → ラウンドトリップが切れる
+                                        _rt_buys = []
+                                        _running_amt = 0.0
+                            # _rt_buys が現在進行中のラウンドトリップのBUY群（今回のSELL直前の最後のBUY含む）
+                            _npin_count = len(_rt_buys)
+                            if _npin_count >= 1:
+                                _first_entry = _rt_buys[0]["price"]
+                                _last_entry = _rt_buys[-1]["price"]
+                                _total_buy_usd = sum(b["amount_usd"] for b in _rt_buys)
+                                _total_buy_tok = sum(b["amount_token"] for b in _rt_buys)
+                                _avg_entry = _total_buy_usd / _total_buy_tok if _total_buy_tok else 0
+                                _price_drift_pct = (_last_entry - _first_entry) / _first_entry * 100 if _first_entry else 0
+                                _prices_list = ", ".join(f"${b['price']:.6f}" for b in _rt_buys)
+                                _first_ts = _rt_buys[0]["ts"][:16] if _rt_buys[0].get("ts") else "N/A"
+                                _last_ts = _rt_buys[-1]["ts"][:16] if _rt_buys[-1].get("ts") else "N/A"
+                                _npin_section = (
+                                    f"\n【ラウンドトリップ構造】\n"
+                                    f"- このSELLで全量決済されたラウンドトリップのBUY回数: {_npin_count}回"
+                                    f"（ナンピン{_npin_count - 1}回）\n"
+                                    f"- 初回エントリー: ${_first_entry:.6f} ({_first_ts})\n"
+                                    f"- 最終エントリー: ${_last_entry:.6f} ({_last_ts})\n"
+                                    f"- 個別エントリー価格: [{_prices_list}]\n"
+                                    f"- 価格ドリフト（最終vs初回）: {_price_drift_pct:+.2f}%"
+                                    f"{'  ← マイナス=下値追いナンピン' if _price_drift_pct < -0.5 and _npin_count >= 2 else ''}\n"
+                                    f"- BUY累積額: ${_total_buy_usd:.2f}\n"
+                                )
+                                logger.info(f"[E1] npin情報: count={_npin_count}, drift={_price_drift_pct:+.2f}%, first=${_first_entry:.6f}")
+                        except Exception as _npin_err:
+                            logger.warning(f"[E1] npin情報抽出失敗: {_npin_err}")
+                            _npin_section = ""
                         try:
                             from core.model_factory import ModelFactory
                             _model = ModelFactory.get_genai_model("fast")
@@ -577,10 +630,13 @@ def check_tp_sl_all_positions():
                                 f"- エントリー時confidence: {_entry_conf} / key_factor: {_entry_kf}\n"
                                 f"- 決済理由: {sell_reason}\n"
                                 f"{_strat_section}\n"
+                                f"{_npin_section}\n"
                                 f"【分析手順（Step by Step）】\n"
                                 f"Step 1: エントリー時の判断根拠を列挙し、どれが正しくどれが間違いだったか仕分けよ\n"
                                 f"Step 2: 見落としていたシグナル（RSI乖離、BTC連動、センチメント過信等）を特定せよ\n"
-                                f"Step 3: 7カテゴリから最も適切な失敗原因を1つ選び、再発防止ルールを具体化せよ\n\n"
+                                f"Step 3: 7カテゴリから最も適切な失敗原因を1つ選び、再発防止ルールを具体化せよ\n"
+                                f"  ※【ラウンドトリップ構造】にBUY2回以上かつ価格ドリフトがマイナスの記録がある場合、\n"
+                                f"    averaging_down（下値追いナンピン）が最有力候補になりうる。BTC連動や逆張りと切り分けよ。\n\n"
                                 f"【few-shot例】\n"
                                 f'AIXBT: entry=$0.027 exit=$0.026 (-3.1%), RSI=58→42, BTC -4.2%\n'
                                 f'{{"failure_category":"btc_correlation","entry_mistake":"BTC下落トレンド中にアルト買い","missed_signal":"BTC 30d=-8%の長期下落を軽視","market_context_gap":"アルト個別材料を過信しBTC連動リスクを無視","next_time_rule":"BTC 24h<-3%時はアルトBUY見送り","confidence_was_justified":false}}\n\n'
