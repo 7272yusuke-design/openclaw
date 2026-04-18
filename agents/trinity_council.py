@@ -1294,7 +1294,14 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                             print(f"\n[Phase 5] 🛑 BUY禁止: confidence={_structured_confidence}が閾値{MIN_CONFIDENCE_FOR_BUY}未満")
                         else:
                             # ③d ナンピン回数制限: 同一銘柄の未決済BUY回数がMAXを超えたらBUY禁止
-                            MAX_OPEN_BUYS_PER_SYMBOL = 3
+                            # ⚠️ 安全装置（天井）— エージェントに判断を委ねる調整値ではなく、絶対超えてはいけない物理上限
+                            # v6.5bc: 3→2 に引き下げ。根拠: ラウンドトリップ25件中、3BUY/1SELLパターン16件の
+                            # うち負け13件（勝率0/13）。「3回目のBUY」が構造的に機能しておらず、
+                            # 全てSL発火で平均-3.27%の損失を組織的に生産していた。
+                            # 2回目BUY（=1回のナンピン）までは戦略的ナンピンとして許容する余地があるが、
+                            # 3回目は実測データ上「ほぼ必ず負ける」パターンのため物理的に禁止する。
+                            # この値は能動的調整を意図しない（エージェントの裁量外）。
+                            MAX_OPEN_BUYS_PER_SYMBOL = 2
                             _open_buy_count = 0
                             _history = self.portfolio.get_full_state().get("history", [])
                             for _h in reversed(_history):
