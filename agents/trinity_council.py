@@ -849,21 +849,16 @@ class TrinityCouncil(NeoBaseCrew):
                     _cond = _adj.get("condition", {})
                     _ctype = _cond.get("type", "")
                     _matched = False
-                    if _ctype == "timezone":
-                        continue  # 時間帯はconfig.pyで管理（二重適用防止 v6.5ag）
-                    elif _ctype == "sentiment_range":
-                        continue  # センチメントはPhase 4bで直接反映済み（二重適用防止 v6.5ai）
-                        _tz_map = {range(0, 9): "Asia", range(9, 17): "EU", range(17, 24): "US"}
-                        _current_tz = next((v for k, v in _tz_map.items() if _utc_hour in k), "")
-                        _matched = (_cond.get("match") == _current_tz)
-                    elif _ctype == "symbol":
+                    # v6.5bc整理: 生成停止済みのタイプ(timezone/sentiment_range)の分岐を除去
+                    # 理由: Phase 4b の固定値(TZ_SCORE_*) / 直接センチメント反映 と二重計上になるため
+                    #       evolver_agent.py 側で生成停止済み（docs/v2_evolver_design.md参照）
+                    # 到達可能なタイプ: symbol / bt_confidence / capital_flow_phase
+                    if _ctype == "symbol":
                         _matched = (_cond.get("match", "").upper() == clean_symbol.upper())
                     elif _ctype == "bt_confidence":
                         _matched = (_cond.get("match") == bt_confidence)
                     elif _ctype == "capital_flow_phase":
                         _matched = (_cond.get("match") == _capital_flow_phase)
-                    elif _ctype == "sentiment_range":
-                        _matched = (_cond.get("min", -2) <= sentiment_score <= _cond.get("max", 2))
                     if _matched:
                         _val = max(-15, min(15, _adj["adjustment"]))
                         _evolver_total += _val

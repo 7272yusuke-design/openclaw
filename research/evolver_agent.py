@@ -77,37 +77,12 @@ def generate_scoring_adjustments():
     expires = (now + timedelta(days=DEFAULT_EXPIRY_DAYS)).isoformat()
     adjustments = []
 
-    # --- ルール1: 時間帯別勝率 ---
-    for label, hours, tz_match in [
-        ('Asia', range(0, 9), 'Asia'),
-        ('EU', range(9, 17), 'EU'),
-        ('US', range(17, 24), 'US'),
-    ]:
-        hd = df[df['buy_hour'].isin(hours)]
-        if len(hd) >= MIN_SAMPLE_SIZE:
-            wr = (hd['result'] == 'win').mean() * 100
-            if wr >= 70:
-                adj = min(10, int((wr - 60) / 2))
-                adjustments.append({
-                    "rule_id": f"R_tz_{tz_match.lower()}_high",
-                    "condition": {"type": "timezone", "match": tz_match},
-                    "adjustment": adj,
-                    "evidence": f"{len(hd)}件中{(hd['result']=='win').sum()}勝({wr:.0f}%)",
-                    "min_sample_size": MIN_SAMPLE_SIZE,
-                    "actual_sample_size": len(hd),
-                    "expires_at": expires,
-                })
-            elif wr <= 40:
-                adj = max(-10, -int((50 - wr) / 2))
-                adjustments.append({
-                    "rule_id": f"R_tz_{tz_match.lower()}_low",
-                    "condition": {"type": "timezone", "match": tz_match},
-                    "adjustment": adj,
-                    "evidence": f"{len(hd)}件中{(hd['result']=='win').sum()}勝({wr:.0f}%)",
-                    "min_sample_size": MIN_SAMPLE_SIZE,
-                    "actual_sample_size": len(hd),
-                    "expires_at": expires,
-                })
+    # --- ルール1: 時間帯別勝率 — v6.5bcで生成停止 ---
+    # 理由: Phase 4b の TZ_SCORE_* (固定値: Asia-10/EU+10/US-3) と二重計上になる
+    # trinity_council.py L849 で `type=timezone` は適用側でも問答無用にスキップされていた
+    # → 生成しても適用されない無駄パイプラインだったため生成側で停止
+    # V2 EvolveR で「Phase 4b 固定テーブルそのものをEvolveRが自律調整」する方向に発展予定
+    # 詳細: docs/v2_evolver_design.md
 
     # --- ルール2: 銘柄別勝率 ---
     for sym in df['symbol'].unique():
@@ -153,23 +128,13 @@ def generate_scoring_adjustments():
                     "expires_at": expires,
                 })
 
-    # --- ルール4: 損大利小パターン ---
-    win_df = df[df['result'] == 'win']
-    loss_df = df[df['result'] == 'loss']
-    if len(win_df) >= 3 and len(loss_df) >= 3:
-        avg_win = win_df['pnl_pct'].mean()
-        avg_loss = loss_df['pnl_pct'].mean()
-        wl_ratio = abs(avg_win) / abs(avg_loss) if avg_loss != 0 else 999
-        if wl_ratio < 0.8:
-            adjustments.append({
-                "rule_id": "R_wl_ratio_bad",
-                "condition": {"type": "sentiment_range", "min": -1.0, "max": -0.3},
-                "adjustment": -5,
-                "evidence": f"W/L比={wl_ratio:.2f} (Win{avg_win:+.2f}% / Loss{avg_loss:+.2f}%)",
-                "min_sample_size": MIN_SAMPLE_SIZE,
-                "actual_sample_size": len(df),
-                "expires_at": expires,
-            })
+    # --- ルール4: 損大利小パターン — v6.5bcで生成停止 ---
+    # 理由: Phase 4b でセンチメントは既に直接反映されており二重計上になる
+    # trinity_council.py L852 で `type=sentiment_range` は適用側でも問答無用にスキップされていた
+    # また condition の値 (-1.0〜-0.3) が「W/L比悪化」というトリガーと意味的に一致しておらず、
+    # 「W/L比が悪いときに*全エントリー時*に-5点」という挙動になっていた（設計ミス）
+    # V2 EvolveR で「出口戦略（SL/TP幅）の自律調整」として再実装予定
+    # 詳細: docs/v2_evolver_design.md
 
     # --- 保存 ---
     output = {
