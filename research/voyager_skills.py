@@ -84,8 +84,27 @@ def extract_skills_from_h2():
 
 
 def save_skills_to_memory(skills):
-    """スキルをChromaDBに保存"""
+    """スキルをChromaDBに保存
+
+    v6.5bc修正: 「既存全削除 → 最新のみ保存」に変更。
+    旧実装は append-only で同じ skill_name のスキルを日毎に重複書き込み
+    → 111件累積 / 同名で勝率が異なる複数バージョンがLLMに同時供給されて判断混乱の原因に。
+    ※ これは応急処置。V2設計（パフォーマンス追跡+A/B検証+dream統合）で再実装予定。
+    詳細: docs/v2_voyager_design.md
+    """
     mem = NeoMemoryDB()
+
+    # Step 1: 既存の全 voyager_skill を削除
+    try:
+        existing = mem.collection.get(where={"category": "voyager_skill"}, include=[])
+        old_ids = existing.get("ids", []) if existing else []
+        if old_ids:
+            mem.delete(old_ids)
+            print(f"🧹 Voyager: 旧スキル {len(old_ids)}件を削除")
+    except Exception as e:
+        print(f"⚠️ Voyager: 旧スキル削除失敗（続行）: {e}")
+
+    # Step 2: 最新スキルを保存
     saved = 0
     for skill in skills:
         doc_text = f"Voyager Skill: {skill['skill_name']} — {skill['recommendation']}"

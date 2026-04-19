@@ -877,12 +877,17 @@ class TrinityCouncil(NeoBaseCrew):
         _evolver_label = f"evol{_evolver_total:+d}({','.join(_evolver_labels)})" if _evolver_labels else "evol0"
         if _evolver_total != 0:
             print(f"[Phase 4b] E3 EvolveR調整: {_evolver_total:+d} ({_evolver_labels})")
-        # === E2.3: Reflexion — v6.5ax無効化（慢性マイナスでBUY過剰抑制）===
-        _reflexion_label = "refl0(off)"
-        # if _reflexion_adj != 0:
-        #     _calc_conf += _reflexion_adj
-        #     _reflexion_label = f"refl{_reflexion_adj:+d}"
-        #     print(f"[Phase 4b] E2 Reflexion調整: {_reflexion_adj:+d}")
+        # === E2.3: Reflexion — Phase 4b 直接反映は意図的に無効 ===
+        # 設計意図（v6.5bc 検査で確認）:
+        # - ChromaDB に蓄積された416件の confidence_adjustment は 78.4% がマイナス(平均-3.94)
+        # - LLM の内省は構造的にマイナス偏重し、直接加算すると「慢性抑制ループ」に陥る
+        #   （v6.5ax で発生した過剰BUY抑制問題の根本原因）
+        # - Reflexion の知見は【別ルート】で反映されている:
+        #     L336-347 で前回Reflexion指示を ChromaDB から読み出し
+        #     L555 で次回 Council の LLM プロンプトに注入
+        # - これにより LLM が文脈判断して confidence を自律調整（案5: エージェント委任）
+        # - スコアリング値として直接加算する形は固定バイアスになるため採用しない
+        _reflexion_label = "refl0(via_prompt)"  # LLMプロンプト経由で反映中（数値加算は意図的に無効）
         # === スコアリングテーブル拡張ここまで ===
         _calc_conf = max(20, min(95, _calc_conf))
         print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label}, {_strat_label})")
