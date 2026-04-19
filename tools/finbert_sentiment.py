@@ -4,12 +4,13 @@ RSSニュースタイトルをFinBERTで定量スコアに変換してSentimentA
 モデルは初回のみダウンロード、以降はキャッシュを使用。
 """
 
+import gc
 import time
 from typing import Optional
 
 _pipe = None
 _pipe_load_time = 0
-_CACHE_SEC = 3600  # パイプラインは1時間キャッシュ
+_CACHE_SEC = 60  # パイプラインは60秒キャッシュ(v6.5bd: メモリ解放のため短縮)
 
 def _get_pipeline():
     """FinBERTパイプラインをシングルトンで返す。"""
@@ -31,6 +32,15 @@ def _get_pipeline():
     return _pipe
 
 
+def release_pipeline():
+    """FinBERTパイプラインを明示的に解放してメモリを戻す(v6.5bd追加)。"""
+    global _pipe, _pipe_load_time
+    if _pipe is not None:
+        _pipe = None
+        _pipe_load_time = 0
+        gc.collect()
+
+
 def score_texts(texts: list[str]) -> list[dict]:
     """
     テキストリストをFinBERTでスコアリング。
@@ -48,6 +58,11 @@ def score_texts(texts: list[str]) -> list[dict]:
     except Exception as e:
         print(f"⚠️ FinBERT scoring failed: {e}")
         return []
+    finally:
+        # v6.5bd: キャッシュ期限を過ぎていれば即解放してメモリを戻す
+        # (Council内の連続呼び出しは _CACHE_SEC=60 で再利用、終了後は自動解放)
+        if _pipe is not None and (time.time() - _pipe_load_time) > _CACHE_SEC:
+            release_pipeline()
 
 
 def get_finbert_score(texts: list[str]) -> dict:
