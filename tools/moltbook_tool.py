@@ -16,7 +16,7 @@ class MoltbookTool:
         try:
             response = litellm.completion(
                 model="openrouter/google/gemini-2.0-flash-001",
-                api_key=os.environ.get("GEMINI_API_KEY"),
+                api_key=os.environ.get("OPENROUTER_API_KEY"),
                 messages=[{"role": "user", "content": (
                     f"{prompt}\n\n"
                     f"Constraints: within {max_chars} characters. Use emojis sparingly."
@@ -91,7 +91,7 @@ class MoltbookTool:
             import litellm, os
             response = litellm.completion(
                 model="openrouter/google/gemini-2.0-flash-001",
-                api_key=os.environ.get("GEMINI_API_KEY"),
+                api_key=os.environ.get("OPENROUTER_API_KEY"),
                 messages=[{"role": "user", "content": refine_prompt}],
                 max_tokens=400
             )
@@ -136,7 +136,7 @@ class MoltbookTool:
         try:
             result = litellm.completion(
                 model="openrouter/google/gemini-2.0-flash-001",
-                api_key=os.environ.get("GEMINI_API_KEY"),
+                api_key=os.environ.get("OPENROUTER_API_KEY"),
                 messages=[{"role": "user", "content": f"Solve this math problem. Reply with ONLY the numeric answer with 2 decimal places (e.g. 15.00). Problem: {challenge_text}"}],
                 max_tokens=20
             )

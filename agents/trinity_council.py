@@ -1601,28 +1601,31 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
             print(f"⏭️ [Discord] WAIT判定のため送信スキップ")
 
         # ============================================================
-        # Phase 6: Moltbook投稿
+        # Phase 6: Moltbook投稿（BUY/SELL時のみ — WAIT時はLLMコスト削減のためスキップ v6.5bd）
         # ============================================================
-        try:
-            MoltbookTool.post_council_decision(
-                symbol=target_symbol,
-                verdict=trade_action,
-                accuracy=accuracy,
-                bt_confidence=bt_confidence,
-                verdict_text=verdict_text,
-                trade_amount_usd=trade_amount_usd,
-                market_data={
-                    'sentiment_score': round(sentiment_score, 2),
-                    'sentiment_label': sentiment_label,
-                    'capital_flow_phase': _capital_flow_phase if '_capital_flow_phase' in dir() else 'unknown',
-                    'rsi': round(_strat_rsi, 1) if '_strat_rsi' in dir() and _strat_rsi else 0,
-                    'confidence': _calc_conf if '_calc_conf' in dir() else 0,
-                    'bt_best': bt_best_strategy if 'bt_best_strategy' in dir() else 'unknown',
-                    'btc_24h': _strat_btc.get('change_24h', 0) if '_strat_btc' in dir() else 0,
-                }
-            )
-        except Exception as e:
-            print(f"⚠️ Moltbook投稿スキップ: {e}")
+        if first_word == "WAIT":
+            print(f"⏭️ [Moltbook] WAIT判定のため投稿スキップ")
+        else:
+            try:
+                MoltbookTool.post_council_decision(
+                    symbol=target_symbol,
+                    verdict=trade_action,
+                    accuracy=accuracy,
+                    bt_confidence=bt_confidence,
+                    verdict_text=verdict_text,
+                    trade_amount_usd=trade_amount_usd,
+                    market_data={
+                        'sentiment_score': round(sentiment_score, 2),
+                        'sentiment_label': sentiment_label,
+                        'capital_flow_phase': _capital_flow_phase if '_capital_flow_phase' in dir() else 'unknown',
+                        'rsi': round(_strat_rsi, 1) if '_strat_rsi' in dir() and _strat_rsi else 0,
+                        'confidence': _calc_conf if '_calc_conf' in dir() else 0,
+                        'bt_best': bt_best_strategy if 'bt_best_strategy' in dir() else 'unknown',
+                        'btc_24h': _strat_btc.get('change_24h', 0) if '_strat_btc' in dir() else 0,
+                    }
+                )
+            except Exception as e:
+                print(f"⚠️ Moltbook投稿スキップ: {e}")
 
         # ============================================================
         # Phase 7: メモリ保存（詳細フィードバック付き）

@@ -141,23 +141,23 @@
       {
         "symbol": "BTC",
         "entry_price": 67156.79,
-        "current_price": 75776.0,
+        "current_price": 76055.0,
         "amount_usd": 2634.14,
-        "pnl_pct": 12.83
+        "pnl_pct": 13.25
       },
       {
         "symbol": "BTC",
         "entry_price": 66645.97,
-        "current_price": 75776.0,
+        "current_price": 76055.0,
         "amount_usd": 2737.81,
-        "pnl_pct": 13.7
+        "pnl_pct": 14.12
       },
       {
         "symbol": "BTC",
         "entry_price": 69317.44,
-        "current_price": 75776.0,
+        "current_price": 76055.0,
         "amount_usd": 2636.09,
-        "pnl_pct": 9.32
+        "pnl_pct": 9.72
       }
     ],
     "advanced_metrics": {
@@ -167,7 +167,7 @@
       "annual_return": 8.979,
       "omega_ratio": 1.911
     },
-    "last_evaluated": "2026-04-21T06:31:15.742801"
+    "last_evaluated": "2026-04-21T06:42:39.503429"
   },
   "last_periodic_symbol": "AIXBT",
   "last_unified_council_ts": 1776750417.7612517,

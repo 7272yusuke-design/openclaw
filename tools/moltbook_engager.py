@@ -161,7 +161,7 @@ class MoltbookEngager:
         try:
             response = litellm.completion(
                 model="openrouter/google/gemini-2.0-flash-001",
-                api_key=os.environ.get("GEMINI_API_KEY"),
+                api_key=os.environ.get("OPENROUTER_API_KEY"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300
             )
@@ -189,7 +189,7 @@ class MoltbookEngager:
         try:
             response = litellm.completion(
                 model="openrouter/google/gemini-2.0-flash-001",
-                api_key=os.environ.get("GEMINI_API_KEY"),
+                api_key=os.environ.get("OPENROUTER_API_KEY"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300
             )
@@ -448,7 +448,7 @@ class MoltbookEngager:
         try:
             response = litellm.completion(
                 model="openrouter/google/gemini-2.0-flash-001",
-                api_key=os.environ.get("GEMINI_API_KEY"),
+                api_key=os.environ.get("OPENROUTER_API_KEY"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300
             )
