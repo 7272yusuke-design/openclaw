@@ -91,7 +91,7 @@ class MoltbookEngager:
             numbers = re.findall(r"\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|\d+)\b", clean)
             # LLMにfallback（確実に解くため）
             result = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 messages=[{"role": "user", "content": f"Solve this math problem. Reply with ONLY the numeric answer with 2 decimal places (e.g. 15.00). Problem: {challenge_text}"}],
                 max_tokens=20
             )
@@ -160,7 +160,7 @@ class MoltbookEngager:
         )
         try:
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300
@@ -188,7 +188,7 @@ class MoltbookEngager:
         )
         try:
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300
@@ -447,7 +447,7 @@ class MoltbookEngager:
         )
         try:
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300

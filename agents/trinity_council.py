@@ -36,8 +36,9 @@ class TrinityCouncil(NeoBaseCrew):
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("❌ APIキーが見つかりません。")
-        self.pro_model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=api_key)
-        self.flash_model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", google_api_key=api_key)
+        # v6.5bd: CrewAI LLM with Gemini→OpenRouter fallback on 429
+        self.pro_model = ModelFactory.get_crewai_llm("critical")
+        self.flash_model = ModelFactory.get_crewai_llm("standard")
         self.memory = NeoMemoryDB()
         self.portfolio = PortfolioManager()
 

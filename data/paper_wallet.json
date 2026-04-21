@@ -1,5 +1,5 @@
 {
-  "usd_balance": 70393.48445071008,
+  "usd_balance": 79258.81510809665,
   "holdings": {
     "BTC": {
       "amount": 0.11774121816119104,
@@ -91,124 +91,6 @@
             ],
             "evolver_adjustments": [],
             "reflexion_instruction": "\u601d\u8003\u30d0\u30a4\u30a2\u30b9: \u5358\u4e00\u30b7\u30b0\u30ca\u30eb\u904e\u4fe1, \u8907\u5408\u6307\u6a19\u8efd\u8996, \u30c7\u30fc\u30bf\u4e0d\u8db3\u3067\u306e\u30ea\u30b9\u30af\u30c6\u30a4\u30af\n\u4eca\u56de\u8a72\u5f53: true+\u5f37\u3044\u5358\u4e00\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u3078\u306e\u904e\u4fe1\u30ea\u30b9\u30af\nconfidence\u8abf\u6574: -3 (\u5f37\u3044\u5358\u4e00\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u306b\u50be\u5012\u3059\u308b\u50be\u5411\u304c\u518d\u767a\u61f8\u5ff5)\n\u6b21\u56de\u6ce8\u610f: \u5358\u4e00\u30b7\u30b0\u30ca\u30eb\u3067\u5224\u65ad\u305b\u305a\u8907\u5408\u6307\u6a19\u306e\u78ba\u8a8d\u3092\u5fb9\u5e95\u305b\u3088\u6226\u7565\u5236\u7d04\u9055\u53cd: \u306a\u3057\n\u6839\u62e0\u4fe1\u983c\u6027: 3/5 (Neo\u306e\u4eca\u56de\u306e\u5224\u65ad\u7d50\u679c\u304c\u4e0d\u660e)\n"
-          }
-        }
-      }
-    },
-    "ETH": {
-      "amount": 3.7309993058595476,
-      "avg_price": 2340.9706847929374,
-      "entry_time": "2026-04-14T22:21:02.023932+00:00",
-      "strategy_tag": "atr_breakout",
-      "exit_profile": "short",
-      "entry_context": {
-        "rsi_14": 0.0,
-        "sentiment_score": -0.05,
-        "sentiment_label": "neutral",
-        "bt_confidence": "HIGH",
-        "confidence": 75,
-        "key_factor": "MACDCross",
-        "scoring_breakdown": {
-          "base": 50,
-          "bt": "HIGH",
-          "sent": -0.05,
-          "acc": 48.05,
-          "tz": "Asia+3",
-          "npin": "npin1:0",
-          "streak": "streak0",
-          "cfr": "cfr+26:+2(Neutral)",
-          "macro": "macro+5(RISK_OFF_ACCUMULATE)",
-          "total": 75
-        },
-        "capital_flow_phase": "RISK_OFF_ACCUMULATE",
-        "timestamp": "2026-04-15T02:21:16.666477+00:00",
-        "btc_24h": -0.02,
-        "btc_trend": "\u9577\u671f\u4e0b\u843d\u30c8\u30ec\u30f3\u30c9\ud83d\udd34",
-        "strategy": {
-          "thesis": "ETH\u306f2300\u30c9\u30eb\u3092\u7dad\u6301\u3057\u3001\u77ed\u671f\u7684\u306b2450\u30c9\u30eb\u307e\u3067\u53cd\u767a\u3059\u308b",
-          "thesis_timeframe": "short",
-          "position_size_pct": 5,
-          "bull_scenario": {
-            "narrative": "ETH\u306fBTC\u306e\u505c\u6ede\u3092\u53d7\u3051\u3001\u30aa\u30f3\u30c1\u30a7\u30fc\u30f3\u306e\u6d41\u52d5\u6027\u3092\u80cc\u666f\u306b2450\u30c9\u30eb\u307e\u3067\u4e0a\u6607\u3001RSI\u306f70\u306b\u5230\u9054\u3059\u308b",
-            "evidence": [
-              "\u30aa\u30f3\u30c1\u30a7\u30fc\u30f3\u60c5\u5831:DEX\u6d41\u52d5\u6027: $175,719,910\u2192\u5927\u53e3\u53d6\u5f15\u3092\u5438\u53ce\u53ef\u80fd",
-              "Voyager Skill: eth_trade_pattern\u2192\u52dd\u738762% \u5e73\u5747\u640d\u76ca+1.36%\u306e\u8cb7\u3044\u30d1\u30bf\u30fc\u30f3",
-              "\u30c6\u30af\u30cb\u30ab\u30eb:RSI(14): 40.1\u2192\u4e0a\u6607\u4f59\u5730\u3042\u308a\u3002\u904e\u53bbRSI40\u4ee5\u4e0b\u304b\u3089\u306e\u53cd\u767a\u4e8b\u4f8b\u591a\u6570"
-            ],
-            "target_price": 2450.0,
-            "target_pct": 4.99,
-            "target_days": 7,
-            "exit_stages": [
-              {
-                "trigger_pct": 2.5,
-                "sell_pct": 50,
-                "note": "\u30ea\u30b9\u30af\u30aa\u30d5"
-              },
-              {
-                "trigger_pct": 4.99,
-                "sell_pct": 100,
-                "note": "\u76ee\u6a19\u4fa1\u683c\u5230\u9054"
-              }
-            ],
-            "take_profit_plan": "\u6bb5\u968e\u7684\u306b\u5229\u78ba\u3001\u30ea\u30b9\u30af\u3092\u4f4e\u6e1b"
-          },
-          "bear_scenario": {
-            "narrative": "BTC\u304c72000\u30c9\u30eb\u3092\u4e0b\u56de\u308a\u3001ETH\u306f\u9023\u52d5\u3057\u3066\u4e0b\u843d\u3002DEX\u6d41\u52d5\u6027\u304c\u4f4e\u4e0b\u3057\u30012250\u30c9\u30eb\u307e\u3067\u4e0b\u843d\u3059\u308b",
-            "evidence": [
-              "BTC\u5e02\u5834:\u4fa1\u683c: $74,535, 24h: -0.0%\u2192BTC\u4e0b\u843d\u30c8\u30ec\u30f3\u30c9\u304c\u7d99\u7d9a",
-              "\u30de\u30af\u30ed\u74b0\u5883:\u8cc7\u672c\u30d5\u30ed\u30fc\u30d5\u30a7\u30fc\u30ba: RISK_OFF_ACCUMULATE\u2192\u30ea\u30b9\u30af\u56de\u907f\u59ff\u52e2\u304c\u5f37\u3044",
-              "\u30aa\u30f3\u30c1\u30a7\u30fc\u30f3\u60c5\u5831:DEX\u4fa1\u683c: $2928.6600 (raydium / solana)\u2192DEX\u4fa1\u683c\u304c\u4e0b\u843d\u3092\u793a\u5506"
-            ],
-            "stop_price": 2263.0,
-            "risk_pct": -2.99,
-            "exit_stages": [
-              {
-                "trigger_pct": -2.99,
-                "sell_pct": 100,
-                "note": "\u640d\u5207\u308a"
-              }
-            ],
-            "hedge_plan": "ETH\u30b7\u30e7\u30fc\u30c8\u3067\u640d\u5931\u3092\u9650\u5b9a"
-          },
-          "exit_params": {
-            "rsi_exit": 70,
-            "trailing_start": 3.0,
-            "trailing_drop": 2.0
-          },
-          "invalidation": {
-            "conditions": [
-              "BTC\u304c75000\u30c9\u30eb\u3092\u8d85\u3048\u308b",
-              "DEX\u6d41\u52d5\u6027\u304c1\u5104\u30c9\u30eb\u3092\u4e0b\u56de\u308b"
-            ],
-            "action": "\u30dd\u30b8\u30b7\u30e7\u30f3\u30af\u30ed\u30fc\u30ba"
-          },
-          "evidence_snapshot": {
-            "bt_confidence": "HIGH",
-            "bt_best_strategy": "atr_breakout",
-            "sentiment": {
-              "score": -0.05,
-              "label": "neutral"
-            },
-            "macro": {
-              "capital_flow_phase": "RISK_OFF_ACCUMULATE",
-              "collected_at": "2026-04-14T07:08:50.829276+00:00"
-            },
-            "btc": {
-              "price": 74535.45,
-              "change_24h": -0.01,
-              "change_30d": -0.47
-            },
-            "technicals": {
-              "rsi_14": 40.1,
-              "macd_signal": "unknown"
-            },
-            "voyager_matches": [
-              "Voyager Skill: eth_trade_pattern \u2014 ETH: \u52dd\u738762% \u5e73\u5747\u640d\u76ca+1.36%",
-              "Voyager Skill: aixbt_trade_pattern \u2014 AIXBT: \u52dd\u738758% \u5e73\u5747\u640d\u76ca-1.23%",
-              "Voyager Skill: aixbt_trade_pattern \u2014 AIXBT: \u52dd\u738758% \u5e73\u5747\u640d\u76ca-1.23%"
-            ],
-            "evolver_adjustments": [],
-            "reflexion_instruction": "\u601d\u8003\u30d0\u30a4\u30a2\u30b9: \u7279\u5b9a\u306e\u30b7\u30b0\u30ca\u30eb\u904e\u4fe1, \u5e02\u5834\u30bb\u30f3\u30c1\u30e1\u30f3\u30c8\u8efd\u8996, \u6a5f\u4f1a\u640d\u5931\u56de\u907f\u3078\u306e\u50be\u5012\n\u4eca\u56de\u8a72\u5f53: true\uff08\u4e2d\u7acb\u60c5\u5831\u3067\u65e9\u8a08\u306a\u884c\u52d5\u30ea\u30b9\u30af\uff09\nconfidence\u8abf\u6574: -3 (\u4e2d\u7acb\u60c5\u5831\u306b\u5bfe\u3057\u3001\u904e\u53bb\u306e\u6a5f\u4f1a\u640d\u5931\u56de\u907f\u30d0\u30a4\u30a2\u30b9\u304c\u518d\u767a\u3057\u3046\u308b\u305f\u3081)\n\u6b21\u56de\u6ce8\u610f: \u4e2d\u7acb\u60c5\u5831\u306b\u6d41\u3055\u308c\u305a\u3001\u591a\u89d2\u7684\u691c\u8a3c\u3068WAIT\u3092\u6700\u512a\u5148\u305b\u3088\u6226\u7565\u5236\u7d04\u9055\u53cd: \u306a\u3057\n\u6839\u62e0\u4fe1\u983c\u6027: 5/5 (\u5177\u4f53\u7684\u306a\u5224\u65ad\u304c\u306a\u3044\u305f\u3081\u518d\u767a\u306e\u78ba\u8a3c\u306f\u8584\u3044)\n"
           }
         }
       }
@@ -1283,8 +1165,45 @@
       "amount_token": 7757.613758244837,
       "amount_usd": 5616.526320689662,
       "reason": "Strategy Bull Stage 1: +7.8% >= +7.6% (sell 100%, \u5229\u76ca\u78ba\u5b9a)"
+    },
+    {
+      "timestamp": "2026-04-17T13:16:52.795334+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2405.06,
+      "amount_token": 1.8654996529297738,
+      "amount_usd": 4464.205402298905,
+      "reason": "Strategy Bull Stage 0: +2.7% >= +2.5% (sell 50%, \u30ea\u30b9\u30af\u30aa\u30d5)"
+    },
+    {
+      "timestamp": "2026-04-17T14:08:59.116729+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2436.42,
+      "amount_token": 1.8654996529297738,
+      "amount_usd": 4522.414961069204,
+      "reason": "RSI Exit at RSI=80.5 with +4.1% profit (RSI>75, min_profit=3.0%, profile: short)"
+    },
+    {
+      "timestamp": "2026-04-18T09:54:25.631221+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2376.33,
+      "amount_token": 1.8508072742422137,
+      "amount_usd": 4420.23,
+      "reason": "Trinity Council BUY verdict (accuracy: 52.38%, confidence: HIGH)",
+      "strategy_tag": "macd_cross"
+    },
+    {
+      "timestamp": "2026-04-19T02:26:02.486012+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2334.41,
+      "amount_token": 1.8508072742422137,
+      "amount_usd": 4298.940294018446,
+      "reason": "Strategy Bear Stage 0: -2.3% <= -2.0% (sell 100%, \u640d\u5207\u308a)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-16T13:22:45.636334+00:00"
+  "last_updated": "2026-04-19T02:26:02.486059+00:00"
 }

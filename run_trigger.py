@@ -1241,6 +1241,7 @@ def start_hybrid_radar():
             for _vsym in VOLATILITY_WATCH_SYMBOLS:
                 try:
                     # SQLite優先（API呼び出し削減・429対策）
+                    from orchestration.data_collector import get_latest_price_from_db
                     _vprice = get_latest_price_from_db(_vsym)
                     if _vprice is None:
                         _vdata = MarketData.fetch_token_data(_vsym)

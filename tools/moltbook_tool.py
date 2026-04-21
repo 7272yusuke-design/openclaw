@@ -15,7 +15,7 @@ class MoltbookTool:
         """LiteLLM経由でGeminiを呼び出し投稿テキストを生成。失敗時はNoneを返す。"""
         try:
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": (
                     f"{prompt}\n\n"
@@ -90,7 +90,7 @@ class MoltbookTool:
         try:
             import litellm, os
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": refine_prompt}],
                 max_tokens=400
@@ -135,7 +135,7 @@ class MoltbookTool:
         """Verification challengeの数学問題をLLMで解く。"""
         try:
             result = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model="openrouter/google/gemini-2.0-flash-001",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 messages=[{"role": "user", "content": f"Solve this math problem. Reply with ONLY the numeric answer with 2 decimal places (e.g. 15.00). Problem: {challenge_text}"}],
                 max_tokens=20

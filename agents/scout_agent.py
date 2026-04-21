@@ -90,10 +90,8 @@ class MarketTool(BaseTool):
 
 class ScoutCrew(NeoBaseCrew):
     def __init__(self):
-        self.custom_llm = LLM(
-            model="openrouter/google/gemini-2.0-flash-001",
-            api_key=os.environ.get("OPENROUTER_API_KEY")
-        )
+        from core.model_factory import ModelFactory
+        self.custom_llm = ModelFactory.get_crewai_llm("fast")
         super().__init__(name="EcosystemScout")
 
     def run(self, goal: str, context: str, **kwargs):
