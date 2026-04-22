@@ -800,7 +800,7 @@ class TrinityCouncil(NeoBaseCrew):
         # === F5: capital_flow_phase スコアリング注入 ===
         _macro_adj_map = {
             "RISK_OFF_ACCUMULATE": 5,
-            "RISK_ON_RIDE": 0,
+            "RISK_ON_RIDE": 3,          # v6.5be: 0→+3 RISK_ON局面で中立扱いは積極姿勢と矛盾
             "RISK_ON_DISTRIBUTE": -2,  # v6.5an: -5→-2 リスクは戦略SL/出口で管理
             "RISK_OFF_EXIT": -3,       # v6.5an: -10→-3 同上（二重減点排除）
         }
@@ -819,14 +819,24 @@ class TrinityCouncil(NeoBaseCrew):
                     _ss_data = _json_strat.load(_sf)
                 _ss_entry = _ss_data.get("scores", {}).get(bt_best_strategy, {})
                 _ss_tier = _ss_entry.get("tier", "mid")
+                _ss_winrate = _ss_entry.get('win_rate', 0)
                 if _ss_tier == "high":
                     _calc_conf += 5
-                    _strat_label = f"strat+5({bt_best_strategy}:{_ss_entry.get('win_rate',0)}%)"
+                    _strat_label = f"strat+5({bt_best_strategy}:{_ss_winrate}%)"
                 elif _ss_tier == "low":
                     _calc_conf -= 5
-                    _strat_label = f"strat-5({bt_best_strategy}:{_ss_entry.get('win_rate',0)}%)"
+                    _strat_label = f"strat-5({bt_best_strategy}:{_ss_winrate}%)"
                 else:
-                    _strat_label = f"strat0({bt_best_strategy}:{_ss_entry.get('win_rate','?')}%)"
+                    _strat_label = f"strat0({bt_best_strategy}:{_ss_winrate}%)"
+                # v6.5be: 「戦略がはまった瞬間に取引」方針 — bt=HIGH時の追加ボーナス
+                # バックテストHIGH + 戦略勝率良好 = 現在の相場にフィットしている強力なシグナル
+                if bt_confidence == "HIGH" and isinstance(_ss_winrate, (int, float)):
+                    if _ss_winrate >= 70:
+                        _calc_conf += 5
+                        _strat_label += "+fit5"
+                    elif _ss_winrate >= 60:
+                        _calc_conf += 3
+                        _strat_label += "+fit3"
         except Exception:
             pass
         # === E3: EvolveR動的ルール適用 ===
@@ -888,6 +898,25 @@ class TrinityCouncil(NeoBaseCrew):
         _calc_conf = max(20, min(95, _calc_conf))
         print(f"[Phase 4b] ルールベース再計算: {_calc_conf} (LLM={_llm_confidence}, bt={bt_confidence}, sent={sentiment_score:.2f}, acc={accuracy}%, {_tz_label}, {_npin_label}, {_streak_label}, {_cfr_label}, {_reflexion_label}, {_evolver_label}, {_planning_label}, {_strat_label})")
         _structured_confidence = _calc_conf
+
+        # ============================================================
+        # Phase 4c: ルールベース verdict 決定（v6.5be — 白書方針の完全実施）
+        # 「LLMのconfidenceは参考値のみ → Phase 4bルールベースで常に上書き」
+        # これまでconfidence値のみ上書きしていたが、verdict自体もルールベースで決定
+        # 戦略がはまった瞬間（スコア高）に確実にBUYするため
+        # ============================================================
+        _llm_verdict = first_word
+        # SELL判定はLLMに委ねる（売却シグナルは別ロジック、今回のスコープ外）
+        if first_word != "SELL":
+            if _calc_conf >= 65:
+                first_word = "BUY"
+            elif _calc_conf < 45:
+                first_word = "WAIT"
+            # 45 <= _calc_conf < 65 はグレーゾーンとしてLLM判定を尊重
+            if _llm_verdict != first_word:
+                print(f"[Phase 4c] ⚡ verdict上書き: LLM={_llm_verdict} → Rule={first_word} (calc_conf={_calc_conf})")
+            else:
+                print(f"[Phase 4c] verdict確定: {first_word} (calc_conf={_calc_conf}, LLM一致)")
 
         # ============================================================
         # Phase 3b: 戦略書生成（Phase S1 — verdict=BUY時のみ）
