@@ -821,6 +821,23 @@ def _run_nightly_batch():
         except Exception as e:
             logger.error(f"[Nightly] VP Discovery失敗: {e}")
 
+    # 3c. Voyager V2 発見層（週次・日曜のみ）
+    if datetime.now(timezone.utc).weekday() == 6:  # 6=日曜
+        logger.info("[Nightly] Step 3c: Voyager V2 Discovery（週次）")
+        try:
+            from research.voyager_v2_discovery import run_voyager_v2_discovery
+            v2_result = run_voyager_v2_discovery(dry_run=False)
+            if v2_result.get("status") == "ok" and v2_result.get("validated_count", 0) > 0:
+                DiscordReporter.send_log(
+                    "🔭 Voyager V2: 新仮説発見",
+                    f"**検証通過**: {v2_result['validated_count']}件 / **LLM発見**: {v2_result['raw_count']}件\n"
+                    f"**対象**: {v2_result['pair_count']}ペア / 全体勝率{v2_result['overall_win_rate']}%\n"
+                    f"※ 参考情報としてCouncilに注入中(本番判定には未反映)",
+                    0x9b59b6
+                )
+        except Exception as e:
+            logger.error(f"[Nightly] Voyager V2失敗: {e}")
+
     # 3. Nightly Research（洞察投稿・学習報告）
     logger.info("[Nightly] Step 3/8: Nightly Research")
     try:
