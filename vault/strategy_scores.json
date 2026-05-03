@@ -2,11 +2,11 @@
   "scores": {
     "atr_breakout": {
       "wins": 14,
-      "losses": 7,
-      "total": 21,
-      "win_rate": 66.7,
-      "avg_pnl": 2.53,
-      "tier": "high"
+      "losses": 8,
+      "total": 22,
+      "win_rate": 63.6,
+      "avg_pnl": 2.41,
+      "tier": "mid"
     },
     "triple_ma_cross": {
       "wins": 2,
@@ -17,12 +17,12 @@
       "tier": "mid"
     },
     "gplearn_evolved": {
-      "wins": 4,
+      "wins": 7,
       "losses": 3,
-      "total": 7,
-      "win_rate": 57.1,
-      "avg_pnl": 1.03,
-      "tier": "mid"
+      "total": 10,
+      "win_rate": 70.0,
+      "avg_pnl": 1.8,
+      "tier": "high"
     },
     "macd_cross": {
       "wins": 3,
@@ -31,8 +31,16 @@
       "win_rate": 100.0,
       "avg_pnl": 5.41,
       "tier": "high"
+    },
+    "macro_value": {
+      "wins": 1,
+      "losses": 0,
+      "total": 1,
+      "win_rate": 100.0,
+      "avg_pnl": 2.11,
+      "tier": "mid"
     }
   },
-  "generated_at": "2026-04-20T17:04:34.933045+00:00",
-  "total_pairs": 33
+  "generated_at": "2026-05-02T17:02:16.348883+00:00",
+  "total_pairs": 38
 }

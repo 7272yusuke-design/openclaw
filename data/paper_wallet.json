@@ -1,5 +1,5 @@
 {
-  "usd_balance": 79258.81510809665,
+  "usd_balance": 78603.63517212427,
   "holdings": {
     "BTC": {
       "amount": 0.11774121816119104,
@@ -1202,8 +1202,113 @@
       "amount_token": 1.8508072742422137,
       "amount_usd": 4298.940294018446,
       "reason": "Strategy Bear Stage 0: -2.3% <= -2.0% (sell 100%, \u640d\u5207\u308a)"
+    },
+    {
+      "timestamp": "2026-04-22T07:03:56.989165+00:00",
+      "symbol": "VIRTUAL",
+      "action": "BUY",
+      "price": 0.707697666320138,
+      "amount_token": 4973.877571623464,
+      "amount_usd": 3537.69,
+      "reason": "Trinity Council BUY verdict (accuracy: 51.76%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-22T11:50:59.006454+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2392.39,
+      "amount_token": 2.2085024807828155,
+      "amount_usd": 5310.15,
+      "reason": "Trinity Council BUY verdict (accuracy: 51.76%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-22T15:03:13.904964+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2399.88,
+      "amount_token": 1.8356387611047218,
+      "amount_usd": 4427.45,
+      "reason": "Trinity Council BUY verdict (accuracy: 51.76%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-23T00:14:16.447524+00:00",
+      "symbol": "VIRTUAL",
+      "action": "SELL",
+      "price": 0.687652583294591,
+      "amount_token": 4973.877571623464,
+      "amount_usd": 3403.1982623123126,
+      "reason": "Strategy Bear Stage 0: -3.3% <= -3.2% (sell 100%, \u640d\u5207\u308a:\u30ea\u30b9\u30af\u56de\u907f)"
+    },
+    {
+      "timestamp": "2026-04-23T00:16:38.793380+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2357.33,
+      "amount_token": 4.044141241887537,
+      "amount_usd": 9485.708596370054,
+      "reason": "Strategy Bear Stage 0: -2.1% <= -1.8% (sell 100%, \u30ea\u30b9\u30af\u30aa\u30d5\u9023\u9396\u4e0b\u843d)"
+    },
+    {
+      "timestamp": "2026-04-26T19:53:35.267130+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2366.1,
+      "amount_token": 1.8520809982671906,
+      "amount_usd": 4404.23,
+      "reason": "Trinity Council BUY verdict (accuracy: 50.0%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-26T23:21:16.021370+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2359.6,
+      "amount_token": 2.2279844677063907,
+      "amount_usd": 5283.57,
+      "reason": "Trinity Council BUY verdict (accuracy: 50.0%, confidence: HIGH)",
+      "strategy_tag": "atr_breakout"
+    },
+    {
+      "timestamp": "2026-04-27T03:45:24.162600+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2398.8,
+      "amount_token": 2.0400327329867904,
+      "amount_usd": 4869.162367289269,
+      "reason": "Strategy Bull Stage 0: +1.0% >= +1.0% (sell 50%, \u30ea\u30b9\u30af\u30aa\u30d5\u306e\u305f\u3081\u534a\u5229\u78ba)"
+    },
+    {
+      "timestamp": "2026-04-27T05:15:51.446409+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2354.34,
+      "amount_token": 2.0400327329867904,
+      "amount_usd": 4778.91601125722,
+      "reason": "Strategy Bear Stage 0: -0.8% <= -0.8% (sell 100%, \u640d\u5931\u9650\u5b9a\u306e\u305f\u3081\u5168\u640d\u5207\u308a)"
+    },
+    {
+      "timestamp": "2026-04-29T10:10:48.501807+00:00",
+      "symbol": "ETH",
+      "action": "BUY",
+      "price": 2340.95,
+      "amount_token": 2.617806980072193,
+      "amount_usd": 6158.95,
+      "reason": "Trinity Council BUY verdict (accuracy: 50.55%, confidence: HIGH)",
+      "strategy_tag": "macd_cross"
+    },
+    {
+      "timestamp": "2026-04-29T15:42:04.644200+00:00",
+      "symbol": "ETH",
+      "action": "SELL",
+      "price": 2276.59,
+      "amount_token": 2.617806980072193,
+      "amount_usd": 5929.874826798741,
+      "reason": "Stop Loss at -3.2% (limit: -3.0%, profile: short)"
     }
   ],
   "created_at": "2026-02-28T07:13:32.439285",
-  "last_updated": "2026-04-19T02:26:02.486059+00:00"
+  "last_updated": "2026-04-29T15:42:04.644245+00:00"
 }

@@ -1,34 +1,6 @@
 {
-  "generated_at": "2026-04-22T07:27:05.298857+00:00",
-  "overall_win_rate": 69.7,
-  "pair_count": 33,
-  "hypotheses": [
-    {
-      "name": "atr_breakout_stoploss_loss",
-      "condition_text": "strategy_tag=atr_breakout AND sell_reason_category=stop_loss",
-      "condition_logic": {
-        "AND": [
-          {
-            "field": "strategy_tag",
-            "op": "eq",
-            "value": "atr_breakout"
-          },
-          {
-            "field": "sell_reason_category",
-            "op": "eq",
-            "value": "stop_loss"
-          }
-        ]
-      },
-      "sample_size": 10,
-      "win_rate": 30.0,
-      "hypothesis": "ATRブレイクアウト戦略において、ストップロスでの損切りは損失を限定するものの、全体勝率を押し下げている。",
-      "_validation": {
-        "accepted": true,
-        "reject_reason": "",
-        "actual_sample_size": 8,
-        "actual_win_rate": 37.5
-      }
-    }
-  ]
+  "generated_at": "2026-04-26T17:01:43.173979+00:00",
+  "overall_win_rate": 68.6,
+  "pair_count": 35,
+  "hypotheses": []
 }

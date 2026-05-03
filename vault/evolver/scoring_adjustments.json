@@ -1,6 +1,19 @@
 {
-  "adjustments": [],
-  "generated_at": "2026-04-21T17:03:46.473824+00:00",
-  "total_adjustments": 0,
-  "source_pairs": 85
+  "adjustments": [
+    {
+      "rule_id": "R_sym_eth_low",
+      "condition": {
+        "type": "symbol",
+        "match": "ETH"
+      },
+      "adjustment": -2,
+      "evidence": "49件中22勝(45%)",
+      "min_sample_size": 3,
+      "actual_sample_size": 49,
+      "expires_at": "2026-06-01T17:02:20.369935+00:00"
+    }
+  ],
+  "generated_at": "2026-05-02T17:02:20.369935+00:00",
+  "total_adjustments": 1,
+  "source_pairs": 92
 }
