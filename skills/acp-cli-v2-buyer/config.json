@@ -1,0 +1,25 @@
+{
+  "agents": {
+    "0x75e653970fd3d0c343177fbe7b4c1c85ae0a300a": {
+      "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExk7P7t7qDiIxqzLrGPblc1xo9X9bcPFZrhoXord15Upe+jcd6p/uQwTEjuyjBevGGjK58Zq6JJ6KPdWe3gfOBQ==",
+      "id": "019d7659-6dd1-7067-a5ff-d74f567a3961",
+      "walletId": "q6819z8fmd2ios2l6nnrf505"
+    },
+    "0x11ab498cea003b73b66ab48222cb240fe7a9ee82": {
+      "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMD3QrpFOHBK5SFZkWCpYVIxJyHxMFhIWFk0jIgzSRWlCHy0kYym3LYNmuK0ZANY243XW6/swZfGaaQ5E6D5Qrw==",
+      "id": "019d76d4-4e69-76c4-99d7-b90c64988af3",
+      "walletId": "ebwhtj033sjo8cfx17fdlm86"
+    },
+    "0x840cff9032a4ce29845e05aed510f0ca4ea16cab": {
+      "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExy64e0+tgXIcnT2rTd0ikAafxSoyMn4T9O8saPC1up+DJLq93qa7Hi6VIBRKTSTaE4Y07d2i2agefDzqEwwEXQ==",
+      "walletId": "fjw429slut1eygk4gipj7y6d",
+      "id": "019d7b3f-c2d8-7a52-839c-9629f4abb5dc"
+    },
+    "0x131d3ff8250b00da4753b06317d826ffefde5912": {
+      "publicKey": "",
+      "id": "019d7bb4-d669-7809-a171-e6996c632eea"
+    }
+  },
+  "activeWallet": "0x11ab498cea003b73b66ab48222cb240fe7a9ee82",
+  "jobRegistry": {}
+}
