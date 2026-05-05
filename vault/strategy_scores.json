@@ -33,14 +33,14 @@
       "tier": "high"
     },
     "macro_value": {
-      "wins": 1,
+      "wins": 4,
       "losses": 0,
-      "total": 1,
+      "total": 4,
       "win_rate": 100.0,
-      "avg_pnl": 2.11,
-      "tier": "mid"
+      "avg_pnl": 4.01,
+      "tier": "high"
     }
   },
-  "generated_at": "2026-05-02T17:02:16.348883+00:00",
-  "total_pairs": 38
+  "generated_at": "2026-05-04T17:03:39.570344+00:00",
+  "total_pairs": 41
 }
