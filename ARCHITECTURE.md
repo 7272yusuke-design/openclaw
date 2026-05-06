@@ -12,7 +12,7 @@
 | `neo-radar` | `run_trigger.py` | **メインループ**（30秒サイクル）— 5層売却（戦略別出口）・2hローテーションCouncil（BTC→VIRTUAL→ETH→AIXBT）・Alpha Sweep・Moltbook・Nightly Batch |
 | `neo-collector` | `orchestration/data_collector.py` | 市場データ収集（5分tick + 60分OHLCV + 日次パージ） |
 | `neo-resource-api` | `tools/neo_resource_api.py` | FastAPI port 8099 — ACP Resource提供用 |
-| `neo-acp-seller` | ACP seller runtime | WebSocket常駐 — ACP Job受付・処理 |
+| `neo-acp-seller-v2` | ACP v2 seller runtime (`skills/acp-cli-v2/src/seller/seller_native_v2.ts`) | SSE常駐 — ACP v2 Job受付・処理（v6.5bnでv1から完全移行） |
 
 ---
 
@@ -27,8 +27,7 @@ workspace/
 │   ├── sentiment_agent.py  ← SentimentCrew [trinity_council から lazy import]
 │   ├── backtest_agent.py   ← BacktestAgent [trinity_council から使用]
 │   ├── planning_agent.py   ← PlanningCrew Phase 1e戦略リスク評価+F5資本フローフェーズ判定 [trinity_council]
-│   ├── development_agent.py← DevelopmentCrew [未使用だが将来用に保持]
-│   └── acp_executor_agent.py← ACPExecutorCrew [未使用だが将来用に保持]
+│   └── development_agent.py← DevelopmentCrew [未使用だが将来用に保持]
 │
 ├── core/                   ← 共通基盤
 │   ├── config.py           ← 設定管理（LIVE_MODE・EXIT_PROFILES・TIER0_SYMBOLS等）
@@ -117,11 +116,17 @@ workspace/
 │   ├── acp_schema.py       ← ACPスキーマ定義
 │   └── crewai_bridge.py    ← CrewAI連携
 │
-├── skills/                 ← スキル定義
-│   └── virtuals-protocol-acp/  ← **ACP Seller**
-│       ├── src/seller/offerings/  ← 9 offerings（3 Listed + 6 Local）
-│       ├── src/seller/resources/  ← 3 resources
-│       └── src/seller/runtime/    ← Seller WebSocketランタイム
+├── skills/                 ← スキル定義（VP関連は docs/VP_overview_v2.md 参照）
+│   ├── acp-cli-v2/         ← **ACP v2 Seller runtime（現役）**
+│   │   ├── src/seller/seller_native_v2.ts  ← メインエントリ（systemd: neo-acp-seller-v2）
+│   │   ├── src/seller/offeringsLoader.ts   ← offerings動的ロード
+│   │   ├── src/lib/agentFactory.ts         ← Privy provider生成（builderCode=bc_agxzezgu）
+│   │   └── config.json     ← activeWallet=0x840cff... (NeoAutonomous v2)
+│   ├── acp-cli-v2-buyer/   ← Buyer用（acp-cli-v2をシンボリックリンク共有・configのみ別）
+│   │   └── config.json     ← activeWallet=0x11ab498c... (neo-test-buyer-v2)
+│   └── virtuals-protocol-acp/  ← **offerings本体（11個）**
+│       ├── src/seller/offerings/  ← 11 offerings（VP_overview_v2.md §7参照）
+│       └── src/seller/resources/  ← 3 resources
 │
 ├── data/                   ← ランタイムデータ（JSON）
 │   ├── paper_wallet.json   ← PaperWallet状態
@@ -184,49 +189,35 @@ run_trigger.py（30秒ループ）
 
 ---
 
-## ACP構成
+## VP/ACP構成
 
-### Seller構造
-```
-skills/virtuals-protocol-acp/src/seller/
-├── offerings/          ← 各offering = offering.json + handlers.ts
-│   ├── graduation_boost/    [Listed $0.50]
-│   ├── offering_audit/      [Listed $0.30]
-│   ├── profile_seo/         [Listed $0.30]
-│   ├── vp_sentiment_scan/   [Local $0.20]
-│   ├── vp_market_analysis/  [Local $0.50]
-│   ├── vp_trade_evaluation/ [Local $0.50]
-│   ├── vp_backtest_on_demand/[Local $1.00]
-│   ├── vp_correlation_risk/ [Local $0.30]
-│   └── vp_whale_alert/      [Local $0.30]
-├── resources/          ← Resource API連携（3リソース）
-└── runtime/            ← WebSocketランタイム
-```
+VP関連の物理構造・状態・既知の問題は別ドキュメントに集約。本セクションは概略のみ。
 
-### ACP操作コマンド（クイックリファレンス）
-```bash
-cd skills/virtuals-protocol-acp
-npx tsx bin/acp.ts sell list              # 公開中offerings一覧
-npx tsx bin/acp.ts sell create <name>     # offering公開
-npx tsx bin/acp.ts sell delete <name>     # offering非公開化
-npx tsx bin/acp.ts browseAgents <query>   # Butler検索テスト
-npx tsx bin/acp.ts profile get            # プロフィール確認
-```
+### 詳細ドキュメント
+- **docs/VP_overview_v2.md** — VP関連コードベース全体像（必読・現状マップ）
+- **docs/wallet_inventory.md** — ウォレット情報・残高・Builder Code
+- **docs/VP_refactor_plan_v1.md** — リファクタ実行計画
 
-### handlers.ts 注意点
-- リクエストフィールドは `request.X`（`request.requirements.X` はNG — v6.5jバグ）
-- offering.jsonの`inputSchema`とhandlers.tsの参照フィールド名を必ず一致させる
+### 主要エントリポイント
+- v2 Seller: `skills/acp-cli-v2/src/seller/seller_native_v2.ts` (systemd: `neo-acp-seller-v2.service`)
+- offerings本体: `skills/virtuals-protocol-acp/src/seller/offerings/` (11個)
+- Provider生成: `skills/acp-cli-v2/src/lib/agentFactory.ts` (Builder Code: `bc_agxzezgu` 反映済)
+- Trinity Council統合: `bridge/acp_client.py` (参考情報注入のみ・方針X)
+- VP銘柄発見: `orchestration/vp_discovery.py` (週次・月曜JST 04:00)
+- Resource API: `tools/neo_resource_api.py` (FastAPI port 8099)
 
-### Graduation要件
-1. Sandbox状態で10件のジョブ完了（うち3件連続成功）
-2. 各offeringの動作録画（ターミナル + ACP Visualizer）
-3. ~7営業日の手動レビュー
-4. 資金: ~$25 USDC/ETH on Base chain
+### v1 → v2 移行（v6.5bn完了）
+- v1 (`neo-acp-seller.service`): archive 済（v6.5bn）
+- v2 (`neo-acp-seller-v2.service`): 現役・DRY_RUN=false で稼働中
+- v1 SDK (`acp-node v0.3.0-beta.40`) → v2 SDK (`acp-node-v2`)
+- v1 transport (WebSocket) → v2 transport (SSE)
+- 移行理由: VP Graduation flow が v2 native SDK 基準にメジャー更新
 
-> **現状**: NeoAutonomous (ID 41437) — 100%表示だがGraduateボタン未出現。
-> OpenClaw CLIベースのNeo (ID 19768) は非アクティブ。詳細はgraduation_history.md参照
-
----
+### 重要事項（必ず守ること）
+- Trinity Council のACP外部エージェントシグナルは「参考情報注入のみ」（方針X）
+- 残2ウォレット（buyer / seller）の Withdraw 試行は絶対禁止（v6.5bm凍結事例）
+- Issue #82 のレスが来るまで VP Registry への変更操作（Re-Import等）禁止
+- DRY_RUN=false 維持（V2_SELLER_DRY_RUN環境変数）
 
 ## データ所在
 

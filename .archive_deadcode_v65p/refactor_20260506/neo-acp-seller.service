@@ -1,0 +1,13 @@
+[Unit]
+Description=Neo ACP Native Seller Runtime (Job受付)
+After=network.target neo-radar.service
+
+[Service]
+Type=simple
+WorkingDirectory=/docker/openclaw-taan/data/.openclaw/workspace
+ExecStart=/usr/bin/npx tsx skills/virtuals-protocol-acp/src/seller/runtime/seller_native.ts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
