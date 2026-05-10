@@ -1011,6 +1011,9 @@ BUY判断が下された。このポジションの戦略書を作成せよ。
 - ATR(14): ${_strat_atr:.6f} ({_strat_atr_pct:.2f}%) — SL/TPはATRを基準に設計せよ
   - 推奨SL: 1.5〜2.5×ATR = {_strat_atr_pct*1.5:.1f}%〜{_strat_atr_pct*2.5:.1f}%
   - 推奨TP: 2〜4×ATR = {_strat_atr_pct*2:.1f}%〜{_strat_atr_pct*4:.1f}%
+  - ⚠️ risk_pct（絶対値）の下限: max(2.0, ATR%×1.5) = {max(2.0, _strat_atr_pct*1.5):.2f}% を絶対に下回るな
+  - ⚠️ RR比はtarget_pctを伸ばして稼ぐこと。stop_priceを縮めてRRを稼ぐのは禁止（市場ノイズで刈られる）
+  - ⚠️ bear_scenario.exit_stages[0].trigger_pct は -risk_pct と一致させよ（不整合は却下）
 - リスク/リワード比: 最低1.5以上（TP%÷SL%≧1.5）
 【exit_stagesルール】
 - bull_scenario.exit_stages: 段階的利確。trigger_pctはentry価格からの変動%、sell_pctは残ポジションの何%を売るか
@@ -1140,8 +1143,28 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                 if not _bear_stages or not isinstance(_bear_stages, list):
                     _bear_stages = [{"trigger_pct": -round(_risk_pct, 1) if _risk_pct > 0 else -3.0, "sell_pct": 100, "note": "auto: SL"}]
                     _strat_parsed.setdefault("bear_scenario", {})["exit_stages"] = _bear_stages
+                # v6.5bq: exit_stages整合補正 — trigger_pctがrisk_pctより浅い場合は深い側に揃える
+                # （LLMが risk_pct=-6 と書きつつ trigger_pct=-0.7 を出してくる対策）
+                if _risk_pct > 0 and _bear_stages:
+                    _corrected_stages = []
+                    for _stg in _bear_stages:
+                        try:
+                            _trig = float(_stg.get("trigger_pct", -999))
+                            # trigger_pctは負、_risk_pctは正の絶対値。-_risk_pctより浅ければ補正
+                            if _trig > -_risk_pct:
+                                _stg = dict(_stg)
+                                _stg["trigger_pct"] = -_risk_pct
+                                _stg["note"] = (str(_stg.get("note", "")) + " [v6.5bq: risk_pct連動補正]")[:80]
+                        except (TypeError, ValueError):
+                            pass
+                        _corrected_stages.append(_stg)
+                    _bear_stages = _corrected_stages
+                    _strat_parsed.setdefault("bear_scenario", {})["exit_stages"] = _bear_stages
                 _rr_ratio = (_target_pct / _risk_pct) if _risk_pct > 0 else 0
-                _risk_ok = _risk_pct <= 6.0  # ハード制約: -6%超は却下
+                # v6.5bq: SL下限制約追加 — max(2.0%, ATR×1.5)
+                # 狭SLによる「ノイズ範囲の損切り」を排除
+                _min_risk = max(2.0, _strat_atr_pct * 1.5)
+                _risk_ok = (_risk_pct <= 6.0) and (_risk_pct >= _min_risk)
                 _rr_ok = _rr_ratio >= 1.5  # ハード制約: RR比1.5未満は却下
                 if len(_bull_ev) >= 3 and len(_bear_ev) >= 3 and _has_num(_bull_ev) and _has_num(_bear_ev) and _risk_ok and _rr_ok:
                     # evidence_snapshot自動付加
@@ -1168,7 +1191,11 @@ RSI(14): {_strat_rsi:.1f} | MACD: {_strat_macd}
                     _rej_reason = []
                     if len(_bull_ev) < 3: _rej_reason.append(f"bull_ev={len(_bull_ev)}<3")
                     if len(_bear_ev) < 3: _rej_reason.append(f"bear_ev={len(_bear_ev)}<3")
-                    if not _risk_ok: _rej_reason.append(f"risk={_risk_pct:.1f}%>6%")
+                    if not _risk_ok:
+                        if _risk_pct < _min_risk:
+                            _rej_reason.append(f"risk={_risk_pct:.2f}%<{_min_risk:.2f}%(ATR連動下限)")
+                        else:
+                            _rej_reason.append(f"risk={_risk_pct:.1f}%>6%")
                     if not _rr_ok: _rej_reason.append(f"RR={_rr_ratio:.2f}<1.5")
                     if not _has_num(_bull_ev): _rej_reason.append("bull定量データなし")
                     if not _has_num(_bear_ev): _rej_reason.append("bear定量データなし")
