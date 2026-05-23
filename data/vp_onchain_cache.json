@@ -1,1 +1,1 @@
-{"dex_BTC": {"symbol": "BTC", "price_usd": 75368.033, "volume_24h": 227749.41, "liquidity_usd": 8327040036.69, "price_change_24h": 0.0, "dex_name": "raydium", "chain": "solana", "fetched_at": "2026-05-06T07:32:26.233903+00:00"}, "_ts": 1778052746.2339911}
+{"dex_ETH": {"symbol": "ETH", "price_usd": 3913.49, "volume_24h": 2.91, "liquidity_usd": 517710636.84, "price_change_24h": 0.0, "dex_name": "raydium", "chain": "solana", "fetched_at": "2026-05-23T03:29:37.900454+00:00"}, "_ts": 1779506977.9005399}

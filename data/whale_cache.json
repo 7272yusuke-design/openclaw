@@ -1,34 +1,48 @@
 {
   "whale_VIRTUAL": {
     "symbol": "VIRTUAL",
-    "whale_count": 3,
-    "whale_volume_usd": 59401,
+    "whale_count": 6,
+    "whale_volume_usd": 77591,
     "large_txs": [
       {
-        "from": "0x3f0296BF...",
-        "to": "0xb6AC5363...",
-        "amount_usd": 21152,
-        "amount_tokens": 25814,
-        "tx_hash": "0x0ceed27cfe4374..."
-      },
-      {
-        "from": "0xb6AC5363...",
+        "from": "0xBFcE8f38...",
         "to": "0x3f0296BF...",
-        "amount_usd": 26681,
-        "amount_tokens": 32561,
-        "tx_hash": "0x89ade66fafc390..."
+        "amount_usd": 11491,
+        "amount_tokens": 16071,
+        "tx_hash": "0x0d967f079d7545..."
       },
       {
-        "from": "0xC216BfA5...",
-        "to": "0x529d2863...",
-        "amount_usd": 11568,
-        "amount_tokens": 14117,
-        "tx_hash": "0x6e9c88607ca828..."
+        "from": "0x3f0296BF...",
+        "to": "0xBFcE8f38...",
+        "amount_usd": 11491,
+        "amount_tokens": 16071,
+        "tx_hash": "0x1d18139284d60e..."
+      },
+      {
+        "from": "0x416Ec2cA...",
+        "to": "0x79594b9C...",
+        "amount_usd": 14873,
+        "amount_tokens": 20801,
+        "tx_hash": "0x5cccc043210cea..."
+      },
+      {
+        "from": "0x79594b9C...",
+        "to": "0x9520E1a3...",
+        "amount_usd": 14866,
+        "amount_tokens": 20792,
+        "tx_hash": "0x5cccc043210cea..."
+      },
+      {
+        "from": "0x9520E1a3...",
+        "to": "0x79594b9C...",
+        "amount_usd": 14866,
+        "amount_tokens": 20792,
+        "tx_hash": "0xa38d1ab90c5555..."
       }
     ],
     "signal": "WHALE_ACTIVE",
     "scanned_blocks": 300,
-    "fetched_at": "2026-05-06T05:30:44.737758+00:00"
+    "fetched_at": "2026-05-23T02:28:04.763714+00:00"
   },
-  "_ts": 1778045444.7378395
+  "_ts": 1779503284.7638075
 }

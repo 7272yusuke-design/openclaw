@@ -1,6 +1,34 @@
 {
-  "generated_at": "2026-05-03T17:01:38.815891+00:00",
-  "overall_win_rate": 73.0,
-  "pair_count": 37,
-  "hypotheses": []
+  "generated_at": "2026-05-10T17:03:37.684533+00:00",
+  "overall_win_rate": 100.0,
+  "pair_count": 17,
+  "hypotheses": [
+    {
+      "name": "macro_value_weekday",
+      "condition_text": "strategy_tag=macro_value AND buy_dow=0",
+      "condition_logic": {
+        "AND": [
+          {
+            "field": "strategy_tag",
+            "op": "eq",
+            "value": "macro_value"
+          },
+          {
+            "field": "buy_dow",
+            "op": "eq",
+            "value": 0
+          }
+        ]
+      },
+      "sample_size": 6,
+      "win_rate": 100.0,
+      "hypothesis": "週明けは機関投資家の活動が活発になり、マクロ戦略が機能しやすい。",
+      "_validation": {
+        "accepted": true,
+        "reject_reason": "",
+        "actual_sample_size": 7,
+        "actual_win_rate": 100.0
+      }
+    }
+  ]
 }
